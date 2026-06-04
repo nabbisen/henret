@@ -36,11 +36,19 @@ executable. Each transition is guarded; invalid operations return the state
 ## 5. The lifecycle — `Henret/Actor/Task.lean`
 
 ```text
-new -> ready -> running -> yielded -> ready
-new -> ready -> running -> sleeping -> ready
-running -> completed | running/sleeping/ready -> cancelled
+spawn    : (no task)             -> new       (+ enqueued)
+schedule : new | ready | yielded -> running   (from queue head)
+yield    : running               -> yielded   (+ re-enqueued)
+sleep    : running               -> sleeping  (+ timer)
+wake/tick: sleeping              -> ready     (+ enqueued)
+complete : running               -> completed
+cancel   : any non-terminal      -> cancelled
 completed and cancelled are terminal (a theorem, not a convention)
 ```
+
+Note that `new` and `yielded` are themselves runnable: `schedule` takes the
+queue head directly from any of the three runnable states; there is no
+separate "promotion" of `new` to `ready`.
 
 ## 6. The flagship proof — `Henret/Proofs/Lifecycle.lean`
 

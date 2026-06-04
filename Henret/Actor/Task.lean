@@ -48,12 +48,19 @@ end Henret
 
 Task lifecycle states (RFC 004).
 
+The runnable states are `new`, `ready`, and `yielded` — all three can be
+scheduled directly (see `TaskState.isRunnable`).  The actual transitions
+performed by `step`:
+
 ```
-new -> ready -> running -> yielded -> ready
-new -> ready -> running -> sleeping -> ready
-running -> completed
-running -> cancelled / sleeping -> cancelled / ready -> cancelled
-completed and cancelled are terminal
+spawn    : (no task)            -> new       (+ enqueued)
+schedule : new | ready | yielded -> running
+yield    : running              -> yielded   (+ re-enqueued)
+sleep    : running              -> sleeping  (+ timer registered)
+wake     : sleeping             -> ready     (+ enqueued)
+tick     : sleeping (expired)   -> ready     (+ enqueued)
+complete : running              -> completed
+cancel   : any non-terminal     -> cancelled (dequeued, timer dropped)
 ```
 
 `completed` and `cancelled` are terminal: no operation of the model

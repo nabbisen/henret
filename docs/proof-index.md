@@ -66,3 +66,31 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 - `nativeDequeModel : DequeModel` — definitional, no proof burden beyond axioms.
 - `nativeDequeModel_qRun_tracks` — PROVEN; depends on exactly the 6 axioms.
 - `nativeDequeModel_driveComplete` — PROVEN; no native axioms.
+
+## v0.2.0 — `Henret/Proofs/Ownership.lean`
+
+- `wakeOne_isSome`, `wakeMany_isSome` — waking never un-spawns.
+- `step_preserves_spawned` — `some` states never return to `none`.
+- `spawn_sets_owner`, `step_preserves_owner`, `run_preserves_owner` —
+  ownership set at spawn, immutable forever.
+
+## v0.2.0 — `Henret/Proofs/Invariants.lean`
+
+- `nodup_of_sublist`, `nodup_append_singleton`, `nodup_append`,
+  `nodup_task_inj`, `mem_map_insertSorted`, `insertSorted_task_nodup` —
+  core-only list/timer helpers.
+- `WellFormed` — six-field reachability invariant.
+- `wf_init`; corollaries `ready_not_running`, `ready_no_timer`,
+  `running_no_timer` (location disjointness derived from state uniqueness).
+
+## v0.2.0 — `Henret/Proofs/InvariantsPreservation.lean`
+
+- `step_preserves_wf` — all ten operations preserve `WellFormed`.
+- `run_preserves_wf`, `reachable_wf` — every reachable state is well-formed.
+
+## v0.2.0 — additions to existing files
+
+- `Henret/Proofs/Lifecycle.lean`: `step_invalid_unchanged`.
+- `Henret/Proofs/Timers.lean`: `tick_advances_clock`,
+  `tick_backwards_invalid`, `step_clock_monotone`; tick theorems
+  re-proved under the monotonicity guard.

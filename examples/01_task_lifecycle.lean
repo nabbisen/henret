@@ -4,13 +4,17 @@ import Henret
 
 Concept: the task lifecycle state machine.
 
+`new`, `ready`, and `yielded` are all runnable — `schedule` takes the
+queue head directly from any of them.
+
 ```
-new ──▶ ready ──▶ running ──▶ yielded ──▶ (back to ready)
-                    │
-                    ├──▶ sleeping ──▶ (back to ready via tick/wake)
-                    │
-                    ├──▶ completed  (terminal)
-                    └──▶ cancelled  (terminal)
+spawn ──▶ new ──┐
+                ├──(schedule)──▶ running ──▶ yielded ──┐
+     ready ◀──┐ │                  │        (re-queued)│
+   (queued)   │ └──◀───────────────┼───◀───────────────┘
+              │                    ├──▶ sleeping ──(tick/wake)──▶ ready
+              │                    ├──▶ completed  (terminal)
+              └────────────────────└──▶ cancelled  (terminal)
 ```
 
 Run with:  `lake env lean examples/01_task_lifecycle.lean`

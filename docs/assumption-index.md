@@ -37,7 +37,7 @@ explicitly in `#print axioms nativeDequeModel_qRun_tracks`.
 - OS scheduling fairness
 - Wall-clock timer accuracy
 
-### Conformance testing (post-v0.1.0)
+### Conformance testing (planned follow-up work)
 
 Each axiom should be mapped to a differential test comparing `NativeDeque`
 against `listDeque` on representative programs.  See

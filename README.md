@@ -28,8 +28,11 @@ Henret deliberately does **not** claim to be:
 - a native thread library,
 - a fully verified lock-free scheduler.
 
-The Lean-only model is the product. Native backends are optional, clearly
-separated, future material (see `rfcs/proposed/010-optional-ffi-backend-boundary.md`).
+The Lean-only model is the product. The Lean-only core has zero
+project-specific assumptions. The optional native-boundary module
+(`Henret.Native.*`, see `rfcs/done/010-optional-ffi-backend-boundary.md`)
+declares six project-specific axioms; actual C linkage and conformance tests
+are planned follow-up work.
 
 ## Why and when to use Henret
 
@@ -97,6 +100,17 @@ open Henret
   `run_preserves_sorted`).
 - **Drain liveness** — the drain driver completes every queued runnable task
   (`drain_completes`).
+- **Reachability invariant** (v0.2.0) — every reachable state is well-formed:
+  the ready queue never duplicates a task, every queued task is runnable,
+  every timer task is sleeping, and a task occupies at most one ownership
+  location (`reachable_wf`, `WellFormed`).
+- **Ownership immutability** (v0.2.0) — a spawned task's owning actor never
+  changes (`spawn_sets_owner`, `run_preserves_owner`).
+- **Invalid is a no-op** (v0.2.0) — an invalid operation never mutates state
+  (`step_invalid_unchanged`).
+- **Monotone logical time** (v0.2.0) — no operation decreases the clock;
+  backwards ticks are invalid no-ops (`step_clock_monotone`,
+  `tick_backwards_invalid`).
 - **Backend contract** — both reference mailbox backends satisfy the
   `MailboxBackend` refinement contract (`listBackend`, `mailboxBackend`).
 

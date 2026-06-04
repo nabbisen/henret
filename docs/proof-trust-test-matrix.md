@@ -64,4 +64,16 @@ zero-assumption core.
 | 25 | `NativeDeque.pop_{val,rest}` — pop removes last | ASSUMED | 2 axioms |
 | 26 | `NativeDeque.toList_empty` — empty observes `[]` | ASSUMED | `NativeDeque.toList_empty` axiom |
 | 27 | C deque race-freedom (concurrent steal + push) | OUTSCOPE | Requires Iris-style CSL |
-| 28 | `@[extern]` C linkage, conformance differential tests | OUTSCOPE (post-v0.1.0) | Planned for next iteration |
+| 28 | `@[extern]` C linkage, conformance differential tests | OUTSCOPE (planned follow-up work) | Planned for next iteration |
+
+## v0.2.0 claims (invariants, ownership, time)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 29 | Every reachable state is well-formed | PROVEN | `reachable_wf` (`run_preserves_wf` ∘ `wf_init`) |
+| 30 | The scheduler never duplicates a ready task | PROVEN | `WellFormed.readyQ_nodup` in every reachable state |
+| 31 | A task occupies at most one ownership location (queued / running / timer) | PROVEN | `ready_not_running`, `ready_no_timer`, `running_no_timer` corollaries |
+| 32 | A spawned task's owner is immutable | PROVEN | `spawn_sets_owner`, `step/run_preserves_owner` |
+| 33 | Invalid operations never mutate state | PROVEN | `step_invalid_unchanged` |
+| 34 | Logical time is monotone; backwards ticks are invalid no-ops | PROVEN | `step_clock_monotone`, `tick_backwards_invalid`, `tick_advances_clock` |
+| 35 | `tick` wakes only genuinely sleeping tasks | PROVEN + TESTED | filter in `step` + `WellFormed.timers_sleep`; demo scenario 6 |

@@ -11,6 +11,9 @@ namespace Henret
 structure RuntimeState where
   /-- Lifecycle state per task id; `none` = never spawned. -/
   taskState : TaskMap
+  /-- Owning actor per task id; set at spawn, immutable thereafter
+      (RFC 014). `none` = never spawned. -/
+  taskOwner : TaskId → Option ActorId
   /-- FIFO queue of runnable task ids. -/
   readyQ    : List TaskId
   /-- The task currently selected by the scheduler, if any. -/
@@ -19,19 +22,24 @@ structure RuntimeState where
   timers    : List TimerEntry
   /-- Mailbox per actor id; `none` = actor does not exist. -/
   mailboxes : ActorMap
+  /-- Current logical time; advanced only by `tick`, monotonically
+      (RFC 015). -/
+  now       : Nat
   /-- Fresh task-id counter; ids below it may exist, ids at or above
       it are unused. -/
   nextId    : TaskId
 
 namespace RuntimeState
 
-/-- The initial state: nothing spawned, no actors, time empty. -/
+/-- The initial state: nothing spawned, no actors, time zero. -/
 def init : RuntimeState where
   taskState := fun _ => none
+  taskOwner := fun _ => none
   readyQ    := []
   running   := none
   timers    := []
   mailboxes := fun _ => none
+  now       := 0
   nextId    := 0
 
 end RuntimeState
@@ -60,6 +68,7 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
         | none   => upd s.mailboxes a (some Mailbox.empty)
       ({ s with
           taskState := upd s.taskState t (some .new)
+          taskOwner := upd s.taskOwner t (some a)
           readyQ    := s.readyQ ++ [t]
           mailboxes := mbs
           nextId    := t + 1 }, .spawned t)
@@ -127,12 +136,16 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
             timers    := Timer.insertSorted ⟨deadline, t⟩ s.timers }, .ok)
       | _ => (s, .invalid)
     else (s, .invalid)
-  | .tick now =>
-    let woken := (Timer.expired s.timers now).map TimerEntry.task
-    ({ s with
-        taskState := wakeMany s.taskState woken
-        readyQ    := s.readyQ ++ woken
-        timers    := Timer.remaining s.timers now }, .woke woken)
+  | .tick t =>
+    if s.now ≤ t then
+      let woken := ((Timer.expired s.timers t).map TimerEntry.task).filter
+        (fun u => s.taskState u = some .sleeping)
+      ({ s with
+          taskState := wakeMany s.taskState woken
+          readyQ    := s.readyQ ++ woken
+          timers    := Timer.remaining s.timers t
+          now       := t }, .woke woken)
+    else (s, .invalid)
   | .wake t =>
     match s.taskState t with
     | some .sleeping =>

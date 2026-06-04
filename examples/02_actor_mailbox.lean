@@ -40,3 +40,14 @@ def s4 := (step s3 (.send 10 msg)).1
 #check @Henret.send_preserves_other
 -- ∀ (s : RuntimeState) (a b : ActorId), a ≠ b →
 --   ((step s (.send a _)).1).mailboxes b = s.mailboxes b
+
+/-! ## Ownership (v0.2.0, RFC 014)
+
+Each spawned task records its owning actor in `taskOwner`. -/
+
+#eval s4.taskOwner 0
+-- some 10   — task 0 is owned by actor 10 (set at spawn)
+
+-- The theorems: ownership is set at spawn and immutable thereafter.
+#check @Henret.spawn_sets_owner
+#check @Henret.run_preserves_owner

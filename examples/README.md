@@ -17,7 +17,7 @@ lake env lean examples/NN_name.lean
 | 06 | `06_cancel_task.lean` | `cancelled` is terminal | `step_preserves_cancelled`, `run_preserves_cancelled` |
 | 07 | `07_refinement_contract.lean` | The `MailboxBackend` contract pattern | `listBackend`, `mailboxBackend` |
 | 08 | `08_proof_trust_test_matrix.lean` | PROVEN / ASSUMED / TESTED / OUTSCOPE | matrix, `#print axioms` |
-| 09 | `09_optional_ffi_boundary.lean` | Optional native backend boundary (RFC 010 placeholder) | — |
+| 09 | `09_optional_ffi_boundary.lean` | Optional native backend boundary (RFC 010) | — |
 
 ## What to read before the examples
 

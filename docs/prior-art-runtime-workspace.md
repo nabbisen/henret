@@ -25,4 +25,6 @@ harness.
 - the requirement of a C toolchain: Henret's default build is Lean-only.
 
 The C/FFI material may return as an optional, clearly-bounded backend example
-under RFC 010 (proposed), with its assumptions indexed and conformance-tested.
+under RFC 010 (implemented): `Henret/Native/` carries the `DequeModel` contract
+and the six typed `NativeDeque` axioms, indexed in `docs/assumption-index.md`.
+Actual C linkage and conformance tests are planned follow-up work.

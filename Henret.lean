@@ -9,6 +9,9 @@ import Henret.Scheduler.Driver
 import Henret.Proofs.Lifecycle
 import Henret.Proofs.Messaging
 import Henret.Proofs.Timers
+import Henret.Proofs.Ownership
+import Henret.Proofs.Invariants
+import Henret.Proofs.InvariantsPreservation
 import Henret.Refinement.Contract
 import Henret.Refinement.ReferenceBackend
 import Henret.Examples.Basic

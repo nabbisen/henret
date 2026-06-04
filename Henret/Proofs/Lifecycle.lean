@@ -151,8 +151,10 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
       · exact h
     · exact h
   | tick now =>
-    simp only [step]
-    exact wakeMany_preserves_of_ne_sleeping h hne_sleeping _
+    by_cases hle : s.now ≤ now
+    · simp only [step, if_pos hle]
+      exact wakeMany_preserves_of_ne_sleeping h hne_sleeping _
+    · simp [step, hle, h]
   | wake t =>
     simp only [step]
     split
@@ -223,6 +225,74 @@ theorem wake_twice_invalid {s : RuntimeState} {t : TaskId}
   have hready := (wake_sets_ready h).1
   generalize hS : (step s (.wake t)).1 = s' at hready ⊢
   simp [step, hready]
+
+/-! ## Invalid operations never mutate (RFC 005, RFC 016) -/
+
+/-- An invalid operation never mutates state: if `step` reports
+`.invalid`, the state component is exactly the input state.  Combined
+with the construction of `step`, this makes "invalid ⇒ no-op" a
+theorem rather than a convention. -/
+theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
+    (h : (step s op).2 = .invalid) : (step s op).1 = s := by
+  cases op with
+  | spawn a =>
+    cases hts : s.taskState s.nextId with
+    | none => simp [step, hts] at h
+    | some _ => simp [step, hts]
+  | schedule =>
+    cases hr : s.running with
+    | some _ => simp [step, hr]
+    | none =>
+      cases hq : s.readyQ with
+      | nil => simp [step, hr, hq]
+      | cons t q =>
+        by_cases hrun : (s.taskState t).any TaskState.isRunnable = true
+        · simp [step, hr, hq, hrun] at h
+        · simp at hrun; simp [step, hr, hq, hrun]
+  | yield t =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]
+      | some st => cases st <;> simp [step, hrt, hts] <;> simp [step, hrt, hts] at h
+    · simp [step, hrt]
+  | complete t =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]
+      | some st => cases st <;> simp [step, hrt, hts] <;> simp [step, hrt, hts] at h
+    · simp [step, hrt]
+  | cancel t =>
+    cases hts : s.taskState t with
+    | none => simp [step, hts]
+    | some st =>
+      by_cases hterm : st.isTerminal = true
+      · simp [step, hts, hterm]
+      · simp at hterm; simp [step, hts, hterm] at h
+  | send a m =>
+    cases hmb : s.mailboxes a with
+    | none => simp [step, hmb]
+    | some mb => simp [step, hmb] at h
+  | receive a =>
+    cases hmb : s.mailboxes a with
+    | none => simp [step, hmb]
+    | some mb =>
+      cases hd : mb.dequeue with
+      | none => simp [step, hmb, hd]
+      | some p => simp [step, hmb, hd] at h
+  | sleep t d =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]
+      | some st => cases st <;> simp [step, hrt, hts] <;> simp [step, hrt, hts] at h
+    · simp [step, hrt]
+  | tick t =>
+    by_cases hle : s.now ≤ t
+    · simp [step, hle] at h
+    · simp [step, hle]
+  | wake t =>
+    cases hts : s.taskState t with
+    | none => simp [step, hts]
+    | some st => cases st <;> simp [step, hts] <;> simp [step, hts] at h
 
 end Henret
 

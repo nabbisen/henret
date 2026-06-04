@@ -46,6 +46,26 @@ def main : IO Unit := do
   check "drain driver completed tasks 0..4"
     ((List.range 5).all fun t => s6.taskState t == some .completed)
 
+  IO.println "scenario 6: v0.2.0 model (ownership, logical clock, tick filter)"
+  -- ownership recorded at spawn and immutable afterwards
+  let (s7, _) := step RuntimeState.init (.spawn 42)
+  check "spawned task owned by actor 42" (s7.taskOwner 0 == some 42)
+  let s7b := run s7 [.schedule, .yield 0, .schedule, .complete 0]
+  check "ownership survives lifecycle" (s7b.taskOwner 0 == some 42)
+  -- logical clock: monotonic, backwards tick is invalid and a no-op
+  let (s8, _) := step s7 (.tick 10)
+  check "clock advanced to 10" (s8.now == 10)
+  let (s8b, r8) := step s8 (.tick 3)
+  check "backwards tick rejected" (r8 matches .invalid)
+  check "backwards tick left state unchanged" (s8b.now == 10)
+  -- tick wakes only sleeping tasks: a cancelled task with a stale timer stays out
+  let s9 := run RuntimeState.init
+    [.spawn 1, .schedule, .sleep 0 5, .cancel 0]
+  let (s9b, _) := step s9 (.tick 10)
+  check "stale timer task not re-queued" (!(s9b.readyQ.contains 0))
+  check "cancelled task stays cancelled after tick"
+    (s9b.taskState 0 == some .cancelled)
+
   IO.println "all demo stages passed"
 
 /-!

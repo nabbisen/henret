@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.2.0 — invariant discipline (review-resolution release)
+
+Resolves all seven must-fix findings of the v0.1.0 architecture review
+(`docs/reviews/v0.1.0-review-resolution.md`). Model changes: `RuntimeState`
+gains `taskOwner` (RFC 014) and `now` (RFC 015); `tick` is guarded monotone
+and wakes only genuinely sleeping tasks.
+
+### Added
+- `WellFormed` reachability invariant; `step/run_preserves_wf`,
+  `reachable_wf`; ownership-location disjointness corollaries (RFC 013).
+- `taskOwner` field; `spawn_sets_owner`, `step/run_preserves_owner`,
+  `step_preserves_spawned` (RFC 014).
+- `now` field; monotonic tick guard; `tick_advances_clock`,
+  `tick_backwards_invalid`, `step_clock_monotone` (RFC 015).
+- `step_invalid_unchanged` (RFC 016).
+- `scripts/check.sh` five-gate release script + GitHub Actions CI (RFC 017).
+- Documentation consistency sweep: accurate lifecycle transition tables,
+  standardized native-boundary wording (RFC 018).
+- Demo scenario 6: seven regression checks for the v0.2.0 model.
+- Examples 02/05 extended (`taskOwner`, monotone clock).
+
+### Changed
+- `tick now` filters its woken list to tasks whose state is `.sleeping`,
+  keeping the ready queue clean in arbitrary states (review must-fix 4).
+- Timer theorems take a `s.now ≤ now` validity hypothesis.
+
+
 ## v0.1.0 — 2026-06-04
 
 First public release: the Lean-only actor/task model.

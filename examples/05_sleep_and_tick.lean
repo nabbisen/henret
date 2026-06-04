@@ -55,3 +55,17 @@ def t10 := (step t7 (.tick 10)).1
 
 -- Proven: the timer queue stays sorted across all operations.
 #check @Henret.run_preserves_sorted
+
+/-! ## Logical time is stored and monotone (v0.2.0, RFC 015) -/
+
+#eval t10.now
+-- 10   — the clock advanced with the tick
+
+-- A backwards tick is invalid and leaves the state untouched.
+#eval (step t10 (.tick 3)).2
+-- invalid
+#eval (step t10 (.tick 3)).1.now
+-- 10
+
+#check @Henret.tick_backwards_invalid
+#check @Henret.step_clock_monotone
