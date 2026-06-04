@@ -123,10 +123,16 @@ structure WellFormed (s : RuntimeState) : Prop where
   /-- Every owning actor exists, i.e. has a mailbox (RFC 019). -/
   owned_has_mailbox :
     ∀ t a, s.taskOwner t = some a → ∃ mb, s.mailboxes a = some mb
+  /-- **Schedulable completeness** (RFC 028): every runnable task is in
+      the ready queue — the runtime never loses a runnable task.  This
+      is the converse of `readyQ_queued`; together they say the ready
+      queue contains *exactly* the runnable tasks. -/
+  runnable_queued :
+    ∀ t st, s.taskState t = some st → st.isRunnable = true → t ∈ s.readyQ
 
 /-- The initial state is well-formed. -/
 theorem wf_init : WellFormed RuntimeState.init := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> simp [RuntimeState.init]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> simp [RuntimeState.init]
 
 /-! ## Ownership uniqueness corollaries (RFC 004 acceptance) -/
 

@@ -35,7 +35,15 @@ inductive RuntimeOp where
       task involvement. Models messages arriving from outside the
       modeled system. -/
   | inject (a : ActorId) (m : Message) : RuntimeOp
-  /-- The running task `t` sleeps until logical time `deadline`. -/
+  /-- The running task `t` sleeps until logical time `deadline`.
+
+      PAST-DEADLINE POLICY (explicit per RFC 029/SF-03): a deadline at
+      or before the current clock is **legal**; the task simply wakes at
+      the next valid `tick` (every tick time `≥ s.now` satisfies an
+      expired deadline).  Rejecting or normalizing past deadlines was
+      considered and recorded in RFC 029 as an alternative; the current
+      policy keeps `sleep` total over deadlines and pushes all time
+      reasoning into `tick`'s monotone guard. -/
   | sleep (t : TaskId) (deadline : Nat) : RuntimeOp
   /-- Advance logical time to `now`, waking expired sleepers. -/
   | tick (now : Nat) : RuntimeOp

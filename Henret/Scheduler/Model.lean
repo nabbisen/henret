@@ -137,7 +137,7 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
             match mb.dequeue with
             | some (m, mb') =>
               ({ s with mailboxes := upd s.mailboxes a (some mb') }, .received m)
-            | none => (s, .invalid)
+            | none => (s, .blocked)
           | none => (s, .invalid)
         | none => (s, .invalid)
       | _ => (s, .invalid)

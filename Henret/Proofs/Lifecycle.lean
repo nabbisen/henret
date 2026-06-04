@@ -328,6 +328,108 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
     | none => simp [step, hts]
     | some st => cases st <;> simp [step, hts] <;> simp [step, hts] at h
 
+/-- A blocked operation never mutates state (RFC 029): the mirror of
+`step_invalid_unchanged`.  Currently only `receive` on an empty own
+mailbox blocks; every other operation either succeeds or is invalid,
+so all non-receive branches discharge by contradiction. -/
+theorem step_blocked_unchanged {s : RuntimeState} {op : RuntimeOp}
+    (h : (step s op).2 = .blocked) : (step s op).1 = s := by
+  cases op with
+  | spawn a =>
+    cases hts : s.taskState s.nextId with
+    | none => simp [step, hts] at h
+    | some _ => simp [step, hts]
+  | schedule =>
+    cases hr : s.running with
+    | some _ => simp [step, hr]
+    | none =>
+      cases hq : s.readyQ with
+      | nil => simp [step, hr, hq]
+      | cons t q =>
+        by_cases hrun : (s.taskState t).any TaskState.isRunnable = true
+        · simp [step, hr, hq, hrun] at h
+        · simp at hrun; simp [step, hr, hq, hrun]
+  | yield t =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]
+      | some st => cases st <;> simp [step, hrt, hts] <;> simp [step, hrt, hts] at h
+    · simp [step, hrt]
+  | complete t =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]
+      | some st => cases st <;> simp [step, hrt, hts] <;> simp [step, hrt, hts] at h
+    · simp [step, hrt]
+  | cancel t =>
+    cases hts : s.taskState t with
+    | none => simp [step, hts]
+    | some st =>
+      by_cases hterm : st.isTerminal = true
+      · simp [step, hts, hterm]
+      · simp at hterm; simp [step, hts, hterm] at h
+  | send t b m =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]
+      | some st =>
+        cases st with
+        | running =>
+          cases how : s.taskOwner t with
+          | none => simp [step, hrt, hts, how]
+          | some o =>
+            cases hmb : s.mailboxes b with
+            | none => simp [step, hrt, hts, how, hmb]
+            | some mb => simp [step, hrt, hts, how, hmb] at h
+        | new => simp [step, hrt, hts]
+        | ready => simp [step, hrt, hts]
+        | yielded => simp [step, hrt, hts]
+        | sleeping => simp [step, hrt, hts]
+        | completed => simp [step, hrt, hts]
+        | cancelled => simp [step, hrt, hts]
+    · simp [step, hrt]
+  | receive t =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]
+      | some st =>
+        cases st with
+        | running =>
+          cases how : s.taskOwner t with
+          | none => simp [step, hrt, hts, how]
+          | some a =>
+            cases hmb : s.mailboxes a with
+            | none => simp [step, hrt, hts, how, hmb]
+            | some mb =>
+              cases hd : mb.dequeue with
+              | none => simp [step, hrt, hts, how, hmb, hd]
+              | some p => simp [step, hrt, hts, how, hmb, hd] at h
+        | new => simp [step, hrt, hts]
+        | ready => simp [step, hrt, hts]
+        | yielded => simp [step, hrt, hts]
+        | sleeping => simp [step, hrt, hts]
+        | completed => simp [step, hrt, hts]
+        | cancelled => simp [step, hrt, hts]
+    · simp [step, hrt]
+  | inject a m =>
+    cases hmb : s.mailboxes a with
+    | none => simp [step, hmb]
+    | some mb => simp [step, hmb] at h
+  | sleep t d =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]
+      | some st => cases st <;> simp [step, hrt, hts] <;> simp [step, hrt, hts] at h
+    · simp [step, hrt]
+  | tick t =>
+    by_cases hle : s.now ≤ t
+    · simp [step, hle] at h
+    · simp [step, hle]
+  | wake t =>
+    cases hts : s.taskState t with
+    | none => simp [step, hts]
+    | some st => cases st <;> simp [step, hts] <;> simp [step, hts] at h
+
 end Henret
 
 /-!

@@ -32,6 +32,9 @@ ALLOWLIST = {
     "Henret.reachable_owner_has_mailbox":    (set(), STD),
     "Henret.step_clock_monotone":            (set(), STD),
     "Henret.receive_only_own":               (set(), STD),
+    "Henret.reachable_runnable_is_queued":   (set(), STD),
+    "Henret.reachable_queue_exact":          (set(), STD),
+    "Henret.step_blocked_unchanged":         (set(), STD),
     # Pure native layer: still standard only.
     "Henret.Native.qRun_tracks":             (set(), STD),
     "Henret.Native.driveStackB_complete":    (set(), STD),

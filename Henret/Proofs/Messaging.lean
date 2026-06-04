@@ -96,13 +96,14 @@ theorem receive_preserves_other {s : RuntimeState} {t : TaskId}
     all_goals rfl
   · rfl
 
-/-- Receive from an empty (own) mailbox is defined: invalid, state
-unchanged. -/
-theorem receive_empty_invalid {s : RuntimeState} {t : TaskId}
+/-- Receive from an empty (own) mailbox is **blocked**, not invalid
+(RFC 029): a legal actor condition — the task would wait — distinct
+from a protocol violation. State unchanged. -/
+theorem receive_empty_blocked {s : RuntimeState} {t : TaskId}
     {a : ActorId}
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some a) (hmb : s.mailboxes a = some ⟨[]⟩) :
-    step s (.receive t) = (s, .invalid) := by
+    step s (.receive t) = (s, .blocked) := by
   simp [step, hrt, hts, how, hmb, Mailbox.dequeue]
 
 /-- A receive by an unowned task is invalid: only actor tasks

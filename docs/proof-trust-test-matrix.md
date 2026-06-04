@@ -24,7 +24,7 @@ relevant index (`proof-index.md`, `assumption-index.md`, `test-index.md`).
 | 6 | Duplicate wake is invalid and changes nothing (no duplicate ready entries from wake) | PROVEN | `wake_twice_invalid` |
 | 7 | one successful `send`/`inject` appends exactly one message *value* to exactly the target mailbox (per-operation; occurrence identity not modeled, RFC 022) | PROVEN | `send_appends`, `inject_appends`, `*_preserves_other` |
 | 8 | `receive` consumes exactly one message (the head) | PROVEN | `receive_consumes_one`, `receive_length` |
-| 9 | `receive` from an empty mailbox is invalid and changes nothing | PROVEN | `receive_empty_invalid` |
+| 9 | `receive` from an empty own mailbox is **blocked** and changes nothing (legal waiting condition, RFC 029); non-running/unowned receive remains invalid | PROVEN | `receive_empty_blocked`, `receive_unowned_invalid`, `step_blocked_unchanged` |
 | 10 | `send`/`receive`/`inject` touch only `mailboxes`; no task, queue, timer, clock, or id state changes | PROVEN | `Henret.Proofs.StepProjections` (21 lemmas, e.g. `send_taskState`, `receive_readyQ`) |
 | 11 | `tick now` does not wake timers with `deadline > now` | PROVEN | `tick_no_early_wake`, `tick_keeps_future` |
 | 12 | `tick now` wakes every expired sleeping task and enqueues the woken list | PROVEN | `tick_wakes_expired`, `tick_enqueues_woken` |
@@ -96,3 +96,13 @@ zero-assumption core.
 | 42 | Messaging operations touch only `mailboxes` (per projection) | PROVEN | `Henret.Proofs.StepProjections` (21 `@[simp]` lemmas) |
 | 43 | Messaging never removes a mailbox | PROVEN | `send/receive/inject_mailbox_isSome` |
 | 44 | All v0.2.1 invariants hold over the eleven-operation grammar | PROVEN | `reachable_wf` re-proved |
+
+## v0.4.0 claims (schedulable completeness + blocked receive)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 45 | The runtime never loses a runnable task: every reachable runnable task is queued | PROVEN | `reachable_runnable_is_queued` (`WellFormed.runnable_queued`) |
+| 46 | The ready queue contains exactly the runnable tasks in every reachable state | PROVEN | `reachable_queue_exact` |
+| 47 | Blocked operations never mutate state | PROVEN | `step_blocked_unchanged` |
+| 48 | Empty own-mailbox receive is blocked (legal wait), not invalid; illegal receive stays invalid | PROVEN + TESTED | `receive_empty_blocked`, demo scenario 6 |
+| 49 | Past-deadline sleep policy: legal, wakes at next valid tick | DOCUMENTED (RFC 029) | `RuntimeOp.sleep` docstring |

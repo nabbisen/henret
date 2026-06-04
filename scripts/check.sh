@@ -34,6 +34,9 @@ open Henret Henret.Native
 #print axioms reachable_owner_has_mailbox
 #print axioms step_clock_monotone
 #print axioms receive_only_own
+#print axioms reachable_runnable_is_queued
+#print axioms reachable_queue_exact
+#print axioms step_blocked_unchanged
 #print axioms qRun_tracks
 #print axioms driveStackB_complete
 #print axioms nativeDequeModel_qRun_tracks

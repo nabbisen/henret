@@ -23,7 +23,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
         have h1 := h.readyQ_queued _ hm
         rw [hts] at h1
         simp [Option.any] at h1
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · -- readyQ_nodup
         simp only [step, hts]
         exact nodup_append_singleton h.readyQ_nodup hnq
@@ -99,6 +99,16 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
               rw [hmb'] at hmb0
               cases hmb0
             · exact ⟨mb', by simp only [upd, if_neg hba]; exact hmb'⟩
+      · -- runnable_queued (RFC 028)
+        intro u st hts' hrun
+        simp only [step, hts] at hts' ⊢
+        by_cases hu : u = s.nextId
+        · subst hu
+          rw [List.mem_append, List.mem_singleton]
+          exact Or.inr rfl
+        · simp only [upd, if_neg hu] at hts'
+          rw [List.mem_append]
+          exact Or.inl (h.runnable_queued u st hts' hrun)
   | schedule =>
     cases hr : s.running with
     | some _ => simpa [step, hr] using h
@@ -113,7 +123,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
             cases hto : s.taskState t with
             | none => rw [hto] at hrun; simp [Option.any] at hrun
             | some x => exact ⟨x, rfl⟩
-          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
           · simp only [step, hr, hq, if_pos hrun]
             exact hnodup.2
           · intro u hm
@@ -158,6 +168,20 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
           · intro u b hown
             simp only [step, hr, hq, if_pos hrun] at hown ⊢
             exact h.owned_has_mailbox u b hown
+          · -- runnable_queued (RFC 028)
+            intro u st hts' hrun'
+            simp only [step, hr, hq, if_pos hrun] at hts' ⊢
+            by_cases hu : u = t
+            · subst hu
+              simp only [upd_self] at hts'
+              cases hts'
+              simp [TaskState.isRunnable] at hrun'
+            · simp only [upd, if_neg hu] at hts'
+              have hmem := h.runnable_queued u st hts' hrun'
+              rw [hq, List.mem_cons] at hmem
+              rcases hmem with rfl | hmem
+              · exact absurd rfl hu
+              · exact hmem
         · simp at hrun; simpa [step, hr, hq, hrun] using h
   | yield t =>
     by_cases hrt : s.running = some t
@@ -170,7 +194,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
             have h1 := h.readyQ_queued t hm
             rw [hts] at h1
             simp [Option.any, TaskState.isRunnable] at h1
-          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
           · simp only [step, hrt, hts, if_pos rfl]
             simp only [if_pos]
             exact nodup_append_singleton h.readyQ_nodup hnq
@@ -212,6 +236,14 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
           · intro u b hown
             simp [step, hrt, hts] at hown ⊢
             exact h.owned_has_mailbox u b hown
+          · -- runnable_queued (RFC 028)
+            intro u st hts' hrun
+            simp [step, hrt, hts] at hts' ⊢
+            by_cases hu : u = t
+            · subst hu
+              exact Or.inr rfl
+            · simp only [upd, if_neg hu] at hts'
+              exact Or.inl (h.runnable_queued u st hts' hrun)
         | new => simpa [step, hrt, hts] using h
         | ready => simpa [step, hrt, hts] using h
         | yielded => simpa [step, hrt, hts] using h
@@ -226,7 +258,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
       | some s' =>
         cases s' with
         | running =>
-          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
           · simp [step, hrt, hts]
             exact h.readyQ_nodup
           · intro u hm
@@ -267,6 +299,16 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
           · intro u b hown
             simp [step, hrt, hts] at hown ⊢
             exact h.owned_has_mailbox u b hown
+          · -- runnable_queued (RFC 028)
+            intro u st hts' hrun
+            simp [step, hrt, hts] at hts' ⊢
+            by_cases hu : u = t
+            · subst hu
+              simp only [upd_self] at hts'
+              cases hts'
+              simp [TaskState.isRunnable] at hrun
+            · simp only [upd, if_neg hu] at hts'
+              exact h.runnable_queued u st hts' hrun
         | new => simpa [step, hrt, hts] using h
         | ready => simpa [step, hrt, hts] using h
         | yielded => simpa [step, hrt, hts] using h
@@ -281,7 +323,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
       by_cases hterm : s'.isTerminal = true
       · simpa [step, hts, hterm] using h
       · simp at hterm
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · simp [step, hts, hterm]
           exact h.readyQ_nodup.filter _
         · intro u hm
@@ -326,8 +368,18 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
         · intro u b hown
           simp [step, hts, hterm] at hown ⊢
           exact h.owned_has_mailbox u b hown
+        · -- runnable_queued (RFC 028)
+          intro u st hts' hrun
+          simp [step, hts, hterm] at hts' ⊢
+          by_cases hu : u = t
+          · subst hu
+            simp only [upd_self] at hts'
+            cases hts'
+            simp [TaskState.isRunnable] at hrun
+          · simp only [upd, if_neg hu] at hts'
+            exact ⟨h.runnable_queued u st hts' hrun, hu⟩
   | send t b m =>
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · simpa using h.readyQ_nodup
     · intro u hm
       simp at hm ⊢
@@ -350,8 +402,12 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
       simp at hown
       obtain ⟨mb, hmb⟩ := h.owned_has_mailbox u cc hown
       exact send_mailbox_isSome hmb m
+    · -- runnable_queued (RFC 028)
+      intro u st hts' hrun
+      simp at hts' ⊢
+      exact h.runnable_queued u st hts' hrun
   | receive t =>
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · simpa using h.readyQ_nodup
     · intro u hm
       simp at hm ⊢
@@ -374,8 +430,12 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
       simp at hown
       obtain ⟨mb, hmb⟩ := h.owned_has_mailbox u cc hown
       exact receive_mailbox_isSome hmb
+    · -- runnable_queued (RFC 028)
+      intro u st hts' hrun
+      simp at hts' ⊢
+      exact h.runnable_queued u st hts' hrun
   | inject a m =>
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · simpa using h.readyQ_nodup
     · intro u hm
       simp at hm ⊢
@@ -398,6 +458,10 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
       simp at hown
       obtain ⟨mb, hmb⟩ := h.owned_has_mailbox u cc hown
       exact inject_mailbox_isSome hmb m
+    · -- runnable_queued (RFC 028)
+      intro u st hts' hrun
+      simp at hts' ⊢
+      exact h.runnable_queued u st hts' hrun
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -412,7 +476,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
             have h1 := h.timers_sleep e he
             rw [hee, hts] at h1
             cases h1
-          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
           · simp [step, hrt, hts]
             exact h.readyQ_nodup
           · intro u hm
@@ -455,6 +519,16 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
           · intro u b hown
             simp [step, hrt, hts] at hown ⊢
             exact h.owned_has_mailbox u b hown
+          · -- runnable_queued (RFC 028)
+            intro u st hts' hrun
+            simp [step, hrt, hts] at hts' ⊢
+            by_cases hu : u = t
+            · subst hu
+              simp only [upd_self] at hts'
+              cases hts'
+              simp [TaskState.isRunnable] at hrun
+            · simp only [upd, if_neg hu] at hts'
+              exact h.runnable_queued u st hts' hrun
         | new => simpa [step, hrt, hts] using h
         | ready => simpa [step, hrt, hts] using h
         | yielded => simpa [step, hrt, hts] using h
@@ -480,7 +554,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
         have h1 := h.readyQ_queued a ha
         rw [hwoken_sleep a hm] at h1
         simp [Option.any, TaskState.isRunnable] at h1
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [step, if_pos hle]
         rw [← hwdef]
         exact nodup_append h.readyQ_nodup hwoken_nodup hdisj
@@ -541,6 +615,15 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
       · intro u b hown
         simp only [step, if_pos hle] at hown ⊢
         exact h.owned_has_mailbox u b hown
+      · -- runnable_queued (RFC 028)
+        intro u st hts' hrun
+        simp only [step, if_pos hle] at hts' ⊢
+        rw [← hwdef] at hts' ⊢
+        rw [List.mem_append]
+        by_cases hw : u ∈ woken
+        · exact Or.inr hw
+        · rw [wakeMany_preserves_other hw] at hts'
+          exact Or.inl (h.runnable_queued u st hts' hrun)
     · simpa [step, hle] using h
   | wake t =>
     cases hts : s.taskState t with
@@ -552,7 +635,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
           have h1 := h.readyQ_queued t hm
           rw [hts] at h1
           simp [Option.any, TaskState.isRunnable] at h1
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · simp [step, hts]
           exact nodup_append_singleton h.readyQ_nodup hnq
         · intro u hm
@@ -596,6 +679,14 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
         · intro u b hown
           simp [step, hts] at hown ⊢
           exact h.owned_has_mailbox u b hown
+        · -- runnable_queued (RFC 028)
+          intro u st hts' hrun
+          simp [step, hts] at hts' ⊢
+          by_cases hu : u = t
+          · subst hu
+            exact Or.inr rfl
+          · simp only [upd, if_neg hu] at hts'
+            exact Or.inl (h.runnable_queued u st hts' hrun)
       | new => simpa [step, hts] using h
       | ready => simpa [step, hts] using h
       | running => simpa [step, hts] using h
@@ -642,6 +733,36 @@ the single reachability invariant rather than a separate theorem
 theorem reachable_timers_sorted (ops : List RuntimeOp) :
     Timer.Sorted (run RuntimeState.init ops).timers :=
   (reachable_wf ops).timers_sorted
+
+/-- **Schedulable completeness** (RFC 028 headline): in every reachable
+state, every runnable task is in the ready queue — the runtime never
+loses a runnable task. -/
+theorem reachable_runnable_is_queued (ops : List RuntimeOp)
+    {t : TaskId} {st : TaskState}
+    (h : (run RuntimeState.init ops).taskState t = some st)
+    (hrun : st.isRunnable = true) :
+    t ∈ (run RuntimeState.init ops).readyQ :=
+  (reachable_wf ops).runnable_queued t st h hrun
+
+/-- **Exact queue characterization** (RFC 028): in every reachable
+state, the ready queue contains *exactly* the runnable tasks —
+membership in the queue is equivalent to being spawned in a runnable
+state. Combines `readyQ_queued` (soundness: queued ⇒ runnable) with
+`runnable_queued` (completeness: runnable ⇒ queued). -/
+theorem reachable_queue_exact (ops : List RuntimeOp) (t : TaskId) :
+    t ∈ (run RuntimeState.init ops).readyQ ↔
+      ∃ st, (run RuntimeState.init ops).taskState t = some st ∧
+        st.isRunnable = true := by
+  constructor
+  · intro hm
+    have h1 := (reachable_wf ops).readyQ_queued t hm
+    cases hts : (run RuntimeState.init ops).taskState t with
+    | none => rw [hts] at h1; simp [Option.any] at h1
+    | some st =>
+      rw [hts] at h1
+      exact ⟨st, rfl, by simpa [Option.any] using h1⟩
+  · rintro ⟨st, hts, hrun⟩
+    exact (reachable_wf ops).runnable_queued t st hts hrun
 
 end Henret
 

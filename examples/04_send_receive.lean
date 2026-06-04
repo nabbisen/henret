@@ -53,8 +53,9 @@ def sr2 := step s1 (.receive 0)
 #check @Henret.receive_unowned_invalid
 -- a task with no owning actor can never receive
 
--- Receive from an empty (own) mailbox is defined: invalid.
-#check @Henret.receive_empty_invalid
+-- Receive from an empty (own) mailbox is BLOCKED, not invalid
+-- (RFC 029) — a legal waiting condition, distinct from a violation.
+#check @Henret.receive_empty_blocked
 
 -- Messaging never changes any task's lifecycle state — proved once,
 -- per projection:

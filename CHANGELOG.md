@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.4.0 — schedulable completeness + blocked receive (RFCs 028–029)
+
+The two semantic priorities named by the v0.3.0 review.
+
+### Added
+- `WellFormed.runnable_queued` (tenth field): every runnable task is in
+  the ready queue. Headlines `reachable_runnable_is_queued` and
+  `reachable_queue_exact` (queue membership ⟺ runnable) — the runtime
+  provably never loses a runnable task (RFC 028).
+- `StepResult.blocked`; empty own-mailbox receive now blocks instead of
+  being invalid; `receive_empty_blocked`; mirror theorem
+  `step_blocked_unchanged` (RFC 029).
+- Demo checks distinguishing blocked (legal wait) from invalid
+  (protocol violation).
+- Sleep past-deadline policy made explicit in the grammar docs: legal,
+  wakes at next valid tick (SF-03 resolved by documented decision).
+
+### Changed
+- `receive_empty_invalid` renamed/restated as `receive_empty_blocked`.
+
+
 ## v0.3.1 — public-claim repair (RFCs 026–027)
 
 Resolves all five release-blockers of the v0.3.0 review; first release the

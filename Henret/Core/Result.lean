@@ -13,6 +13,12 @@ inductive StepResult where
   | scheduled (t : TaskId) : StepResult
   /-- `receive` dequeued this message. -/
   | received (m : Message) : StepResult
+  /-- The operation was legal but cannot make progress now — currently
+      produced only by `receive` on an empty own mailbox.  Distinct
+      from `invalid`: a blocked receive is a normal actor condition
+      (the task would wait for a message), not a protocol violation
+      (RFC 029). -/
+  | blocked : StepResult
   /-- `tick` woke these tasks (in timer order). -/
   | woke (ts : List TaskId) : StepResult
   /-- The operation was not valid in the current state.
