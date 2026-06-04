@@ -12,9 +12,18 @@ Six scenarios print their state and assert expected outcomes.
 
 ## 2. The operation grammar — `Henret/Scheduler/Op.lean`
 
-`RuntimeOp` is the entire surface of the model: `spawn a`, `schedule`,
-`yield t`, `complete t`, `cancel t`, `send a m`, `receive a`,
+`RuntimeOp` is the entire surface of the model — eleven operations:
+`spawn a`, `schedule`, `yield t`, `complete t`, `cancel t`,
+`send t b m` (the running task `t` sends to actor `b`),
+`receive t` (the running task `t` dequeues from its **own** actor's
+mailbox, derived from `taskOwner t` — never named by the caller),
+`inject a m` (task-free environment delivery),
 `sleep t deadline`, `tick now`, `wake t`.
+
+The actor-local receive discipline is a theorem, not a convention:
+`receive_only_own` proves that any successful receive dequeues the head
+of the receiver's own actor's mailbox and touches no other mailbox
+(RFC 024).
 
 ## 3. The state — `Henret/Scheduler/Model.lean`
 

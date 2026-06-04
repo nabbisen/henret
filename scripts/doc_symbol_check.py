@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""Doc-symbol checker (RFC 026, reviewer SF-05 long-term option).
+
+Extracts backticked identifiers that look like theorem/lemma names from the
+proof documentation and emits a Lean file of `#check` lines. The release
+gate compiles that file: a stale theorem name in the docs becomes a build
+failure instead of silent drift.
+
+Heuristic for "looks like a theorem name": contains an underscore, starts
+lowercase, is a bare identifier or a dotted one (Timer.foo, Mailbox.foo,
+WellFormed.foo). Tokens in IGNORE are documentation vocabulary, field
+names used in prose, file paths, or operation syntax — not public theorem
+references.
+"""
+import re
+import sys
+
+DOC_FILES = [
+    "docs/proof-index.md",
+    "docs/proof-trust-test-matrix.md",
+]
+
+# Not theorem references: ops/syntax, fields discussed in prose, files, vocab.
+IGNORE = {
+    # operation syntax and grammar tokens
+    "send t b m", "receive t", "inject a m", "spawn a", "yield t",
+    "complete t", "cancel t", "sleep t deadline", "tick now", "wake t",
+    "tick t", "wake_many", "step s op",
+    # structures / types / modules / files (checked elsewhere or not theorems)
+    "lean_lib", "check-rfcs", "lake build", "lake exe",
+    # WellFormed fields referenced in prose (they resolve as projections;
+    # checked via the WellFormed. prefix variants below when written dotted)
+    "readyQ_nodup", "readyQ_queued", "running_runs", "timers_nodup",
+    "timers_sleep", "fresh_none", "timers_sorted", "spawned_has_owner",
+    "owned_has_mailbox",
+    # value/test vocabulary
+    "proof-trust-test-matrix", "assumption-index", "test-index",
+    "henret-demo", "check.sh", "axiom_audit.py",
+    # Lean tactics mentioned in prose
+    "native_decide",
+}
+
+NAME_RE = re.compile(r"`([A-Za-z][A-Za-z0-9_.']*)`")
+
+
+def looks_like_theorem(tok: str) -> bool:
+    if tok in IGNORE:
+        return False
+    if "/" in tok or " " in tok:
+        return False
+    head = tok.split(".")[-1]
+    if "_" not in head:
+        return False
+    if not head[0].islower():
+        return False
+    # skip obvious file stems
+    if tok.endswith(".md") or tok.endswith(".lean") or tok.endswith(".sh"):
+        return False
+    return True
+
+
+def main() -> int:
+    names = set()
+    for f in DOC_FILES:
+        try:
+            text = open(f).read()
+        except FileNotFoundError:
+            print(f"doc-symbol: missing doc file {f}")
+            return 1
+        for tok in NAME_RE.findall(text):
+            tok = tok.rstrip(".")
+            if looks_like_theorem(tok):
+                names.add(tok)
+
+    lines = [
+        "import Henret",
+        "import Henret.Native.DequeModel",
+        "import Henret.Native.Assumptions",
+        "open Henret Henret.Native",
+        "",
+    ]
+    for n in sorted(names):
+        lines.append(f"#check @{n}")
+    out = "\n".join(lines) + "\n"
+    sys.stdout.write(out)
+    print(f"-- doc-symbol: {len(names)} names extracted", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

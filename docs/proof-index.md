@@ -30,9 +30,9 @@ Axiom audit: only `propext` and `Quot.sound` (Lean standard).
 - `wake_exact`, `wake_sets_ready`, `wake_twice_invalid` — RFC 006 wake laws.
 
 ## Messaging — `Henret/Proofs/Messaging.lean`
-- `send_appends`, `send_preserves_other`, `send_preserves_tasks`.
+- `send_appends`, `send_preserves_other` (task-scoped, RFC 024).
 - `receive_consumes_one`, `receive_length`, `receive_preserves_other`,
-  `receive_empty_invalid`, `receive_preserves_tasks`.
+  `receive_empty_invalid`, `receive_only_own` (RFC 024).
 
 ## Timers — `Henret/Proofs/Timers.lean`
 - `tick_keeps_future`, `tick_no_early_wake`, `tick_wakes_expired`,
@@ -45,7 +45,8 @@ Axiom audit: only `propext` and `Quot.sound` (Lean standard).
 ## Refinement — `Henret/Refinement/*.lean`
 - `MailboxBackend.dequeue_length` — derived from the contract laws.
 - `listBackend`, `mailboxBackend` — reference backends; the contract laws
-  (`toList_empty`, `toList_enqueue`, `toList_dequeue`) are proof fields.
+  (`MailboxBackend.toList_empty`, `MailboxBackend.toList_enqueue`,
+  `MailboxBackend.toList_dequeue`) are proof fields.
 
 ## Native layer — `Henret/Native/DequeModel.lean`
 
@@ -80,8 +81,9 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
   `nodup_task_inj`, `mem_map_insertSorted`, `insertSorted_task_nodup` —
   core-only list/timer helpers.
 - `WellFormed` — six-field reachability invariant.
-- `wf_init`; corollaries `ready_not_running`, `ready_no_timer`,
-  `running_no_timer` (location disjointness derived from state uniqueness).
+- `wf_init`; corollaries `WellFormed.ready_not_running`,
+  `WellFormed.ready_no_timer`, `WellFormed.running_no_timer`
+  (location disjointness derived from state uniqueness).
 
 ## v0.2.0 — `Henret/Proofs/InvariantsPreservation.lean`
 

@@ -6,7 +6,7 @@ Henret is a Lean 4 package for executable actor/task runtime models, scheduler
 semantics, refinement patterns, and auditable backend boundaries.
 
 It shows that Lean 4 is not only a theorem prover: you can model how a task
-runtime behaves — spawn, schedule, yield, send, receive, sleep, tick, wake,
+runtime behaves — spawn, schedule, yield, send, receive, inject, sleep, tick, wake,
 cancel, complete — as pure, executable state transitions, then prove the
 properties that matter and *name* everything you cannot prove.
 
@@ -124,7 +124,7 @@ is merely tested or explicitly out of scope.
 ## Learning path
 
 1. [`docs/guided-tour.md`](docs/guided-tour.md) — read this first.
-2. `Henret/Examples/Basic.lean` — five `#eval`-able scenarios.
+2. `Henret/Examples/Basic.lean` — `#eval`-able scenarios (opt-in import; the demo executable drives six self-checking scenarios).
 3. `Henret/Scheduler/Model.lean` — the `step` function is the semantics.
 4. `Henret/Proofs/Lifecycle.lean` — the flagship monotonicity proof.
 5. [`docs/patterns/refinement-contract.md`](docs/patterns/refinement-contract.md)

@@ -3,7 +3,8 @@ open Lake DSL
 
 package henret
 
-/-- Lean-only core.  `import Henret` brings in Core/Actor/Scheduler/Proofs/Refinement/Examples.
+/-- Lean-only core.  `import Henret` brings in Model + Proofs + Refinement
+    (RFC 025; examples are opt-in via `Henret.Examples.Basic`).
     The native-boundary modules (Henret.Native.*) are NOT in the default import tree —
     users opt in with explicit `import Henret.Native.DequeModel`. -/
 @[default_target]

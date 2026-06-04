@@ -18,7 +18,14 @@ inductive RuntimeOp where
   | cancel (t : TaskId) : RuntimeOp
   /-- The running task `t` sends message `m` to actor `b`'s mailbox.
       Guards: `t` is the running task in `running` state, `t` has an
-      owning actor (sender provenance), and `b`'s mailbox exists. -/
+      owning actor, and `b`'s mailbox exists.
+
+      PROVENANCE NOTE: the guards give *existence* provenance — a
+      legal send was performed by a running, actor-owned task — but
+      the delivered `Message` value carries no source actor.  The
+      model cannot later prove "this message came from actor X";
+      that requires an envelope or occurrence identity (RFC 022,
+      future work). -/
   | send (t : TaskId) (b : ActorId) (m : Message) : RuntimeOp
   /-- The running task `t` dequeues one message from its **own**
       actor's mailbox — the actor is derived from `taskOwner t`, never

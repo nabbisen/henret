@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.3.1 — public-claim repair (RFCs 026–027)
+
+Resolves all five release-blockers of the v0.3.0 review; first release the
+external reviewer's criteria would tag as public-quality.
+
+### Fixed
+- Stale pre-RFC-024 theorem references in the proof index and matrix
+  replaced with the `StepProjections` lemma family (RB-01).
+- Guided tour shows the eleven-operation grammar and `receive_only_own`
+  (RB-02).
+- `Mailbox.lean` message-ownership overclaim reworded to per-operation
+  value semantics (RB-03); matrix row 7 scoped.
+- `Henret.Model` documented as a light import, not definition-only (RB-04;
+  decision recorded in RFC 027).
+- `lakefile.lean` import comment matches RFC 025 (RB-05).
+- `send` docstring: existence provenance, not message provenance (SF-04).
+
+### Added
+- Gate 7: `scripts/doc_symbol_check.py` — every backticked theorem name in
+  the proof docs must `#check` (99 names verified); gate 6 phrase list
+  extended (SF-05).
+
+
 ## v0.3.0 — actor-scoped operations (RFCs 024–025)
 
 Breaking: the operation grammar changes. `send`/`receive` are now

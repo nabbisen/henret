@@ -63,8 +63,10 @@ end Henret
 Messages and mailboxes (RFC 004, RFC 006).
 
 A mailbox is a FIFO list of messages. `send` appends at the tail;
-`receive` removes exactly the head. Ownership is positional: a message
-lives in exactly one mailbox list, and the only operations that touch
-it are the enqueue/dequeue defined here. The ownership and exact-one
-properties are proved in `Henret.Proofs.Messaging`.
+`receive` removes exactly the head. A mailbox is a FIFO list of message
+*values*. The model proves per-operation value effects: one successful
+send/inject appends one value, and one successful receive removes the
+head value from the receiver's own mailbox (`Henret.Proofs.Messaging`).
+Global message occurrence uniqueness is not modeled; that requires a
+fresh occurrence id or envelope identity (RFC 022, future work).
 -/

@@ -22,10 +22,10 @@ relevant index (`proof-index.md`, `assumption-index.md`, `test-index.md`).
 | 4 | `wake t` changes no task other than `t` | PROVEN | `wake_exact` |
 | 5 | A valid wake moves exactly the sleeping task to ready, enqueued once at the tail | PROVEN | `wake_sets_ready` |
 | 6 | Duplicate wake is invalid and changes nothing (no duplicate ready entries from wake) | PROVEN | `wake_twice_invalid` |
-| 7 | `send` appends exactly one message to exactly the target mailbox | PROVEN | `send_appends`, `send_preserves_other` |
+| 7 | one successful `send`/`inject` appends exactly one message *value* to exactly the target mailbox (per-operation; occurrence identity not modeled, RFC 022) | PROVEN | `send_appends`, `inject_appends`, `*_preserves_other` |
 | 8 | `receive` consumes exactly one message (the head) | PROVEN | `receive_consumes_one`, `receive_length` |
 | 9 | `receive` from an empty mailbox is invalid and changes nothing | PROVEN | `receive_empty_invalid` |
-| 10 | `send`/`receive` never change task state | PROVEN | `send_preserves_tasks`, `receive_preserves_tasks` |
+| 10 | `send`/`receive`/`inject` touch only `mailboxes`; no task, queue, timer, clock, or id state changes | PROVEN | `Henret.Proofs.StepProjections` (21 lemmas, e.g. `send_taskState`, `receive_readyQ`) |
 | 11 | `tick now` does not wake timers with `deadline > now` | PROVEN | `tick_no_early_wake`, `tick_keeps_future` |
 | 12 | `tick now` wakes every expired sleeping task and enqueues the woken list | PROVEN | `tick_wakes_expired`, `tick_enqueues_woken` |
 | 13 | The timer queue stays sorted under every operation and program | PROVEN | `step_preserves_sorted`, `run_preserves_sorted` |
@@ -72,7 +72,7 @@ zero-assumption core.
 |---:|---|---|---|
 | 29 | Every reachable state is well-formed | PROVEN | `reachable_wf` (`run_preserves_wf` ∘ `wf_init`) |
 | 30 | The scheduler never duplicates a ready task | PROVEN | `WellFormed.readyQ_nodup` in every reachable state |
-| 31 | A task occupies at most one ownership location (queued / running / timer) | PROVEN | `ready_not_running`, `ready_no_timer`, `running_no_timer` corollaries |
+| 31 | A task occupies at most one ownership location (queued / running / timer) | PROVEN | `WellFormed.ready_not_running`, `WellFormed.ready_no_timer`, `WellFormed.running_no_timer` |
 | 32 | A spawned task's owner is immutable | PROVEN | `spawn_sets_owner`, `step/run_preserves_owner` |
 | 33 | Invalid operations never mutate state | PROVEN | `step_invalid_unchanged` |
 | 34 | Logical time is monotone; backwards ticks are invalid no-ops | PROVEN | `step_clock_monotone`, `tick_backwards_invalid`, `tick_advances_clock` |
