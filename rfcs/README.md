@@ -35,10 +35,11 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 | [027](done/027-model-import-boundary-clarification.md) | Model Import Boundary Clarification (v0.3.1) |
 | [028](done/028-schedulable-completeness-invariant.md) | Schedulable Completeness Invariant (v0.4.0) |
 | [029](done/029-blocked-receive-semantics.md) | Blocked Receive Semantics (v0.4.0) |
+| [030](done/030-v041-public-claim-cleanup.md) | v0.4.1 Public Claim Cleanup (v0.4.1) |
 
 ## Proposed
 
-(none — RFCs 001–012 shipped in v0.1.0; 013–018 in v0.2.0; 019–023 in v0.2.1; 024–025 in v0.3.0; 026–027 in v0.3.1; 028–029 in v0.4.0)
+(none — RFCs 001–012 shipped in v0.1.0; 013–018 in v0.2.0; 019–023 in v0.2.1; 024–025 in v0.3.0; 026–027 in v0.3.1; 028–029 in v0.4.0; 030 in v0.4.1)
 
 ## Archive
 

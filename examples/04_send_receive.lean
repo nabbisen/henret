@@ -49,9 +49,12 @@ def sr2 := step s1 (.receive 0)
 -- invalid   — task 1 is not running
 #check @Henret.send_not_running_invalid
 #eval (step s1 (.receive 1)).2
--- invalid   — task 1 is not running either
+-- invalid   — task 1 IS owned (by actor 9) but is not running:
+-- this evaluation demonstrates the NON-RUNNING guard.
+-- Separately, ownership is also a guard — a task with no owning actor
+-- can never receive (an arbitrary-state fact; in reachable states every
+-- spawned task has an owner by `reachable_spawned_has_owner`):
 #check @Henret.receive_unowned_invalid
--- a task with no owning actor can never receive
 
 -- Receive from an empty (own) mailbox is BLOCKED, not invalid
 -- (RFC 029) — a legal waiting condition, distinct from a violation.

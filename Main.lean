@@ -78,8 +78,10 @@ def main : IO Unit := do
   let s9 := run RuntimeState.init
     [.spawn 1, .schedule, .sleep 0 5, .cancel 0]
   check "cancel drops the pending timer" s9.timers.isEmpty
-  -- blocked vs invalid (RFC 029): empty own-mailbox receive is a legal
-  -- waiting condition; an unscheduled task's receive is a violation
+
+  IO.println "scenario 7: blocked vs invalid receive (RFC 029)"
+  -- empty own-mailbox receive is a legal waiting condition;
+  -- an unscheduled task's receive is a protocol violation
   let s10 := run RuntimeState.init [.spawn 3, .schedule]
   check "empty own-mailbox receive is blocked"
     ((step s10 (.receive 0)).2 matches .blocked)

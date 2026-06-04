@@ -73,9 +73,9 @@ open Henret
 
 ## The model in one minute
 
-- `RuntimeOp` (`Henret/Scheduler/Op.lean`) — the operation grammar:
-  `spawn`, `schedule`, `yield`, `complete`, `cancel`, `send`, `receive`,
-  `sleep`, `tick`, `wake`.
+- `RuntimeOp` (`Henret/Scheduler/Op.lean`) — the operation grammar, eleven
+  operations: `spawn`, `schedule`, `yield`, `complete`, `cancel`,
+  `send`, `receive`, `inject`, `sleep`, `tick`, `wake`.
 - `RuntimeState` (`Henret/Scheduler/Model.lean`) — task states, ready queue,
   running slot, sorted logical-time timer queue, mailboxes, fresh-id counter.
 - `step : RuntimeState → RuntimeOp → RuntimeState × StepResult` — total and
@@ -114,6 +114,14 @@ open Henret
 - **Actor-local receive discipline** (v0.3.0) — a task receives only from
   its own actor's mailbox, derived from ownership; no other mailbox is
   touched (`receive_only_own`).
+- **Schedulable completeness** (v0.4.0) — every reachable runnable task is
+  in the ready queue; equivalently, the ready queue contains *exactly* the
+  runnable tasks (`reachable_runnable_is_queued`, `reachable_queue_exact`).
+- **Blocked receive semantics** (v0.4.0) — an empty own-mailbox receive is
+  `blocked`, not invalid, and blocked operations are provable no-ops
+  (`receive_empty_blocked`, `step_blocked_unchanged`). Note: blocked is
+  currently a no-op *result*, not a waiting-state transition — wait queues
+  and blocked-task parking are future work (RFC 029).
 - **Backend contract** — both reference mailbox backends satisfy the
   `MailboxBackend` refinement contract (`listBackend`, `mailboxBackend`).
 
@@ -124,7 +132,7 @@ is merely tested or explicitly out of scope.
 ## Learning path
 
 1. [`docs/guided-tour.md`](docs/guided-tour.md) — read this first.
-2. `Henret/Examples/Basic.lean` — `#eval`-able scenarios (opt-in import; the demo executable drives six self-checking scenarios).
+2. `Henret/Examples/Basic.lean` — `#eval`-able scenarios (opt-in import; the demo executable drives seven self-checking scenarios).
 3. `Henret/Scheduler/Model.lean` — the `step` function is the semantics.
 4. `Henret/Proofs/Lifecycle.lean` — the flagship monotonicity proof.
 5. [`docs/patterns/refinement-contract.md`](docs/patterns/refinement-contract.md)

@@ -11,6 +11,7 @@ import Henret.Proofs.InvariantsPreservation
 
 Every theorem about the model: lifecycle, messaging (including the
 actor-local receive discipline), timers and the logical clock,
-ownership, and the nine-field reachability invariant. Brings in
+ownership, and the reachability invariant with its preservation
+theorem. Brings in
 `Henret.Model` transitively (RFC 025).
 -/

@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.4.1 — public claim cleanup (RFC 030)
+
+Resolves all five release-blockers of the v0.4.0 review; the reviewer's
+prerequisite for public v0.4.x tagging.
+
+### Fixed
+- README "model in one minute" operation list includes `inject` (RB-01).
+- Proof index: flagship case analysis described over the eleven-operation
+  grammar (RB-02); `WellFormed` described by its current ten-field
+  surface (RB-03).
+- `Henret.Proofs` barrel docstring made count-free (RB-04).
+- README proof summary gains the v0.4.0 headlines: schedulable
+  completeness and blocked receive (RB-05).
+- Example 04 separates the non-running guard demo from the ownership
+  guard theorem (SF-02).
+
+### Added
+- Demo scenario 7: blocked vs invalid receive, split from scenario 6;
+  test index updated (SF-03).
+- Gate 6 current-surface phrases for stale operation/field counts (SF-01).
+- Transitional framing for `blocked` in README and matrix: a no-op
+  result, not a waiting-state transition (SF-04).
+
+
 ## v0.4.0 — schedulable completeness + blocked receive (RFCs 028–029)
 
 The two semantic priorities named by the v0.3.0 review.

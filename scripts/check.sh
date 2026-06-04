@@ -45,7 +45,7 @@ lake env lean "$AUDIT" | python3 scripts/axiom_audit.py
 rm -f "$AUDIT"
 
 echo "== gate 6/7: documentation consistency (RFC 021) =="
-if grep -rn "five scenarios\|rfcs/proposed/010\|RFC 010 (proposed)\|remains in proposed\|send_preserves_tasks\|receive_preserves_tasks\|\\\`send a m\\\`\|\\\`receive a\\\`\|five .#eval" \
+if grep -rn "five scenarios\|rfcs/proposed/010\|RFC 010 (proposed)\|remains in proposed\|send_preserves_tasks\|receive_preserves_tasks\|10-operation\|six-field reachability\|nine-field reachability\|\\\`send a m\\\`\|\\\`receive a\\\`\|five .#eval" \
      README.md docs/ examples/ CHANGELOG.md Henret/ Main.lean 2>/dev/null \
      | grep -v "\.lake" | grep -v "docs/reviews/" | grep -v "rfcs/done/" | grep -v "docs/handoff-"; then
   echo "FAIL: stale documentation phrase found"; exit 1

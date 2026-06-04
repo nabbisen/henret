@@ -11,6 +11,7 @@ exits non-zero if any check fails, so it doubles as a regression gate.
 | 4. Cancel | cancelled task stays cancelled and is not re-queued | `step_preserves_cancelled` |
 | 5. Drivers | `driveOps` (TESTED) and `drain` (PROVEN: `drain_completes`) complete tasks 0..4 |  |
 | 6. v0.2 model | ownership set at spawn and stable across the lifecycle; clock advances; backwards tick is rejected and is a no-op; tick on an *arbitrary* state with a stale (cancelled-task) timer entry consumes the entry, wakes nothing (`.woke []`), re-queues nothing; cancel drops pending timers in reachable states | `spawn_sets_owner`, `run_preserves_owner`, `tick_advances_clock`, `tick_backwards_invalid`, `step_invalid_unchanged`, `WellFormed.timers_sleep` |
+| 7. Blocked vs invalid (RFC 029) | empty own-mailbox receive by the running task is `blocked` and changes nothing; receive by a non-running task is `invalid`, not blocked | `receive_empty_blocked`, `step_blocked_unchanged`, `receive_unowned_invalid` |
 
 Where a behavior is also proven, the test is a sanity check on the executable
 semantics; where it is not (e.g. `driveOps`), the test is the primary evidence

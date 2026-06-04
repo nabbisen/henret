@@ -24,7 +24,8 @@ Axiom audit: only `propext` and `Quot.sound` (Lean standard).
 ## Lifecycle — `Henret/Proofs/Lifecycle.lean`
 - `wakeOne_preserves_of_ne_sleeping`, `wakeMany_preserves_of_ne_sleeping`,
   `wakeOne_other`, `wakeMany_preserves_other`, `wakeMany_wakes` — wake helper laws.
-- `step_preserves_terminal` — flagship: 10-operation case analysis.
+- `step_preserves_terminal` — flagship: full case analysis over the
+  eleven-operation grammar.
 - `step_preserves_completed`, `step_preserves_cancelled` — corollaries.
 - `run_preserves_terminal`, `run_preserves_completed`, `run_preserves_cancelled`.
 - `wake_exact`, `wake_sets_ready`, `wake_twice_invalid` — RFC 006 wake laws.
@@ -80,7 +81,11 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 - `nodup_of_sublist`, `nodup_append_singleton`, `nodup_append`,
   `nodup_task_inj`, `mem_map_insertSorted`, `insertSorted_task_nodup` —
   core-only list/timer helpers.
-- `WellFormed` — six-field reachability invariant.
+- `WellFormed` — the reachability invariant (ten fields as of RFC 028):
+  ready-queue soundness *and* completeness, running-slot consistency,
+  timer discipline (uniqueness, sleep-coherence, sortedness), fresh-id
+  discipline, ownership existence, owner-mailbox existence; location
+  disjointness derived as corollaries.
 - `wf_init`; corollaries `WellFormed.ready_not_running`,
   `WellFormed.ready_no_timer`, `WellFormed.running_no_timer`
   (location disjointness derived from state uniqueness).

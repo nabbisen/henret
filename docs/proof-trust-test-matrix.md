@@ -103,6 +103,6 @@ zero-assumption core.
 |---:|---|---|---|
 | 45 | The runtime never loses a runnable task: every reachable runnable task is queued | PROVEN | `reachable_runnable_is_queued` (`WellFormed.runnable_queued`) |
 | 46 | The ready queue contains exactly the runnable tasks in every reachable state | PROVEN | `reachable_queue_exact` |
-| 47 | Blocked operations never mutate state | PROVEN | `step_blocked_unchanged` |
+| 47 | Blocked operations never mutate state (blocked is currently a no-op *result*, not a waiting-state transition; wait queues are future work) | PROVEN | `step_blocked_unchanged` |
 | 48 | Empty own-mailbox receive is blocked (legal wait), not invalid; illegal receive stays invalid | PROVEN + TESTED | `receive_empty_blocked`, demo scenario 6 |
 | 49 | Past-deadline sleep policy: legal, wakes at next valid tick | DOCUMENTED (RFC 029) | `RuntimeOp.sleep` docstring |
