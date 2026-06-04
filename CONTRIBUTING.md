@@ -32,3 +32,11 @@ Toolchain is pinned in `lean-toolchain` (`leanprover/lean4:v4.15.0`); install
 via elan. If your network blocks `release.lean-lang.org`, download the
 toolchain tarball from the Lean GitHub releases and unpack it under
 `~/.elan/toolchains/leanprover--lean4---v4.15.0/`.
+
+## Canonical test command
+
+`./scripts/check.sh` is the single source of truth for "is the package
+green": core build, native build, demo regressions, all examples, the
+strict axiom audit (RFC 020), and the documentation-consistency grep
+(RFC 021). CI runs exactly this script. Run it before every commit that
+touches Lean code or docs.

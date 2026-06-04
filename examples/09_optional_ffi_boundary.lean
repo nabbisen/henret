@@ -29,9 +29,9 @@ example : listDeque.toList_empty = rfl := rfl
 #check @qRun_tracks
 -- #print axioms qRun_tracks  -- only [propext]
 
--- LIFO driver liveness: no native axioms either
-#check @drivePopB_complete
--- #print axioms drivePopB_complete  -- [propext, Quot.sound]
+-- owner-end stack driver liveness: no native axioms either
+#check @driveStackB_complete
+-- #print axioms driveStackB_complete  -- [propext, Quot.sound]
 
 /-! ## The native backend (6 ASSUMED axioms) -/
 

@@ -58,13 +58,25 @@ def main : IO Unit := do
   let (s8b, r8) := step s8 (.tick 3)
   check "backwards tick rejected" (r8 matches .invalid)
   check "backwards tick left state unchanged" (s8b.now == 10)
-  -- tick wakes only sleeping tasks: a cancelled task with a stale timer stays out
+  -- tick wakes only sleeping tasks. NOTE: in reachable states cancel
+  -- already drops the timer (WellFormed.timers_sleep), so to exercise
+  -- the tick filter itself we construct an *arbitrary* state holding a
+  -- stale entry for a cancelled task.
+  let stale : RuntimeState :=
+    { RuntimeState.init with
+        taskState := upd RuntimeState.init.taskState 0 (some .cancelled)
+        timers    := [⟨5, 0⟩]
+        nextId    := 1 }
+  let (stale', r9) := step stale (.tick 10)
+  check "stale timer entry consumed by tick" stale'.timers.isEmpty
+  check "stale timer task not woken" (r9 matches .woke [])
+  check "stale timer task not re-queued" (!(stale'.readyQ.contains 0))
+  check "cancelled stale-timer task unchanged"
+    (stale'.taskState 0 == some .cancelled)
+  -- and the reachable-state path: cancel drops the timer eagerly
   let s9 := run RuntimeState.init
     [.spawn 1, .schedule, .sleep 0 5, .cancel 0]
-  let (s9b, _) := step s9 (.tick 10)
-  check "stale timer task not re-queued" (!(s9b.readyQ.contains 0))
-  check "cancelled task stays cancelled after tick"
-    (s9b.taskState 0 == some .cancelled)
+  check "cancel drops the pending timer" s9.timers.isEmpty
 
   IO.println "all demo stages passed"
 

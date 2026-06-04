@@ -8,7 +8,7 @@ Read top to bottom; each stop is small.
 lake exe henret-demo
 ```
 
-Five scenarios print their state and assert expected outcomes.
+Six scenarios print their state and assert expected outcomes.
 
 ## 2. The operation grammar — `Henret/Scheduler/Op.lean`
 

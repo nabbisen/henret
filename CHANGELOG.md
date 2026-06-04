@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.2.1 — review-hardening release (RFCs 019–023)
+
+Resolves all five must-fixes of the v0.2.0 follow-up review.
+
+### Added
+- `WellFormed` strengthened to nine fields: `timers_sorted`,
+  `spawned_has_owner`, `owned_has_mailbox`; preservation re-proved for all
+  ten operations; new headlines `reachable_spawned_has_owner`,
+  `reachable_owner_has_mailbox`, `reachable_timers_sorted` (RFC 019).
+- `scripts/axiom_audit.py` — exact per-theorem axiom allowlist; rejects any
+  unexpected project axiom; negative cases validated (RFC 020).
+- `scripts/check.sh` gate 6 — documentation-consistency grep (RFC 021).
+- Demo scenario 6 rebuilt: arbitrary-state stale-timer entry, asserting the
+  tick filter consumes it and wakes nothing (RFC 021).
+- `wakeOne_none` / `wakeMany_none` — waking never spawns.
+
+### Changed
+- `drivePopB` renamed `driveStackB` with an explicit orientation note
+  relative to `DequeModel.toList`; `execDemo` framing removed (RFC 023).
+- Message non-duplication claims scoped to per-operation value semantics;
+  occurrence identity recorded as future work (RFC 022).
+- Scenario counts and changelog history corrected (RFC 021).
+
+
 ## v0.2.0 — invariant discipline (review-resolution release)
 
 Resolves all seven must-fix findings of the v0.1.0 architecture review
@@ -60,7 +84,8 @@ First public release: the Lean-only actor/task model.
 - `examples/README.md` learning-order index.
 - RFC 011 (Examples and Guided Tour) → `rfcs/done/`.
 - RFC 012 (Release, Docsite, and Community) → `rfcs/done/`; all 11 of 12 RFCs
-  now done; RFC 010 (optional FFI boundary) remains in `proposed/`.
+  now done; RFC 010 (optional FFI boundary) landed later within v0.1.0
+  (see the dedicated section below).
 
 ### Added (RFC 010 — Optional Native Backend Boundary)
 - `Henret/Native/DequeModel.lean` — `DequeModel` abstract contract (6 laws,

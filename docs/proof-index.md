@@ -57,7 +57,7 @@ All kernel-checked; no custom axioms.  `#print axioms` → only `propext`/`Quot.
 - `qStep_tracks` — one-step tracking lemma.
 - `qRun_tracks` — whole-program refinement (PROVEN, `propext` only).
 - `totalFuel_nil`, `totalFuel_cons`, `totalFuel_append_single` — fuel arithmetic.
-- `drivePopB_complete` — LIFO driver liveness (PROVEN, `propext`, `Quot.sound`).
+- `driveStackB_complete` — owner-end stack driver liveness (PROVEN, `propext`, `Quot.sound`).
 
 ## Native assumptions — `Henret/Native/Assumptions.lean`
 
@@ -94,3 +94,12 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 - `Henret/Proofs/Timers.lean`: `tick_advances_clock`,
   `tick_backwards_invalid`, `step_clock_monotone`; tick theorems
   re-proved under the monotonicity guard.
+
+## v0.2.1 — RFC 019 additions
+
+- `WellFormed` gains `timers_sorted`, `spawned_has_owner`,
+  `owned_has_mailbox` (nine fields total).
+- `reachable_spawned_has_owner`, `reachable_owner_has_mailbox`,
+  `reachable_timers_sorted` — reachability headlines.
+- `wakeOne_none`, `wakeMany_none` (`Ownership.lean`) — waking never spawns.
+- `drivePopB` → `driveStackB` (RFC 023 rename; orientation documented).

@@ -56,7 +56,7 @@ zero-assumption core.
 |---:|---|---|---|
 | 18 | `DequeModel` contract: any compliant backend tracks `listDeque` | PROVEN | `qRun_tracks` (depends: `propext` only) |
 | 19 | `listDeque` satisfies `DequeModel` (all 6 laws by `rfl`) | PROVEN | `listDeque` struct fields |
-| 20 | LIFO owner-pop driver starves no fueled task | PROVEN | `drivePopB_complete` (`propext`, `Quot.sound`) |
+| 20 | owner-end stack driver starves no fueled task | PROVEN | `driveStackB_complete` (`propext`, `Quot.sound`) |
 | 21 | `nativeDequeModel` satisfies `DequeModel` | PROVEN given the 6 axioms | `nativeDequeModel` definition |
 | 22 | Native deque programs track the reference | PROVEN given the 6 axioms | `nativeDequeModel_qRun_tracks` |
 | 23 | `NativeDeque.toList_push` — push appends | ASSUMED | `NativeDeque.toList_push` axiom |
@@ -77,3 +77,12 @@ zero-assumption core.
 | 33 | Invalid operations never mutate state | PROVEN | `step_invalid_unchanged` |
 | 34 | Logical time is monotone; backwards ticks are invalid no-ops | PROVEN | `step_clock_monotone`, `tick_backwards_invalid`, `tick_advances_clock` |
 | 35 | `tick` wakes only genuinely sleeping tasks | PROVEN + TESTED | filter in `step` + `WellFormed.timers_sleep`; demo scenario 6 |
+
+## v0.2.1 claims (strengthened invariant, RFC 019)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 36 | Timer queue sorted in every reachable state (now part of the single invariant) | PROVEN | `WellFormed.timers_sorted`, `reachable_timers_sorted` |
+| 37 | Every reachable spawned task has an owning actor | PROVEN | `reachable_spawned_has_owner` |
+| 38 | Every reachable owning actor has a mailbox | PROVEN | `reachable_owner_has_mailbox` |
+| 39 | Per-operation message non-duplication (value semantics; occurrence identity not modeled — see RFC 022) | PROVEN, scoped | `send_appends`, `receive_consumes_one` |

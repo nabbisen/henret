@@ -116,11 +116,11 @@ theorem nativeDequeModel_qRun_tracks :
       NativeDeque.toList (qRunMachine nativeDequeModel d prog) = qRunRef qs prog :=
   qRun_tracks nativeDequeModel
 
-/-- The LIFO driver starves no fueled task — even on the native deque.
+/-- The owner-end stack driver starves no fueled task — even on the native deque.
 PROVEN (the driver proof does not depend on any native axiom). -/
 theorem nativeDequeModel_driveComplete (b : Nat) (q : List Fueled)
     (h : q.length + totalFuel q ≤ b) :
-    (drivePopB b q).length = q.length :=
-  drivePopB_complete b q h
+    (driveStackB b q).length = q.length :=
+  driveStackB_complete b q h
 
 end Henret.Native

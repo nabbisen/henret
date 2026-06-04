@@ -8,7 +8,7 @@ and two kernel-checked theorems:
 
 * `qRun_tracks` — any backend satisfying the contract tracks the reference
   implementation step-for-step on any sequence of queue operations.
-* `drivePopB_complete` — the LIFO/owner-pop driver starves no fueled task.
+* `driveStackB_complete` — the LIFO/owner-pop driver starves no fueled task.
 
 This module is **pure Lean**: no FFI, no C, no custom axioms.
 `#print axioms qRun_tracks` reports only `propext` and `Quot.sound`.
@@ -150,51 +150,56 @@ def totalFuel : List Fueled → Nat
   | nil => simp [totalFuel]
   | cons x r ih => obtain ⟨_, f⟩ := x; simp [totalFuel, ih]; omega
 
-/-- Fuel-bounded **LIFO/owner-pop** driver.
+/-- Fuel-bounded **owner-end stack** driver.
 
-Models `Exec.Ctx.drive` semantics: the owner always pops and re-pushes the
-*same* (bottom) task until its fuel reaches zero, then moves on.  Each task
-runs to completion before the next is touched.
+ORIENTATION NOTE (deliberately different from `DequeModel.toList`):
+`DequeModel.toList` reads top → bottom, so the owner's end is the list
+*back* and `popLast` removes it.  `driveStackB` instead works on the
+owner's-eye view — the list *front* is the owner's end (a stack) — because
+the fuel recursion is structural there.  The translation between the two
+views is `List.reverse`; this driver is a standalone fairness model for
+owner-end scheduling, not an operation of `DequeModel` itself.
 
-`prog = [(t₀, f₀), (t₁, f₁), …]` where the front is the bottom of the deque. -/
-def drivePopB : Nat → List Fueled → List TaskId
+Semantics: the owner repeatedly takes the front task, decrements its fuel
+in place until it reaches zero, then completes it and moves on.  Each task
+runs to completion before the next is touched. -/
+def driveStackB : Nat → List Fueled → List TaskId
   | 0,    _                => []
   | _+1,  []               => []
-  | b+1,  (t, 0)   :: rest => t :: drivePopB b rest
-  | b+1,  (t, n+1) :: rest => drivePopB b ((t, n) :: rest)
+  | b+1,  (t, 0)   :: rest => t :: driveStackB b rest
+  | b+1,  (t, n+1) :: rest => driveStackB b ((t, n) :: rest)
 
 /-- **Liveness theorem**: given a fuel budget `b ≥ queue-length + total-fuel`,
 every task completes exactly once.
 
-This is the model-level content of `execDemo` — the owner-pop driver starves
-no fueled future.  The real executor adds OS threads and the C deque on top;
-that layer is TESTED.  This layer is PROVEN.
+The owner-end driver starves no fueled task.  Any native executor layered
+on top (OS threads, C deque) is TESTED territory; this layer is PROVEN.
 
-`#print axioms drivePopB_complete` → only `[propext, Quot.sound]`. -/
-theorem drivePopB_complete : ∀ (b : Nat) (q : List Fueled),
-    q.length + totalFuel q ≤ b → (drivePopB b q).length = q.length := by
+`#print axioms driveStackB_complete` → only `[propext, Quot.sound]`. -/
+theorem driveStackB_complete : ∀ (b : Nat) (q : List Fueled),
+    q.length + totalFuel q ≤ b → (driveStackB b q).length = q.length := by
   intro b
   induction b with
   | zero =>
       intro q h
       have : q.length = 0 := by omega
-      simp [drivePopB, this]
+      simp [driveStackB, this]
   | succ b ih =>
       intro q h
       cases q with
-      | nil => simp [drivePopB]
+      | nil => simp [driveStackB]
       | cons x rest =>
           obtain ⟨t, f⟩ := x
           cases f with
           | zero =>
               have hr : rest.length + totalFuel rest ≤ b := by
                 simp at h; omega
-              simp only [drivePopB, List.length_cons]
+              simp only [driveStackB, List.length_cons]
               rw [ih rest hr]
           | succ n =>
               have hr : ((t, n) :: rest).length + totalFuel ((t, n) :: rest) ≤ b := by
                 simp at h ⊢; omega
-              simp only [drivePopB, List.length_cons]
+              simp only [driveStackB, List.length_cons]
               rw [ih _ hr]
               simp [List.length_cons]
 
@@ -212,6 +217,6 @@ Main results:
 * `listDeque` — reference implementation; all laws hold by `rfl`.
 * `qRun_tracks` — any `DequeModel` backend tracks `listDeque` on any
   queue program.  Only axioms: `propext`.
-* `drivePopB_complete` — the LIFO owner-pop driver starves no fueled task.
+* `driveStackB_complete` — the LIFO owner-pop driver starves no fueled task.
   Only axioms: `propext`, `Quot.sound`.
 -/

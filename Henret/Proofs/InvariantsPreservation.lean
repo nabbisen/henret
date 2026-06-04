@@ -22,7 +22,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
         have h1 := h.readyQ_queued _ hm
         rw [hts] at h1
         simp [Option.any] at h1
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · -- readyQ_nodup
         simp only [step, hts]
         exact nodup_append_singleton h.readyQ_nodup hnq
@@ -59,6 +59,45 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
         have h2 : s.nextId ≤ u := Nat.le_of_succ_le hu
         simp only [upd, if_neg h1]
         exact h.fresh_none u h2
+      · -- timers_sorted
+        simp only [step, hts]
+        exact h.timers_sorted
+      · -- spawned_has_owner
+        intro u st hts'
+        simp only [step, hts] at hts' ⊢
+        by_cases hu : u = s.nextId
+        · subst hu
+          exact ⟨a, by simp [upd]⟩
+        · simp only [upd, if_neg hu] at hts' ⊢
+          exact h.spawned_has_owner u st hts'
+      · -- owned_has_mailbox
+        intro u b hown
+        cases hmb0 : s.mailboxes a with
+        | some mba =>
+          simp only [step, hts, hmb0] at hown ⊢
+          by_cases hu : u = s.nextId
+          · subst hu
+            simp only [upd_self] at hown
+            injection hown with hab
+            subst hab
+            exact ⟨mba, hmb0⟩
+          · simp only [upd, if_neg hu] at hown
+            exact h.owned_has_mailbox u b hown
+        | none =>
+          simp only [step, hts, hmb0] at hown ⊢
+          by_cases hu : u = s.nextId
+          · subst hu
+            simp only [upd_self] at hown
+            injection hown with hab
+            subst hab
+            exact ⟨Mailbox.empty, by simp [upd]⟩
+          · simp only [upd, if_neg hu] at hown
+            obtain ⟨mb', hmb'⟩ := h.owned_has_mailbox u b hown
+            by_cases hba : b = a
+            · subst hba
+              rw [hmb'] at hmb0
+              cases hmb0
+            · exact ⟨mb', by simp only [upd, if_neg hba]; exact hmb'⟩
   | schedule =>
     cases hr : s.running with
     | some _ => simpa [step, hr] using h
@@ -73,7 +112,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
             cases hto : s.taskState t with
             | none => rw [hto] at hrun; simp [Option.any] at hrun
             | some x => exact ⟨x, rfl⟩
-          refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
           · simp only [step, hr, hq, if_pos hrun]
             exact hnodup.2
           · intro u hm
@@ -105,6 +144,19 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
               cases hx
             simp only [upd, if_neg h1]
             exact h.fresh_none u hu
+          · simp only [step, hr, hq, if_pos hrun]
+            exact h.timers_sorted
+          · intro u st hts'
+            simp only [step, hr, hq, if_pos hrun] at hts' ⊢
+            by_cases hu : u = t
+            · subst hu
+              obtain ⟨x, hx⟩ := htsome
+              exact h.spawned_has_owner u x hx
+            · simp only [upd, if_neg hu] at hts'
+              exact h.spawned_has_owner u st hts'
+          · intro u b hown
+            simp only [step, hr, hq, if_pos hrun] at hown ⊢
+            exact h.owned_has_mailbox u b hown
         · simp at hrun; simpa [step, hr, hq, hrun] using h
   | yield t =>
     by_cases hrt : s.running = some t
@@ -117,7 +169,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
             have h1 := h.readyQ_queued t hm
             rw [hts] at h1
             simp [Option.any, TaskState.isRunnable] at h1
-          refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
           · simp only [step, hrt, hts, if_pos rfl]
             simp only [if_pos]
             exact nodup_append_singleton h.readyQ_nodup hnq
@@ -147,6 +199,18 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
               cases hts
             simp only [upd, if_neg h1]
             exact h.fresh_none u hu
+          · simp [step, hrt, hts]
+            exact h.timers_sorted
+          · intro u st hts'
+            simp [step, hrt, hts] at hts' ⊢
+            by_cases hu : u = t
+            · subst hu
+              exact h.spawned_has_owner u .running hts
+            · simp only [upd, if_neg hu] at hts'
+              exact h.spawned_has_owner u st hts'
+          · intro u b hown
+            simp [step, hrt, hts] at hown ⊢
+            exact h.owned_has_mailbox u b hown
         | new => simpa [step, hrt, hts] using h
         | ready => simpa [step, hrt, hts] using h
         | yielded => simpa [step, hrt, hts] using h
@@ -161,7 +225,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
       | some s' =>
         cases s' with
         | running =>
-          refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
           · simp [step, hrt, hts]
             exact h.readyQ_nodup
           · intro u hm
@@ -190,6 +254,18 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
               cases hts
             simp only [upd, if_neg h1]
             exact h.fresh_none u hu
+          · simp [step, hrt, hts]
+            exact h.timers_sorted
+          · intro u st hts'
+            simp [step, hrt, hts] at hts' ⊢
+            by_cases hu : u = t
+            · subst hu
+              exact h.spawned_has_owner u .running hts
+            · simp only [upd, if_neg hu] at hts'
+              exact h.spawned_has_owner u st hts'
+          · intro u b hown
+            simp [step, hrt, hts] at hown ⊢
+            exact h.owned_has_mailbox u b hown
         | new => simpa [step, hrt, hts] using h
         | ready => simpa [step, hrt, hts] using h
         | yielded => simpa [step, hrt, hts] using h
@@ -204,7 +280,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
       by_cases hterm : s'.isTerminal = true
       · simpa [step, hts, hterm] using h
       · simp at hterm
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · simp [step, hts, hterm]
           exact h.readyQ_nodup.filter _
         · intro u hm
@@ -237,19 +313,48 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
             cases hts
           simp only [upd, if_neg h1]
           exact h.fresh_none u hu
+        · simp [step, hts, hterm]
+          exact Timer.sorted_filter _ h.timers_sorted
+        · intro u st hts'
+          simp [step, hts, hterm] at hts' ⊢
+          by_cases hu : u = t
+          · subst hu
+            exact h.spawned_has_owner u s' hts
+          · simp only [upd, if_neg hu] at hts'
+            exact h.spawned_has_owner u st hts'
+        · intro u b hown
+          simp [step, hts, hterm] at hown ⊢
+          exact h.owned_has_mailbox u b hown
   | send a m =>
     cases hmb : s.mailboxes a with
     | none => simpa [step, hmb] using h
     | some mb =>
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
-        simp only [step, hmb] <;>
-        first
-          | exact h.readyQ_nodup
-          | exact h.readyQ_queued
-          | exact h.running_runs
-          | exact h.timers_nodup
-          | exact h.timers_sleep
-          | exact h.fresh_none
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp only [step, hmb]; exact h.readyQ_nodup
+      · intro u hm
+        simp only [step, hmb] at hm ⊢
+        exact h.readyQ_queued u hm
+      · intro u hru
+        simp only [step, hmb] at hru ⊢
+        exact h.running_runs u hru
+      · simp only [step, hmb]; exact h.timers_nodup
+      · intro e he
+        simp only [step, hmb] at he ⊢
+        exact h.timers_sleep e he
+      · intro u hu
+        simp only [step, hmb] at hu ⊢
+        exact h.fresh_none u hu
+      · simp only [step, hmb]; exact h.timers_sorted
+      · intro u st hts'
+        simp only [step, hmb] at hts' ⊢
+        exact h.spawned_has_owner u st hts'
+      · intro u b hown
+        simp only [step, hmb] at hown ⊢
+        by_cases hba : b = a
+        · subst hba
+          exact ⟨mb.enqueue m, by simp [upd]⟩
+        · obtain ⟨mb', hmb'⟩ := h.owned_has_mailbox u b hown
+          exact ⟨mb', by simp only [upd, if_neg hba]; exact hmb'⟩
   | receive a =>
     cases hmb : s.mailboxes a with
     | none => simpa [step, hmb] using h
@@ -257,15 +362,32 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
       cases hd : mb.dequeue with
       | none => simpa [step, hmb, hd] using h
       | some p =>
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
-          simp only [step, hmb, hd] <;>
-          first
-            | exact h.readyQ_nodup
-            | exact h.readyQ_queued
-            | exact h.running_runs
-            | exact h.timers_nodup
-            | exact h.timers_sleep
-            | exact h.fresh_none
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        · simp only [step, hmb, hd]; exact h.readyQ_nodup
+        · intro u hm
+          simp only [step, hmb, hd] at hm ⊢
+          exact h.readyQ_queued u hm
+        · intro u hru
+          simp only [step, hmb, hd] at hru ⊢
+          exact h.running_runs u hru
+        · simp only [step, hmb, hd]; exact h.timers_nodup
+        · intro e he
+          simp only [step, hmb, hd] at he ⊢
+          exact h.timers_sleep e he
+        · intro u hu
+          simp only [step, hmb, hd] at hu ⊢
+          exact h.fresh_none u hu
+        · simp only [step, hmb, hd]; exact h.timers_sorted
+        · intro u st hts'
+          simp only [step, hmb, hd] at hts' ⊢
+          exact h.spawned_has_owner u st hts'
+        · intro u b hown
+          simp only [step, hmb, hd] at hown ⊢
+          by_cases hba : b = a
+          · subst hba
+            exact ⟨p.2, by simp [upd]⟩
+          · obtain ⟨mb', hmb'⟩ := h.owned_has_mailbox u b hown
+            exact ⟨mb', by simp only [upd, if_neg hba]; exact hmb'⟩
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -280,7 +402,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
             have h1 := h.timers_sleep e he
             rw [hee, hts] at h1
             cases h1
-          refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
           · simp [step, hrt, hts]
             exact h.readyQ_nodup
           · intro u hm
@@ -311,6 +433,18 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
               cases hts
             simp only [upd, if_neg h1]
             exact h.fresh_none u hu
+          · simp [step, hrt, hts]
+            exact Timer.insertSorted_sorted h.timers_sorted
+          · intro u st hts'
+            simp [step, hrt, hts] at hts' ⊢
+            by_cases hu : u = t
+            · subst hu
+              exact h.spawned_has_owner u .running hts
+            · simp only [upd, if_neg hu] at hts'
+              exact h.spawned_has_owner u st hts'
+          · intro u b hown
+            simp [step, hrt, hts] at hown ⊢
+            exact h.owned_has_mailbox u b hown
         | new => simpa [step, hrt, hts] using h
         | ready => simpa [step, hrt, hts] using h
         | yielded => simpa [step, hrt, hts] using h
@@ -336,7 +470,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
         have h1 := h.readyQ_queued a ha
         rw [hwoken_sleep a hm] at h1
         simp [Option.any, TaskState.isRunnable] at h1
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [step, if_pos hle]
         rw [← hwdef]
         exact nodup_append h.readyQ_nodup hwoken_nodup hdisj
@@ -386,6 +520,17 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
           cases h1
         rw [wakeMany_preserves_other hnot]
         exact h1
+      · simp only [step, if_pos hle]
+        exact Timer.remaining_sorted h.timers_sorted
+      · intro u st hts'
+        simp only [step, if_pos hle] at hts' ⊢
+        rw [← hwdef] at hts'
+        cases hts0 : s.taskState u with
+        | none => rw [wakeMany_none hts0] at hts'; cases hts'
+        | some st0 => exact h.spawned_has_owner u st0 hts0
+      · intro u b hown
+        simp only [step, if_pos hle] at hown ⊢
+        exact h.owned_has_mailbox u b hown
     · simpa [step, hle] using h
   | wake t =>
     cases hts : s.taskState t with
@@ -397,7 +542,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
           have h1 := h.readyQ_queued t hm
           rw [hts] at h1
           simp [Option.any, TaskState.isRunnable] at h1
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · simp [step, hts]
           exact nodup_append_singleton h.readyQ_nodup hnq
         · intro u hm
@@ -429,6 +574,18 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
             cases hts
           simp only [upd, if_neg h1]
           exact h.fresh_none u hu
+        · simp [step, hts]
+          exact Timer.sorted_filter _ h.timers_sorted
+        · intro u st hts'
+          simp [step, hts] at hts' ⊢
+          by_cases hu : u = t
+          · subst hu
+            exact h.spawned_has_owner u .sleeping hts
+          · simp only [upd, if_neg hu] at hts'
+            exact h.spawned_has_owner u st hts'
+        · intro u b hown
+          simp [step, hts] at hown ⊢
+          exact h.owned_has_mailbox u b hown
       | new => simpa [step, hts] using h
       | ready => simpa [step, hts] using h
       | running => simpa [step, hts] using h
@@ -452,6 +609,29 @@ program. -/
 theorem reachable_wf (ops : List RuntimeOp) :
     WellFormed (run RuntimeState.init ops) :=
   run_preserves_wf wf_init ops
+
+/-- Every reachable spawned task has an owning actor (RFC 014/019
+headline): ownership is not merely stable when present — it is always
+present. -/
+theorem reachable_spawned_has_owner (ops : List RuntimeOp)
+    {t : TaskId} {st : TaskState}
+    (h : (run RuntimeState.init ops).taskState t = some st) :
+    ∃ a, (run RuntimeState.init ops).taskOwner t = some a :=
+  (reachable_wf ops).spawned_has_owner t st h
+
+/-- Every reachable owning actor exists: it has a mailbox (RFC 019). -/
+theorem reachable_owner_has_mailbox (ops : List RuntimeOp)
+    {t : TaskId} {a : ActorId}
+    (h : (run RuntimeState.init ops).taskOwner t = some a) :
+    ∃ mb, (run RuntimeState.init ops).mailboxes a = some mb :=
+  (reachable_wf ops).owned_has_mailbox t a h
+
+/-- The timer queue is sorted in every reachable state — now a field of
+the single reachability invariant rather than a separate theorem
+(RFC 019). -/
+theorem reachable_timers_sorted (ops : List RuntimeOp) :
+    Timer.Sorted (run RuntimeState.init ops).timers :=
+  (reachable_wf ops).timers_sorted
 
 end Henret
 

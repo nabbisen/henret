@@ -56,7 +56,7 @@ lake build            # builds the model and all proofs (kernel-checked)
 lake exe henret-demo  # runs executable scenarios with regression checks
 ```
 
-The demo exercises five scenarios — task lifecycle, mailbox send/receive,
+The demo exercises six scenarios — task lifecycle, mailbox send/receive,
 sleep/tick with no early wake, terminal cancellation, and two drivers that
 complete every spawned task — and exits non-zero if any check regresses.
 

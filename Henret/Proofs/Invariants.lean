@@ -115,10 +115,18 @@ structure WellFormed (s : RuntimeState) : Prop where
   timers_sleep  : ∀ e ∈ s.timers, s.taskState e.task = some .sleeping
   /-- Ids at or above the fresh counter are unspawned. -/
   fresh_none    : ∀ t, s.nextId ≤ t → s.taskState t = none
+  /-- The timer queue is sorted by deadline (RFC 019). -/
+  timers_sorted : Timer.Sorted s.timers
+  /-- Every spawned task has an owning actor (RFC 019). -/
+  spawned_has_owner :
+    ∀ t st, s.taskState t = some st → ∃ a, s.taskOwner t = some a
+  /-- Every owning actor exists, i.e. has a mailbox (RFC 019). -/
+  owned_has_mailbox :
+    ∀ t a, s.taskOwner t = some a → ∃ mb, s.mailboxes a = some mb
 
 /-- The initial state is well-formed. -/
 theorem wf_init : WellFormed RuntimeState.init := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;> simp [RuntimeState.init]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> simp [RuntimeState.init]
 
 /-! ## Ownership uniqueness corollaries (RFC 004 acceptance) -/
 

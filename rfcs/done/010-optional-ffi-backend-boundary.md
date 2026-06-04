@@ -73,3 +73,10 @@ the 6 named axioms).
 Separation is at the import level: `import Henret` never pulls in native axioms.
 Build: `lake build HenretNative`. Axiom audit: see `docs/assumption-index.md`.
 Actual `@[extern]` C linkage and conformance differential tests are post-v0.1.0.
+
+## Amendment (v0.2.1, RFC 023)
+
+`drivePopB` renamed to `driveStackB` with an explicit orientation note: the
+driver works on the owner's-eye (list-front) view, the reverse of
+`DequeModel.toList`'s top → bottom orientation. The stale `execDemo` framing
+was removed.

@@ -11,7 +11,7 @@ opaque types).
 Audit script:
 ```lean
 #print axioms step_preserves_terminal    -- propext
-#print axioms drivePopB_complete         -- propext, Quot.sound
+#print axioms driveStackB_complete         -- propext, Quot.sound
 #print axioms wake_twice_invalid         -- propext, Quot.sound
 ```
 

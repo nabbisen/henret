@@ -30,6 +30,34 @@ theorem wakeMany_isSome {u : TaskId} :
     obtain ⟨st1, h1⟩ := wakeOne_isSome h t
     exact ih h1
 
+/-- `wakeOne` maps `none` to `none`: waking never spawns a task. -/
+theorem wakeOne_none {ts : TaskMap} {u : TaskId} (h : ts u = none)
+    (t : TaskId) : wakeOne ts t u = none := by
+  unfold wakeOne
+  cases hts : ts t with
+  | none => exact h
+  | some s' =>
+    cases s' with
+    | sleeping =>
+      have hu : u ≠ t := fun he => by rw [he, hts] at h; cases h
+      simp [upd, hu]
+      exact h
+    | new => exact h
+    | ready => exact h
+    | running => exact h
+    | yielded => exact h
+    | completed => exact h
+    | cancelled => exact h
+
+/-- `wakeMany` maps `none` to `none`. -/
+theorem wakeMany_none {u : TaskId} :
+    ∀ {l : List TaskId} {ts : TaskMap}, ts u = none →
+      wakeMany ts l u = none := by
+  intro l
+  induction l with
+  | nil => intro ts h; exact h
+  | cons t r ih => intro ts h; exact ih (wakeOne_none h t)
+
 /-! ## Once spawned, always spawned -/
 
 /-- No operation maps a spawned task's state back to `none`. -/
