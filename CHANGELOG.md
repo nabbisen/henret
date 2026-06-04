@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.3.0 — actor-scoped operations (RFCs 024–025)
+
+Breaking: the operation grammar changes. `send`/`receive` are now
+task-scoped; `inject` is the new environment delivery path.
+
+### Added
+- `send t b m` (running task → actor), `receive t` (task receives from
+  its **own** actor's mailbox, derived from `taskOwner`), `inject a m`
+  (environment → actor). Eleven operations total (RFC 024).
+- **`receive_only_own`** — actor-local receive discipline, the RFC 024
+  headline, kernel-checked and audit-allowlisted.
+- Guard theorems: `send_not_running_invalid`, `send_unowned_invalid`,
+  `receive_unowned_invalid`.
+- `Henret.Proofs.StepProjections` — messaging touches only `mailboxes`,
+  21 `@[simp]` projection lemmas proved once.
+- Mailbox monotonicity: `send/receive/inject_mailbox_isSome`.
+- Import barrels `Henret.Model`, `Henret.Proofs`, `Henret.Refinement`;
+  root `Henret` no longer imports examples (RFC 025).
+
+### Changed
+- All invariant/preservation proofs re-proved over the new grammar.
+- Examples 02 (environment `inject`) and 04 (actor-scoped messaging with
+  guard-failure demos) rewritten; demo mailbox scenario schedules a task
+  and messages through it.
+
+
 ## v0.2.1 — review-hardening release (RFCs 019–023)
 
 Resolves all five must-fixes of the v0.2.0 follow-up review.

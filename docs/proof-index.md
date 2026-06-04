@@ -85,7 +85,7 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 
 ## v0.2.0 — `Henret/Proofs/InvariantsPreservation.lean`
 
-- `step_preserves_wf` — all ten operations preserve `WellFormed`.
+- `step_preserves_wf` — all eleven operations preserve `WellFormed`.
 - `run_preserves_wf`, `reachable_wf` — every reachable state is well-formed.
 
 ## v0.2.0 — additions to existing files
@@ -103,3 +103,14 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
   `reachable_timers_sorted` — reachability headlines.
 - `wakeOne_none`, `wakeMany_none` (`Ownership.lean`) — waking never spawns.
 - `drivePopB` → `driveStackB` (RFC 023 rename; orientation documented).
+
+## v0.3.0 — RFC 024 additions
+
+- `Henret/Proofs/StepProjections.lean` — 21 `@[simp]` projection lemmas:
+  `send`/`receive`/`inject` leave every field but `mailboxes` untouched.
+- `Henret/Proofs/Messaging.lean` (rewritten) — scoped `send_appends`,
+  `receive_consumes_one`, `receive_length`, `*_preserves_other`,
+  `receive_empty_invalid`; guard theorems `send_not_running_invalid`,
+  `send_unowned_invalid`, `receive_unowned_invalid`; environment
+  `inject_appends`/`inject_preserves_other`; mailbox monotonicity
+  `send/receive/inject_mailbox_isSome`; headline `receive_only_own`.

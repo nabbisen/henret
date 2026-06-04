@@ -29,10 +29,12 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 | [021](done/021-documentation-test-index-repair.md) | Documentation/Test Index Repair (v0.2.1) |
 | [022](done/022-message-occurrence-semantics.md) | Message Occurrence Semantics (v0.2.1) |
 | [023](done/023-deque-driver-orientation-cleanup.md) | Deque Driver Orientation Cleanup (v0.2.1) |
+| [024](done/024-actor-scoped-operations.md) | Actor-Scoped Operations (v0.3.0) |
+| [025](done/025-import-granularity.md) | Import Granularity (v0.3.0) |
 
 ## Proposed
 
-(none — RFCs 001–012 shipped in v0.1.0; 013–018 in v0.2.0; 019–023 in v0.2.1)
+(none — RFCs 001–012 shipped in v0.1.0; 013–018 in v0.2.0; 019–023 in v0.2.1; 024–025 in v0.3.0)
 
 ## Archive
 

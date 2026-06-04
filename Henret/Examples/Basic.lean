@@ -25,14 +25,17 @@ def lifecycle : RuntimeState :=
 
 /-! ## Scenario 2 — send / receive through a mailbox -/
 
-/-- Spawn actor 7's first task (creating its mailbox), send two
-messages, receive one. Mailbox should hold exactly message 2. -/
+/-- Spawn actor 7's first task (creating its mailbox), schedule it,
+have the running task send two messages to its own actor and receive
+one (actor-local receive, RFC 024). Mailbox should hold exactly
+message 2. -/
 def mailboxScenario : RuntimeState × List StepResult :=
   runTrace .init
-    [.spawn 7,
-     .send 7 ⟨1, 100⟩,
-     .send 7 ⟨2, 200⟩,
-     .receive 7]
+    [.spawn 7,           -- task 0, owned by actor 7
+     .schedule,          -- task 0 running
+     .send 0 7 ⟨1, 100⟩, -- running task 0 sends to actor 7
+     .send 0 7 ⟨2, 200⟩,
+     .receive 0]         -- task 0 receives from its OWN mailbox
 
 /-! ## Scenario 3 — sleep and tick -/
 

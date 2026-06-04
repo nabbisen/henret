@@ -113,18 +113,39 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
             timers    := s.timers.filter (fun e => e.task ≠ t)
             running   := if s.running = some t then none else s.running }, .ok)
     | none => (s, .invalid)
-  | .send a m =>
+  | .send t b m =>
+    if s.running = some t then
+      match s.taskState t with
+      | some .running =>
+        match s.taskOwner t with
+        | some _ =>
+          match s.mailboxes b with
+          | some mb =>
+            ({ s with mailboxes := upd s.mailboxes b (some (mb.enqueue m)) }, .ok)
+          | none => (s, .invalid)
+        | none => (s, .invalid)
+      | _ => (s, .invalid)
+    else (s, .invalid)
+  | .receive t =>
+    if s.running = some t then
+      match s.taskState t with
+      | some .running =>
+        match s.taskOwner t with
+        | some a =>
+          match s.mailboxes a with
+          | some mb =>
+            match mb.dequeue with
+            | some (m, mb') =>
+              ({ s with mailboxes := upd s.mailboxes a (some mb') }, .received m)
+            | none => (s, .invalid)
+          | none => (s, .invalid)
+        | none => (s, .invalid)
+      | _ => (s, .invalid)
+    else (s, .invalid)
+  | .inject a m =>
     match s.mailboxes a with
     | some mb =>
       ({ s with mailboxes := upd s.mailboxes a (some (mb.enqueue m)) }, .ok)
-    | none => (s, .invalid)
-  | .receive a =>
-    match s.mailboxes a with
-    | some mb =>
-      match mb.dequeue with
-      | some (m, mb') =>
-        ({ s with mailboxes := upd s.mailboxes a (some mb') }, .received m)
-      | none => (s, .invalid)
     | none => (s, .invalid)
   | .sleep t deadline =>
     if s.running = some t then

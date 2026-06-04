@@ -1,4 +1,5 @@
 import Henret.Proofs.Lifecycle
+import Henret.Proofs.StepProjections
 
 namespace Henret
 
@@ -114,15 +115,9 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
         by_cases hu : u = t
         · subst hu; exact ⟨.cancelled, by simp [step, hts, hterm, upd]⟩
         · exact ⟨st, by simp [step, hts, hterm, upd, hu, h]⟩
-  | send a m =>
-    cases hmb : s.mailboxes a <;> exact ⟨st, by simp [step, hmb, h]⟩
-  | receive a =>
-    cases hmb : s.mailboxes a with
-    | none => exact ⟨st, by simp [step, hmb, h]⟩
-    | some mb =>
-      cases hd : mb.dequeue with
-      | none => exact ⟨st, by simp [step, hmb, hd, h]⟩
-      | some p => exact ⟨st, by simp [step, hmb, hd, h]⟩
+  | send t' b m => exact ⟨st, by simp [h]⟩
+  | receive t' => exact ⟨st, by simp [h]⟩
+  | inject a m => exact ⟨st, by simp [h]⟩
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -201,14 +196,9 @@ theorem step_preserves_owner {s : RuntimeState} {u : TaskId} {o : ActorId}
       by_cases hterm : s'.isTerminal = true
       · simp [step, hts, hterm, hown]
       · simp at hterm; simp [step, hts, hterm, hown]
-  | send a m => cases hmb : s.mailboxes a <;> simp [step, hmb, hown]
-  | receive a =>
-    cases hmb : s.mailboxes a with
-    | none => simp [step, hmb, hown]
-    | some mb =>
-      cases hd : mb.dequeue with
-      | none => simp [step, hmb, hd, hown]
-      | some p => simp [step, hmb, hd, hown]
+  | send t' b m => simp [hown]
+  | receive t' => simp [hown]
+  | inject a m => simp [hown]
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with

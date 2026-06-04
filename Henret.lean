@@ -1,25 +1,16 @@
-import Henret.Core.Id
-import Henret.Core.Result
-import Henret.Actor.Task
-import Henret.Actor.Mailbox
-import Henret.Scheduler.Op
-import Henret.Scheduler.Timer
-import Henret.Scheduler.Model
-import Henret.Scheduler.Driver
-import Henret.Proofs.Lifecycle
-import Henret.Proofs.Messaging
-import Henret.Proofs.Timers
-import Henret.Proofs.Ownership
-import Henret.Proofs.Invariants
-import Henret.Proofs.InvariantsPreservation
-import Henret.Refinement.Contract
-import Henret.Refinement.ReferenceBackend
-import Henret.Examples.Basic
+import Henret.Model
+import Henret.Proofs
+import Henret.Refinement
 
 /-!
 # Henret
 
 Executable actor and task runtime models for Lean 4.
+
+Lighter entry points (RFC 025): `Henret.Model` (executable model
+only), `Henret.Proofs` (model + all theorems), `Henret.Refinement`
+(backend contracts). Examples live in `Henret.Examples.Basic` and are
+no longer part of this default import.
 
 The default import is Lean-only (RFC 003): no C compiler, no native
 backend, no OS reactor. Optional native backend material, if added,

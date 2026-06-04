@@ -52,7 +52,7 @@ separate "promotion" of `new` to `ready`.
 
 ## 6. The flagship proof — `Henret/Proofs/Lifecycle.lean`
 
-`step_preserves_terminal` walks all ten operations and shows none of them can
+`step_preserves_terminal` walks all eleven operations and shows none of them can
 move a task out of `completed`/`cancelled`. `run_preserves_terminal` lifts it
 to whole programs by induction. Note *why* it holds: every state write goes
 through `upd` at a guarded key, and every guard excludes terminal states.

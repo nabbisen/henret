@@ -33,6 +33,7 @@ open Henret Henret.Native
 #print axioms reachable_spawned_has_owner
 #print axioms reachable_owner_has_mailbox
 #print axioms step_clock_monotone
+#print axioms receive_only_own
 #print axioms qRun_tracks
 #print axioms driveStackB_complete
 #print axioms nativeDequeModel_qRun_tracks

@@ -1,5 +1,6 @@
 import Henret.Scheduler.Model
 import Henret.Proofs.Lifecycle
+import Henret.Proofs.StepProjections
 
 namespace Henret
 
@@ -95,14 +96,9 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
     cases hts : s.taskState t with
     | none => simp [step, hts]
     | some st => by_cases hterm : st.isTerminal <;> simp [step, hts, hterm]
-  | send a m => cases hmb : s.mailboxes a <;> simp [step, hmb]
-  | receive a =>
-    cases hmb : s.mailboxes a with
-    | none => simp [step, hmb]
-    | some mb =>
-      cases hd : mb.dequeue with
-      | none => simp [step, hmb, hd]
-      | some p => simp [step, hmb, hd]
+  | send t b m => simp
+  | receive t => simp
+  | inject a m => simp
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -142,12 +138,9 @@ theorem step_preserves_sorted {s : RuntimeState}
       · exact h
       · exact Timer.sorted_filter _ h
     · exact h
-  | send a m => simp only [step]; split <;> exact h
-  | receive a =>
-    simp only [step]
-    split
-    · split <;> exact h
-    · exact h
+  | send t b m => simpa using h
+  | receive t => simpa using h
+  | inject a m => simpa using h
   | sleep t d =>
     simp only [step]
     split

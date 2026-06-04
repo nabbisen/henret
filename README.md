@@ -111,6 +111,9 @@ open Henret
 - **Monotone logical time** (v0.2.0) — no operation decreases the clock;
   backwards ticks are invalid no-ops (`step_clock_monotone`,
   `tick_backwards_invalid`).
+- **Actor-local receive discipline** (v0.3.0) — a task receives only from
+  its own actor's mailbox, derived from ownership; no other mailbox is
+  touched (`receive_only_own`).
 - **Backend contract** — both reference mailbox backends satisfy the
   `MailboxBackend` refinement contract (`listBackend`, `mailboxBackend`).
 

@@ -1,4 +1,5 @@
 import Henret
+import Henret.Examples.Basic
 
 open Henret Henret.Examples
 

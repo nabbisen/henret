@@ -1,4 +1,5 @@
 import Henret.Scheduler.Model
+import Henret.Proofs.StepProjections
 
 namespace Henret
 
@@ -133,12 +134,9 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
           exact hnt hterm
         simp [upd, hu, h]
     · exact h
-  | send a m => simp only [step]; split <;> simp [h]
-  | receive a =>
-    simp only [step]
-    split
-    · split <;> simp [h]
-    · exact h
+  | send t b m => simp [h]
+  | receive t => simp [h]
+  | inject a m => simp [h]
   | sleep t d =>
     simp only [step]
     split
@@ -268,17 +266,53 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
       by_cases hterm : st.isTerminal = true
       · simp [step, hts, hterm]
       · simp at hterm; simp [step, hts, hterm] at h
-  | send a m =>
+  | send t b m =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]
+      | some st =>
+        cases st with
+        | running =>
+          cases how : s.taskOwner t with
+          | none => simp [step, hrt, hts, how]
+          | some o =>
+            cases hmb : s.mailboxes b with
+            | none => simp [step, hrt, hts, how, hmb]
+            | some mb => simp [step, hrt, hts, how, hmb] at h
+        | new => simp [step, hrt, hts]
+        | ready => simp [step, hrt, hts]
+        | yielded => simp [step, hrt, hts]
+        | sleeping => simp [step, hrt, hts]
+        | completed => simp [step, hrt, hts]
+        | cancelled => simp [step, hrt, hts]
+    · simp [step, hrt]
+  | receive t =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]
+      | some st =>
+        cases st with
+        | running =>
+          cases how : s.taskOwner t with
+          | none => simp [step, hrt, hts, how]
+          | some a =>
+            cases hmb : s.mailboxes a with
+            | none => simp [step, hrt, hts, how, hmb]
+            | some mb =>
+              cases hd : mb.dequeue with
+              | none => simp [step, hrt, hts, how, hmb, hd]
+              | some p => simp [step, hrt, hts, how, hmb, hd] at h
+        | new => simp [step, hrt, hts]
+        | ready => simp [step, hrt, hts]
+        | yielded => simp [step, hrt, hts]
+        | sleeping => simp [step, hrt, hts]
+        | completed => simp [step, hrt, hts]
+        | cancelled => simp [step, hrt, hts]
+    · simp [step, hrt]
+  | inject a m =>
     cases hmb : s.mailboxes a with
     | none => simp [step, hmb]
     | some mb => simp [step, hmb] at h
-  | receive a =>
-    cases hmb : s.mailboxes a with
-    | none => simp [step, hmb]
-    | some mb =>
-      cases hd : mb.dequeue with
-      | none => simp [step, hmb, hd]
-      | some p => simp [step, hmb, hd] at h
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with

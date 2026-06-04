@@ -27,19 +27,20 @@ def s3 := (step s2 (.spawn 10)).1   -- task 2, same actor
 #eval s3.mailboxes 10
 -- still some { messages := [] }  — mailbox shared, not duplicated
 
--- Send a message to actor 10.
+-- Deliver a message to actor 10 from the environment (`inject` is the
+-- task-free delivery path; actor-to-actor `send` is task-scoped — see
+-- example 04).
 def msg : Message := ⟨1, 42⟩
-def s4 := (step s3 (.send 10 msg)).1
+def s4 := (step s3 (.inject 10 msg)).1
 
 #eval s4.mailboxes 10
 -- some { messages := [{ id := 1, payload := 42 }] }
 #eval s4.mailboxes 20
 -- some { messages := [] }  — actor 20 is unaffected
 
--- The theorem: send never touches another actor's mailbox.
-#check @Henret.send_preserves_other
--- ∀ (s : RuntimeState) (a b : ActorId), a ≠ b →
---   ((step s (.send a _)).1).mailboxes b = s.mailboxes b
+-- The theorem: injection never touches another actor's mailbox.
+#check @Henret.inject_preserves_other
+-- b ≠ a → ((step s (.inject a _)).1).mailboxes b = s.mailboxes b
 
 /-! ## Ownership (v0.2.0, RFC 014)
 

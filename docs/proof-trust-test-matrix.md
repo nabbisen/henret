@@ -86,3 +86,13 @@ zero-assumption core.
 | 37 | Every reachable spawned task has an owning actor | PROVEN | `reachable_spawned_has_owner` |
 | 38 | Every reachable owning actor has a mailbox | PROVEN | `reachable_owner_has_mailbox` |
 | 39 | Per-operation message non-duplication (value semantics; occurrence identity not modeled — see RFC 022) | PROVEN, scoped | `send_appends`, `receive_consumes_one` |
+
+## v0.3.0 claims (actor-scoped operations, RFC 024)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 40 | Actor-local receive discipline: a successful receive dequeues from the receiver's own actor's mailbox and touches no other mailbox | PROVEN | `receive_only_own` |
+| 41 | Only the running task sends/receives; unowned tasks cannot message | PROVEN | `send_not_running_invalid`, `send_unowned_invalid`, `receive_unowned_invalid` |
+| 42 | Messaging operations touch only `mailboxes` (per projection) | PROVEN | `Henret.Proofs.StepProjections` (21 `@[simp]` lemmas) |
+| 43 | Messaging never removes a mailbox | PROVEN | `send/receive/inject_mailbox_isSome` |
+| 44 | All v0.2.1 invariants hold over the eleven-operation grammar | PROVEN | `reachable_wf` re-proved |

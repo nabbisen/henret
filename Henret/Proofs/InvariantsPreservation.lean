@@ -1,11 +1,12 @@
 import Henret.Proofs.Invariants
 import Henret.Proofs.Ownership
+import Henret.Proofs.Messaging
 
 namespace Henret
 
 /-! ## Invariant preservation (RFC 013)
 
-`step_preserves_wf` walks all ten operations and shows the
+`step_preserves_wf` walks all eleven operations and shows the
 `WellFormed` discipline survives each.  `run_preserves_wf` lifts it to
 programs, and `reachable_wf` instantiates at `init`: **every reachable
 state is well-formed**. -/
@@ -325,69 +326,78 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
         · intro u b hown
           simp [step, hts, hterm] at hown ⊢
           exact h.owned_has_mailbox u b hown
-  | send a m =>
-    cases hmb : s.mailboxes a with
-    | none => simpa [step, hmb] using h
-    | some mb =>
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [step, hmb]; exact h.readyQ_nodup
-      · intro u hm
-        simp only [step, hmb] at hm ⊢
-        exact h.readyQ_queued u hm
-      · intro u hru
-        simp only [step, hmb] at hru ⊢
-        exact h.running_runs u hru
-      · simp only [step, hmb]; exact h.timers_nodup
-      · intro e he
-        simp only [step, hmb] at he ⊢
-        exact h.timers_sleep e he
-      · intro u hu
-        simp only [step, hmb] at hu ⊢
-        exact h.fresh_none u hu
-      · simp only [step, hmb]; exact h.timers_sorted
-      · intro u st hts'
-        simp only [step, hmb] at hts' ⊢
-        exact h.spawned_has_owner u st hts'
-      · intro u b hown
-        simp only [step, hmb] at hown ⊢
-        by_cases hba : b = a
-        · subst hba
-          exact ⟨mb.enqueue m, by simp [upd]⟩
-        · obtain ⟨mb', hmb'⟩ := h.owned_has_mailbox u b hown
-          exact ⟨mb', by simp only [upd, if_neg hba]; exact hmb'⟩
-  | receive a =>
-    cases hmb : s.mailboxes a with
-    | none => simpa [step, hmb] using h
-    | some mb =>
-      cases hd : mb.dequeue with
-      | none => simpa [step, hmb, hd] using h
-      | some p =>
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-        · simp only [step, hmb, hd]; exact h.readyQ_nodup
-        · intro u hm
-          simp only [step, hmb, hd] at hm ⊢
-          exact h.readyQ_queued u hm
-        · intro u hru
-          simp only [step, hmb, hd] at hru ⊢
-          exact h.running_runs u hru
-        · simp only [step, hmb, hd]; exact h.timers_nodup
-        · intro e he
-          simp only [step, hmb, hd] at he ⊢
-          exact h.timers_sleep e he
-        · intro u hu
-          simp only [step, hmb, hd] at hu ⊢
-          exact h.fresh_none u hu
-        · simp only [step, hmb, hd]; exact h.timers_sorted
-        · intro u st hts'
-          simp only [step, hmb, hd] at hts' ⊢
-          exact h.spawned_has_owner u st hts'
-        · intro u b hown
-          simp only [step, hmb, hd] at hown ⊢
-          by_cases hba : b = a
-          · subst hba
-            exact ⟨p.2, by simp [upd]⟩
-          · obtain ⟨mb', hmb'⟩ := h.owned_has_mailbox u b hown
-            exact ⟨mb', by simp only [upd, if_neg hba]; exact hmb'⟩
+  | send t b m =>
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · simpa using h.readyQ_nodup
+    · intro u hm
+      simp at hm ⊢
+      exact h.readyQ_queued u hm
+    · intro u hru
+      simp at hru ⊢
+      exact h.running_runs u hru
+    · simpa using h.timers_nodup
+    · intro e he
+      simp at he ⊢
+      exact h.timers_sleep e he
+    · intro u hu
+      simp at hu ⊢
+      exact h.fresh_none u hu
+    · simpa using h.timers_sorted
+    · intro u st hts'
+      simp at hts' ⊢
+      exact h.spawned_has_owner u st hts'
+    · intro u cc hown
+      simp at hown
+      obtain ⟨mb, hmb⟩ := h.owned_has_mailbox u cc hown
+      exact send_mailbox_isSome hmb m
+  | receive t =>
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · simpa using h.readyQ_nodup
+    · intro u hm
+      simp at hm ⊢
+      exact h.readyQ_queued u hm
+    · intro u hru
+      simp at hru ⊢
+      exact h.running_runs u hru
+    · simpa using h.timers_nodup
+    · intro e he
+      simp at he ⊢
+      exact h.timers_sleep e he
+    · intro u hu
+      simp at hu ⊢
+      exact h.fresh_none u hu
+    · simpa using h.timers_sorted
+    · intro u st hts'
+      simp at hts' ⊢
+      exact h.spawned_has_owner u st hts'
+    · intro u cc hown
+      simp at hown
+      obtain ⟨mb, hmb⟩ := h.owned_has_mailbox u cc hown
+      exact receive_mailbox_isSome hmb
+  | inject a m =>
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · simpa using h.readyQ_nodup
+    · intro u hm
+      simp at hm ⊢
+      exact h.readyQ_queued u hm
+    · intro u hru
+      simp at hru ⊢
+      exact h.running_runs u hru
+    · simpa using h.timers_nodup
+    · intro e he
+      simp at he ⊢
+      exact h.timers_sleep e he
+    · intro u hu
+      simp at hu ⊢
+      exact h.fresh_none u hu
+    · simpa using h.timers_sorted
+    · intro u st hts'
+      simp at hts' ⊢
+      exact h.spawned_has_owner u st hts'
+    · intro u cc hown
+      simp at hown
+      obtain ⟨mb, hmb⟩ := h.owned_has_mailbox u cc hown
+      exact inject_mailbox_isSome hmb m
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -640,7 +650,7 @@ end Henret
 
 Preservation of the `WellFormed` invariant (RFC 013).
 
-* `step_preserves_wf` — all ten operations preserve well-formedness.
+* `step_preserves_wf` — all eleven operations preserve well-formedness.
 * `run_preserves_wf` / `reachable_wf` — every reachable state is
   well-formed.  Corollaries via `Henret.Proofs.Invariants`:
   no duplicate ready entries, location disjointness (a task is queued,
