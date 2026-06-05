@@ -34,7 +34,10 @@ ALLOWLIST = {
     "Henret.receive_only_own":               (set(), STD),
     "Henret.reachable_runnable_is_queued":   (set(), STD),
     "Henret.reachable_queue_exact":          (set(), STD),
-    "Henret.step_blocked_unchanged":         (set(), STD),
+    "Henret.receive_empty_parks":            (set(), STD),
+    "Henret.receive_blocked_parks":          (set(), STD),
+    "Henret.reachable_waiters_exact":        (set(), STD),
+    "Henret.reachable_waiter_actor_unique":  (set(), STD),
     # Pure native layer: still standard only.
     "Henret.Native.qRun_tracks":             (set(), STD),
     "Henret.Native.driveStackB_complete":    (set(), STD),

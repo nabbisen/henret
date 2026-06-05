@@ -115,18 +115,26 @@ open Henret
 - **Actor-local receive discipline** (v0.3.0) — a task receives only from
   its own actor's mailbox, derived from ownership; no other mailbox is
   touched (`receive_only_own`).
+- **Messaging field projections** (v0.3.0, updated v0.5.0) — the fields
+  unconditionally unchanged per messaging operation: `send`/`inject` leave
+  `taskOwner`, `running`, `timers`, `now`, `nextId` untouched; `receive`
+  leaves `taskOwner`, `readyQ`, `timers`, `now`, `nextId` untouched. (After
+  RFC 031, `send`/`inject` may touch `taskState`/`readyQ`/`mailboxWaiters`
+  when waking a waiter; `receive` may touch `taskState`/`running`/
+  `mailboxWaiters` when parking. `Henret.Proofs.StepProjections` covers
+  only the unconditionally-unchanged fields.)
 - **Schedulable completeness** (v0.4.0) — every reachable runnable task is
   in the ready queue; equivalently, the ready queue contains *exactly* the
   runnable tasks (`reachable_runnable_is_queued`, `reachable_queue_exact`).
-- **Blocked receive semantics** (v0.4.0) — an empty own-mailbox receive is
-  `blocked`, not invalid, and blocked operations are provable no-ops
-  (`receive_empty_blocked`, `step_blocked_unchanged`).
-- **Waiting state and mailbox wait queues** (v0.5.0) — a blocked receive
-  parks the running task into `TaskState.waiting` and appends it to
-  the actor's `mailboxWaiters` queue; a subsequent `send`/`inject` wakes the
-  head waiter to `.ready`. Four new `WellFormed` fields (14 total) guarantee
-  wait-queue integrity in every reachable state (`waiters_waiting`,
-  `waiters_owned`, `waiting_queued`, `waiters_nodup`).
+- **Blocked receive parking** (v0.5.0) — an empty own-mailbox receive is
+  `blocked`, not invalid; it parks the running task in `TaskState.waiting`,
+  clears the running slot, and appends the task to its actor's
+  `mailboxWaiters` queue (`receive_empty_parks`, `receive_blocked_parks`). A
+  later valid `send`/`inject` wakes the head waiter to `.ready`. Four new
+  `WellFormed` fields (14 total) guarantee wait-queue integrity in every
+  reachable state (`waiters_waiting`, `waiters_owned`, `waiting_queued`,
+  `waiters_nodup`); `reachable_waiters_exact` is the exact-membership theorem
+  mirroring `reachable_queue_exact`.
 - **Backend contract** — both reference mailbox backends satisfy the
   `MailboxBackend` refinement contract (`listBackend`, `mailboxBackend`).
 

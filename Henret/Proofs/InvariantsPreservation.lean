@@ -84,6 +84,45 @@ theorem reachable_queue_exact (ops : List RuntimeOp) (t : TaskId) :
   · rintro ⟨st, hts, hrun⟩
     exact (reachable_wf ops).runnable_queued t st hts hrun
 
+/-! ## Waiter exactness (RFC 031) -/
+
+/-- Every reachable waiting task is in its own actor's waiter list. -/
+theorem reachable_waiting_is_queued (ops : List RuntimeOp) {t : TaskId}
+    (h : (run RuntimeState.init ops).taskState t = some .waiting) :
+    ∃ a, (run RuntimeState.init ops).taskOwner t = some a ∧
+         t ∈ (run RuntimeState.init ops).mailboxWaiters a :=
+  (reachable_wf ops).waiting_queued t h
+
+/-- A task is in at most one waiter list: waiter-list membership
+determines the actor (via ownership). -/
+theorem reachable_waiter_actor_unique (ops : List RuntimeOp)
+    {a b : ActorId} {t : TaskId}
+    (ha : t ∈ (run RuntimeState.init ops).mailboxWaiters a)
+    (hb : t ∈ (run RuntimeState.init ops).mailboxWaiters b) :
+    a = b :=
+  Option.some.inj
+    (((reachable_wf ops).waiters_owned a t ha).symm.trans
+     ((reachable_wf ops).waiters_owned b t hb))
+
+/-- **Exact waiter characterization** (RFC 031 acceptance criterion,
+mirror of `reachable_queue_exact`): in every reachable state,
+`t ∈ mailboxWaiters a ↔ t is waiting ∧ a owns t`.  Together with
+`reachable_waiter_actor_unique` this says every waiting task is in
+exactly one waiter list — its own actor's — and that list contains
+exactly the tasks waiting on that actor. -/
+theorem reachable_waiters_exact (ops : List RuntimeOp)
+    {a : ActorId} {t : TaskId} :
+    t ∈ (run RuntimeState.init ops).mailboxWaiters a ↔
+      (run RuntimeState.init ops).taskState t = some .waiting ∧
+      (run RuntimeState.init ops).taskOwner t = some a := by
+  constructor
+  · intro hm
+    exact ⟨(reachable_wf ops).waiters_waiting a t hm,
+           (reachable_wf ops).waiters_owned a t hm⟩
+  · rintro ⟨hts, how⟩
+    obtain ⟨a', ha', hmem⟩ := (reachable_wf ops).waiting_queued t hts
+    exact (Option.some.inj (ha'.symm.trans how)) ▸ hmem
+
 /-- Whole-program monotonicity: terminal states survive any program. -/
 theorem run_preserves_terminal {u : TaskId} {st : TaskState}
     (hterm : st.isTerminal = true) :
@@ -123,4 +162,8 @@ Public surface (unchanged from pre-RFC-034):
 * `step_preserves_wf` — all eleven operations preserve well-formedness.
 * `run_preserves_wf` / `reachable_wf` — every reachable state is well-formed.
 * `reachable_queue_exact` — the ready queue contains exactly the runnable tasks.
+* `reachable_waiters_exact` / `reachable_waiter_actor_unique` /
+  `reachable_waiting_is_queued` — every waiting task is in exactly one
+  waiter list (its own actor's), and that list contains exactly the
+  tasks waiting on that actor (RFC 031).
 -/

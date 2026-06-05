@@ -101,7 +101,7 @@ theorem receive_preserves_other {s : RuntimeState} {t : TaskId}
 
 /-- Receive from an empty (own) mailbox parks the task: the result is
 `.blocked` and the state transitions — the task enters `.waiting`
-(RFC 031, replaces the old no-op `receive_empty_blocked`). -/
+(RFC 031). -/
 theorem receive_empty_parks {s : RuntimeState} {t : TaskId}
     {a : ActorId}
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
@@ -114,6 +114,63 @@ theorem receive_empty_parks {s : RuntimeState} {t : TaskId}
                                        else s.mailboxWaiters ac },
        .blocked) := by
   simp [step, hrt, hts, how, hmb, Mailbox.dequeue]
+
+/-- **Result-driven parking theorem** (RFC 031 headline): from an
+observed `.blocked` result alone, reconstruct everything — the guards
+that must have held (running task, `.running` state, owned, empty own
+mailbox) and the post-state (task `.waiting`, running slot cleared,
+task enqueued in its actor's waiter list).  This makes `.blocked` as
+auditable as `.received` is via `receive_only_own`. -/
+theorem receive_blocked_parks {s : RuntimeState} {t : TaskId}
+    (h : (step s (.receive t)).2 = .blocked) :
+    ∃ a,
+      s.running = some t ∧
+      s.taskState t = some .running ∧
+      s.taskOwner t = some a ∧
+      s.mailboxes a = some Mailbox.empty ∧
+      ((step s (.receive t)).1).taskState t = some .waiting ∧
+      ((step s (.receive t)).1).running = none ∧
+      t ∈ ((step s (.receive t)).1).mailboxWaiters a ∧
+      (∀ b, b ≠ a →
+        ((step s (.receive t)).1).mailboxWaiters b = s.mailboxWaiters b) ∧
+      ((step s (.receive t)).1).mailboxes = s.mailboxes := by
+  by_cases hrt : s.running = some t
+  · cases hts : s.taskState t with
+    | none => simp [step, hrt, hts] at h
+    | some st =>
+      cases st with
+      | running =>
+        cases how : s.taskOwner t with
+        | none => simp [step, hrt, hts, how] at h
+        | some a =>
+          cases hmb : s.mailboxes a with
+          | none => simp [step, hrt, hts, how, hmb] at h
+          | some mb =>
+            cases hd : mb.dequeue with
+            | some p => simp [step, hrt, hts, how, hmb, hd] at h
+            | none =>
+              -- dequeue = none forces mb = ⟨[]⟩ = Mailbox.empty
+              have hempty : mb = Mailbox.empty := by
+                cases hms : mb.messages with
+                | nil => cases mb; simp_all [Mailbox.empty]
+                | cons m ms =>
+                  exact absurd hd (by simp [Mailbox.dequeue, hms])
+              subst hempty
+              refine ⟨a, hrt, rfl, rfl, hmb, ?_, ?_, ?_, ?_, ?_⟩
+              · simp [step, hrt, hts, how, hmb, Mailbox.dequeue, Mailbox.empty, upd_self]
+              · simp [step, hrt, hts, how, hmb, Mailbox.dequeue, Mailbox.empty]
+              · simp [step, hrt, hts, how, hmb, Mailbox.dequeue, Mailbox.empty]
+              · intro b hb
+                simp [step, hrt, hts, how, hmb, Mailbox.dequeue, Mailbox.empty, hb]
+              · simp [step, hrt, hts, how, hmb, Mailbox.dequeue, Mailbox.empty]
+      | new => simp [step, hrt, hts] at h
+      | ready => simp [step, hrt, hts] at h
+      | yielded => simp [step, hrt, hts] at h
+      | sleeping => simp [step, hrt, hts] at h
+      | waiting => simp [step, hrt, hts] at h
+      | completed => simp [step, hrt, hts] at h
+      | cancelled => simp [step, hrt, hts] at h
+  · simp [step, hrt] at h
 
 /-- A receive by an unowned task is invalid: only actor tasks
 receive. -/

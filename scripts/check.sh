@@ -36,7 +36,10 @@ open Henret Henret.Native
 #print axioms receive_only_own
 #print axioms reachable_runnable_is_queued
 #print axioms reachable_queue_exact
-#print axioms step_blocked_unchanged
+#print axioms receive_empty_parks
+#print axioms receive_blocked_parks
+#print axioms reachable_waiters_exact
+#print axioms reachable_waiter_actor_unique
 #print axioms qRun_tracks
 #print axioms driveStackB_complete
 #print axioms nativeDequeModel_qRun_tracks

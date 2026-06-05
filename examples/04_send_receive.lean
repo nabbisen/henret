@@ -1,14 +1,17 @@
 import Henret
 /-!
-# Example 04 — Actor-Scoped Send and Receive (RFC 024)
+# Example 04 — Actor-Scoped Send and Receive (RFC 024 / RFC 031)
 
 Concept: message passing is performed **by tasks on behalf of their
 actors**. `send t b m`: the running task `t` sends `m` to actor `b`.
 `receive t`: the running task `t` dequeues from its **own** actor's
 mailbox — the actor is derived from `taskOwner t`, never named by the
 caller. `inject a m` is the task-free environment delivery path.
-All three are purely structural: no task lifecycle state changes
-(`Henret.Proofs.StepProjections`).
+
+After RFC 031, `send`/`inject` may change `taskState` and `readyQ` when
+waking a head waiter; `receive` may change `taskState`, `running`, and
+`mailboxWaiters` when parking on an empty mailbox. The `StepProjections`
+lemmas cover the fields that remain unconditionally unchanged.
 
 Run with:  `lake env lean examples/04_send_receive.lean`
 -/
@@ -52,16 +55,47 @@ def sr2 := step s1 (.receive 0)
 -- invalid   — task 1 IS owned (by actor 9) but is not running:
 -- this evaluation demonstrates the NON-RUNNING guard.
 -- Separately, ownership is also a guard — a task with no owning actor
--- can never receive (an arbitrary-state fact; in reachable states every
--- spawned task has an owner by `reachable_spawned_has_owner`):
+-- can never receive:
 #check @Henret.receive_unowned_invalid
 
--- Receive from an empty (own) mailbox is BLOCKED, not invalid
--- (RFC 029) — a legal waiting condition, distinct from a violation.
-#check @Henret.receive_empty_blocked
+-- Empty own-mailbox receive now PARKS the task (RFC 031).
+-- Set up an empty-mailbox scenario: actor 7's task 0 running, no messages.
+def sp0 := run RuntimeState.init [.spawn 7, .schedule]
+def sp1 := step sp0 (.receive 0)
+#eval sp1.2
+-- blocked   (legal wait, not a protocol error)
+#eval sp1.1.taskState 0
+-- some waiting   (task 0 is parked — not running, not in readyQ)
+#eval sp1.1.running
+-- none           (running slot is cleared)
+#eval sp1.1.mailboxWaiters 7
+-- [0]            (task 0 queued on actor 7's waiter list)
 
--- Messaging never changes any task's lifecycle state — proved once,
--- per projection:
-#check @Henret.send_taskState
-#check @Henret.receive_taskState
-#check @Henret.inject_taskState
+-- PROVEN — `receive_empty_parks`: precise step-reduction theorem
+-- characterizing the parking transition (guard-driven form):
+#check @Henret.receive_empty_parks
+
+-- PROVEN — `receive_blocked_parks`: result-driven form
+-- (derives all guards and post-state from the observed .blocked result):
+#check @Henret.receive_blocked_parks
+
+-- A later inject wakes the head waiter (Mesa: notification, not handoff).
+-- The message goes to the mailbox; the head waiter becomes .ready.
+-- The woken task must be rescheduled and re-issue receive to consume it.
+def sp2 := step sp1.1 (.inject 7 ⟨5, 500⟩)
+#eval sp2.2
+-- ok
+#eval sp2.1.taskState 0
+-- some ready   (task 0 woken)
+#eval sp2.1.mailboxWaiters 7
+-- []            (waiter list drained)
+#eval (sp2.1.mailboxes 7).map (·.messages)
+-- some [{ id := 5, payload := 500 }]   (message sits until re-receive)
+
+-- Unconditionally-unchanged fields per operation (RFC 034 doc note):
+--   send:    taskOwner, running, timers, now, nextId
+--   inject:  taskOwner, running, timers, now, nextId
+--   receive: taskOwner, readyQ, timers, now, nextId
+#check @Henret.send_taskOwner
+#check @Henret.receive_readyQ
+#check @Henret.inject_taskOwner

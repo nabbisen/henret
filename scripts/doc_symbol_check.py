@@ -15,10 +15,23 @@ references.
 import re
 import sys
 
-DOC_FILES = [
+# Strict proof-doc files: every theorem name here must exist in source.
+PROOF_DOC_FILES = [
     "docs/proof-index.md",
     "docs/proof-trust-test-matrix.md",
 ]
+
+# Broader live-doc files: README, guides, examples (excludes historical
+# docs that intentionally quote removed names: rfcs/done/, docs/reviews/,
+# docs/handoff-*, CHANGELOG.md entries that quote old state).
+LIVE_DOC_FILES = [
+    "README.md",
+    "docs/test-index.md",
+    "docs/guided-tour.md",
+    "examples/README.md",
+]
+
+DOC_FILES = PROOF_DOC_FILES + LIVE_DOC_FILES
 
 # Not theorem references: ops/syntax, fields discussed in prose, files, vocab.
 IGNORE = {
@@ -38,6 +51,12 @@ IGNORE = {
     "henret-demo", "check.sh", "axiom_audit.py",
     # Lean tactics mentioned in prose
     "native_decide",
+    # WF fields added in RFC 031 (discussed in prose, not theorem names)
+    "waiters_waiting", "waiters_owned", "waiting_queued", "waiters_nodup",
+    # Mesa-semantics prose tokens
+    "mailboxWaiters", "taskState", "readyQ", "mailboxes",
+    # version/file tokens that appear in live docs
+    "lake_build", "lake_exe", "lake_env",
 }
 
 NAME_RE = re.compile(r"`([A-Za-z][A-Za-z0-9_.']*)`")

@@ -37,7 +37,7 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 | [029](done/029-blocked-receive-semantics.md) | Blocked Receive Semantics (v0.4.0) |
 | [030](done/030-v041-public-claim-cleanup.md) | v0.4.1 Public Claim Cleanup (v0.4.1) |
 | [034](done/034-preservation-proof-modularity.md) | Preservation-Proof Modularity (v0.5.0) |
-| [031](done/031-blocked-waiting-state.md) | Blocked Waiting State and Mailbox Wait Queue (v0.5.0) |
+| [031](done/031-blocked-waiting-state.md) | Blocked Waiting State and Mailbox Wait Queue (v0.5.0/v0.5.1) |
 
 ## Proposed
 
@@ -46,7 +46,7 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 | [032](proposed/032-actor-scoped-spawn-supervision-groundwork.md) | Actor-Scoped Spawn and Supervision Groundwork | `spawnChild`, `taskParent`, acyclicity via `parent_lt` (ids strictly increase), `parent_chain_terminates` |
 | [033](proposed/033-message-envelope-occurrence-identity.md) | Message Envelope and Occurrence Identity | `Envelope` (occurrence id + source), `reachable_occurrence_unique`, source stamping; closes the RFC 022 deferred path |
 
-(All earlier RFCs shipped: 001–012 in v0.1.0; 013–018 in v0.2.0; 019–023 in v0.2.1; 024–025 in v0.3.0; 026–027 in v0.3.1; 028–029 in v0.4.0; 030 in v0.4.1; 034 in v0.5.0; 031 in v0.5.0.)
+(All earlier RFCs shipped: 001–012 in v0.1.0; 013–018 in v0.2.0; 019–023 in v0.2.1; 024–025 in v0.3.0; 026–027 in v0.3.1; 028–029 in v0.4.0; 030 in v0.4.1; 034 in v0.5.0; 031 core in v0.5.0, acceptance criteria in v0.5.1.)
 
 ## Archive
 

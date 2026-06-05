@@ -72,7 +72,26 @@ through `upd` at a guarded key, and every guard excludes terminal states.
 append), `tick_no_early_wake` / `tick_wakes_expired` (logical time is exact),
 `run_preserves_sorted` (the timer queue invariant survives any program).
 
-## 8. Drivers — `Henret/Scheduler/Driver.lean`
+## 8. Blocked receive and mailbox wait queues — `Proofs/Messaging.lean`
+
+`receive_empty_parks` and `receive_blocked_parks` (RFC 031) describe what
+happens when a running task receives from an empty own mailbox: the task
+enters `TaskState.waiting`, the running slot is cleared, and the task is
+appended to its actor's `mailboxWaiters` queue. A later `send`/`inject` wakes
+the head waiter to `.ready`.
+
+**`mailboxWaiters` is a notification queue, not a mailbox-empty assertion.**
+Under Mesa semantics, a delivery wakes at most one waiter; the woken task
+must be rescheduled and re-issue `receive` to consume the message. Another
+task of the same actor might consume it first, in which case the re-issued
+receive parks again. Henret makes no liveness claim: a waiting task is
+eventually woken only if a delivery occurs; no fairness policy is modelled.
+
+`reachable_waiters_exact` is the exactness theorem for waiters (mirroring
+`reachable_queue_exact` for the ready queue): in every reachable state,
+`t ∈ mailboxWaiters a ↔ taskState t = .waiting ∧ taskOwner t = a`.
+
+## 9. Drivers — `Henret/Scheduler/Driver.lean`
 
 Two drivers: `driveOps` (op-level round-robin, fueled, TESTED) and `drain`
 (model-level, with the PROVEN liveness theorem `drain_completes`).

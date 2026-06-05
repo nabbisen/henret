@@ -1,5 +1,57 @@
 # Changelog
 
+## v0.5.1 — release-gate repair and RFC 031 completion (RFC 035)
+
+Resolves all six release-blockers from the v0.5.0 architect review.
+Zero public-surface semantic change to the model; proof additions only.
+
+### Added (theorems)
+- `receive_blocked_parks` — result-driven form of the parking theorem:
+  from an observed `.blocked` result alone, reconstructs all four guards
+  (running, `.running` state, owned, empty own mailbox) and the complete
+  post-state (task `.waiting`, running cleared, task in `mailboxWaiters`,
+  other actors' lists and mailboxes unchanged). Mirrors `receive_only_own`.
+- `reachable_waiters_exact` — exact waiter characterization: in every
+  reachable state, `t ∈ mailboxWaiters a ↔ taskState t = .waiting ∧
+  taskOwner t = a`. Mirrors `reachable_queue_exact` (RFC 031 acceptance
+  criterion, previously deferred).
+- `reachable_waiter_actor_unique` — a task is in at most one waiter list;
+  list membership determines the actor via ownership.
+- `reachable_waiting_is_queued` — every reachable `.waiting` task is
+  in its own actor's `mailboxWaiters` list (thin corollary of the WF field).
+
+### Added (demo)
+- Demo scenario 7 replaced with the full RFC 031 round trip: park →
+  inject → wake head waiter → re-schedule → re-receive → consume
+  (12 runtime checks). Includes Mesa-semantics check that the message
+  remains in the mailbox until the re-issued receive consumes it.
+
+### Fixed (release gates — RB-01)
+- `scripts/check.sh`: removed `step_blocked_unchanged`; added
+  `receive_empty_parks`, `receive_blocked_parks`, `reachable_waiters_exact`,
+  `reachable_waiter_actor_unique`.
+- `scripts/axiom_audit.py`: same allowlist update.
+
+### Fixed (examples — RB-02)
+- `examples/04_send_receive.lean`: replaced `receive_empty_blocked` with
+  `receive_empty_parks` / `receive_blocked_parks`; added `#eval` demos
+  for the parking and wake-one round trip; updated StepProjections
+  reference to RFC 031 scope.
+- `examples/README.md`: updated example 04 theorem list.
+
+### Fixed (docs — RB-03, RB-04, Task 6)
+- `README.md`: replaced stale no-op blocked claim with parking claim;
+  updated StepProjections description to RFC 031 scope.
+- `docs/proof-trust-test-matrix.md`: rows 9, 10, 42, 47, 48 rewritten.
+- `docs/proof-index.md`: stale `receive_empty_blocked` /
+  `step_blocked_unchanged` replaced; StepProjections description scoped.
+- `docs/test-index.md`: scenario 7 row updated to park/deliver/consume.
+- `docs/guided-tour.md`: new section 8 explaining `mailboxWaiters` as a
+  notification queue, Mesa semantics, and the exactness theorem.
+
+### Axiom audit
+All new theorems depend only on `[propext, Quot.sound]`. No `sorryAx`.
+
 ## v0.5.0 — blocked waiting state + preservation-proof modularity (RFCs 031, 034)
 
 Turns the transitional "blocked receive" result from v0.4.0 into real

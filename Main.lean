@@ -79,16 +79,32 @@ def main : IO Unit := do
     [.spawn 1, .schedule, .sleep 0 5, .cancel 0]
   check "cancel drops the pending timer" s9.timers.isEmpty
 
-  IO.println "scenario 7: blocked vs invalid receive (RFC 029)"
-  -- empty own-mailbox receive is a legal waiting condition;
-  -- an unscheduled task's receive is a protocol violation
-  let s10 := run RuntimeState.init [.spawn 3, .schedule]
-  check "empty own-mailbox receive is blocked"
-    ((step s10 (.receive 0)).2 matches .blocked)
-  check "blocked receive changes nothing"
-    ((step s10 (.receive 0)).1.mailboxes 3 == s10.mailboxes 3)
+  IO.println "scenario 7: park → deliver → wake → re-receive → consume (RFC 031)"
+  -- the full blocked-receive round trip: an empty own-mailbox receive
+  -- parks the running task; a later inject wakes the head waiter; the
+  -- woken task is rescheduled and its re-issued receive consumes the
+  -- message (Mesa semantics: wake is a notification, not a handoff)
+  let s10 := run RuntimeState.init [.spawn 7, .schedule]
+  let (s11, r11) := step s10 (.receive 0)
+  check "empty own-mailbox receive is blocked" (r11 matches .blocked)
+  check "task 0 parked in waiting state" (s11.taskState 0 == some .waiting)
+  check "running slot cleared" (s11.running == none)
+  check "task 0 in actor 7's waiter list" ((s11.mailboxWaiters 7).contains 0)
   check "non-running receive is invalid, not blocked"
     ((step s10 (.receive 99)).2 matches .invalid)
+  let (s12, r12) := step s11 (.inject 7 ⟨1, 100⟩)
+  check "inject delivers ok" (r12 matches .ok)
+  check "head waiter woken to ready" (s12.taskState 0 == some .ready)
+  check "waiter list drained" (s12.mailboxWaiters 7 == [])
+  check "woken task re-queued" (s12.readyQ.contains 0)
+  check "message sits in mailbox until re-receive (Mesa, no handoff)"
+    ((s12.mailboxes 7).map Mailbox.messages == some [⟨1, 100⟩])
+  let s13 := run s12 [.schedule]
+  let (s14, r14) := step s13 (.receive 0)
+  check "re-issued receive consumes the delivered message"
+    (r14 matches .received ⟨1, 100⟩)
+  check "mailbox empty after consume"
+    ((s14.mailboxes 7).map Mailbox.messages == some [])
 
   IO.println "all demo stages passed"
 

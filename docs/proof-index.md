@@ -33,7 +33,7 @@ Axiom audit: only `propext` and `Quot.sound` (Lean standard).
 ## Messaging — `Henret/Proofs/Messaging.lean`
 - `send_appends`, `send_preserves_other` (task-scoped, RFC 024).
 - `receive_consumes_one`, `receive_length`, `receive_preserves_other`,
-  `receive_empty_blocked`, `receive_only_own` (RFC 024).
+  `receive_empty_parks`, `receive_blocked_parks`, `receive_only_own` (RFC 024/031).
 
 ## Timers — `Henret/Proofs/Timers.lean`
 - `tick_keeps_future`, `tick_no_early_wake`, `tick_wakes_expired`,
@@ -118,7 +118,7 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
   `send`/`receive`/`inject` leave every field but `mailboxes` untouched.
 - `Henret/Proofs/Messaging.lean` (rewritten) — scoped `send_appends`,
   `receive_consumes_one`, `receive_length`, `*_preserves_other`,
-  `receive_empty_blocked`; guard theorems `send_not_running_invalid`,
+  `receive_empty_parks`, `receive_blocked_parks`; guard theorems `send_not_running_invalid`,
   `send_unowned_invalid`, `receive_unowned_invalid`; environment
   `inject_appends`/`inject_preserves_other`; mailbox monotonicity
   `send/receive/inject_mailbox_isSome`; headline `receive_only_own`.
@@ -128,9 +128,10 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 - `WellFormed.runnable_queued` (tenth field) — schedulable completeness.
 - `reachable_runnable_is_queued`, `reachable_queue_exact` — the runtime
   never loses a runnable task; queue membership ⟺ runnable.
-- `StepResult.blocked`; `receive_empty_blocked` (replaces the old
-  invalid-on-empty statement); `step_blocked_unchanged` — blocked is a
-  provable no-op, the mirror of `step_invalid_unchanged`.
+- `StepResult.blocked` — blocked is a legal result distinct from invalid.
+  Note: the v0.4.0 theorems receive_empty_blocked and step_blocked_unchanged
+  were superseded in v0.5.1 — blocked receive now parks the task; those names
+  no longer exist. Use `receive_empty_parks` / `receive_blocked_parks` instead.
 
 ## v0.5.0 — RFC 031: blocked waiting state + mailbox wait queue
 

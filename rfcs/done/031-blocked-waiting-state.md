@@ -1,7 +1,7 @@
 ---
 title: Blocked Waiting State and Mailbox Wait Queue
 rfc: RFC-HENRET-031
-status: Implemented
+status: Implemented (v0.5.0 core model; v0.5.1 acceptance criteria complete)
 project: Henret
 package: henret
 namespace: Henret

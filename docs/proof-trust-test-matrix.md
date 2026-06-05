@@ -24,8 +24,8 @@ relevant index (`proof-index.md`, `assumption-index.md`, `test-index.md`).
 | 6 | Duplicate wake is invalid and changes nothing (no duplicate ready entries from wake) | PROVEN | `wake_twice_invalid` |
 | 7 | one successful `send`/`inject` appends exactly one message *value* to exactly the target mailbox (per-operation; occurrence identity not modeled, RFC 022) | PROVEN | `send_appends`, `inject_appends`, `*_preserves_other` |
 | 8 | `receive` consumes exactly one message (the head) | PROVEN | `receive_consumes_one`, `receive_length` |
-| 9 | `receive` from an empty own mailbox is **blocked** and changes nothing (legal waiting condition, RFC 029); non-running/unowned receive remains invalid | PROVEN | `receive_empty_blocked`, `receive_unowned_invalid`, `step_blocked_unchanged` |
-| 10 | `send`/`receive`/`inject` touch only `mailboxes`; no task, queue, timer, clock, or id state changes | PROVEN | `Henret.Proofs.StepProjections` (21 lemmas, e.g. `send_taskState`, `receive_readyQ`) |
+| 9 | `receive` from an empty own mailbox is **blocked** and parks the task: `taskState` → `.waiting`, `running` → `none`, task appended to `mailboxWaiters` (RFC 031); non-running/unowned receive remains invalid | PROVEN | `receive_empty_parks`, `receive_blocked_parks`, `receive_unowned_invalid` |
+| 10 | Per-operation unconditionally-unchanged fields (RFC 031 updates): `send`/`inject` leave `taskOwner`, `running`, `timers`, `now`, `nextId` invariant; `receive` leaves `taskOwner`, `readyQ`, `timers`, `now`, `nextId` invariant | PROVEN | `Henret.Proofs.StepProjections` (e.g. `send_taskOwner`, `receive_readyQ`, `inject_taskOwner`) |
 | 11 | `tick now` does not wake timers with `deadline > now` | PROVEN | `tick_no_early_wake`, `tick_keeps_future` |
 | 12 | `tick now` wakes every expired sleeping task and enqueues the woken list | PROVEN | `tick_wakes_expired`, `tick_enqueues_woken` |
 | 13 | The timer queue stays sorted under every operation and program | PROVEN | `step_preserves_sorted`, `run_preserves_sorted` |
@@ -93,7 +93,7 @@ zero-assumption core.
 |---:|---|---|---|
 | 40 | Actor-local receive discipline: a successful receive dequeues from the receiver's own actor's mailbox and touches no other mailbox | PROVEN | `receive_only_own` |
 | 41 | Only the running task sends/receives; unowned tasks cannot message | PROVEN | `send_not_running_invalid`, `send_unowned_invalid`, `receive_unowned_invalid` |
-| 42 | Messaging operations touch only `mailboxes` (per projection) | PROVEN | `Henret.Proofs.StepProjections` (21 `@[simp]` lemmas) |
+| 42 | Messaging operations leave specific fields unconditionally unchanged (per projection; RFC 031 updates the scope — see row 10) | PROVEN | `Henret.Proofs.StepProjections` |
 | 43 | Messaging never removes a mailbox | PROVEN | `send/receive/inject_mailbox_isSome` |
 | 44 | All v0.2.1 invariants hold over the eleven-operation grammar | PROVEN | `reachable_wf` re-proved |
 
@@ -103,8 +103,8 @@ zero-assumption core.
 |---:|---|---|---|
 | 45 | The runtime never loses a runnable task: every reachable runnable task is queued | PROVEN | `reachable_runnable_is_queued` (`WellFormed.runnable_queued`) |
 | 46 | The ready queue contains exactly the runnable tasks in every reachable state | PROVEN | `reachable_queue_exact` |
-| 47 | Blocked operations never mutate state (blocked is currently a no-op *result*, not a waiting-state transition; wait queues are future work) | PROVEN | `step_blocked_unchanged` |
-| 48 | Empty own-mailbox receive is blocked (legal wait), not invalid; illegal receive stays invalid | PROVEN + TESTED | `receive_empty_blocked`, demo scenario 6 |
+| 47 | Blocked receive is a parking transition (RFC 031): `taskState` → `.waiting`, `running` → `none`, task appended to its actor's `mailboxWaiters`; this replaces the v0.4.0 no-op characterisation | PROVEN | `receive_empty_parks`, `receive_blocked_parks` |
+| 48 | Empty own-mailbox receive is blocked and parks the task (legal wait-state transition), not invalid; illegal receive stays invalid | PROVEN + TESTED | `receive_empty_parks`, demo scenario 7 |
 | 49 | Past-deadline sleep policy: legal, wakes at next valid tick | DOCUMENTED (RFC 029) | `RuntimeOp.sleep` docstring |
 
 ## v0.5.0 claims (blocked waiting state + mailbox wait queue, RFC 031)
