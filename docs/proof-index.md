@@ -81,10 +81,11 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 - `nodup_of_sublist`, `nodup_append_singleton`, `nodup_append`,
   `nodup_task_inj`, `mem_map_insertSorted`, `insertSorted_task_nodup` —
   core-only list/timer helpers.
-- `WellFormed` — the reachability invariant (ten fields as of RFC 028):
+- `WellFormed` — the reachability invariant (fourteen fields as of RFC 031):
   ready-queue soundness *and* completeness, running-slot consistency,
   timer discipline (uniqueness, sleep-coherence, sortedness), fresh-id
-  discipline, ownership existence, owner-mailbox existence; location
+  discipline, ownership existence, owner-mailbox existence; wait-queue
+  integrity (waiters are `.waiting`, owned, queued, and nodup); location
   disjointness derived as corollaries.
 - `wf_init`; corollaries `WellFormed.ready_not_running`,
   `WellFormed.ready_no_timer`, `WellFormed.running_no_timer`
@@ -130,3 +131,32 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 - `StepResult.blocked`; `receive_empty_blocked` (replaces the old
   invalid-on-empty statement); `step_blocked_unchanged` — blocked is a
   provable no-op, the mirror of `step_invalid_unchanged`.
+
+## v0.5.0 — RFC 031: blocked waiting state + mailbox wait queue
+
+**`Henret/Proofs/Preservation/Messaging.lean`** (extended):
+- `preserves_wf_send` (wake-one branch): proves all 14 WF fields including
+  the four new waiter fields; mail dequeue from `mailboxWaiters` head.
+- `preserves_wf_receive` (parking branch): parks running task into
+  `TaskState.waiting`, appends to `mailboxWaiters a`; proves waiter
+  invariants.
+- `preserves_wf_inject` added (was inadvertently absent after v0.5.0 split).
+
+**`Henret/Proofs/Preservation/Lifecycle.lean`** (extended):
+- `preserves_wf_cancel`: four new waiter sub-proofs with taskOwner
+  case-split to handle the filtered `mailboxWaiters` update.
+- All five lifecycle operations updated to prove all 14 WF fields.
+
+**`Henret/Proofs/Preservation/Time.lean`** (extended):
+- `preserves_wf_sleep`, `preserves_wf_tick`, `preserves_wf_wake`: four new
+  waiter fields each, all proved by pass-through (time ops do not touch
+  `mailboxWaiters`).
+
+**New `WellFormed` fields** (11–14):
+- `WellFormed.waiters_waiting` — every task in any `mailboxWaiters` list has
+  `taskState = some .waiting`.
+- `WellFormed.waiters_owned` — every task in `mailboxWaiters a` has
+  `taskOwner = some a`.
+- `WellFormed.waiting_queued` — every `.waiting` task appears in its owner's
+  `mailboxWaiters`.
+- `WellFormed.waiters_nodup` — each `mailboxWaiters` list is duplicate-free.

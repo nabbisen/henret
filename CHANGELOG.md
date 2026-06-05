@@ -1,5 +1,54 @@
 # Changelog
 
+## v0.5.0 — blocked waiting state + preservation-proof modularity (RFCs 031, 034)
+
+Turns the transitional "blocked receive" result from v0.4.0 into real
+execution-management state: a blocked receive parks the running task
+(`TaskState.waiting`), and each subsequent `send`/`inject` to that actor's
+mailbox wakes exactly one head waiter.
+
+### Added
+- `TaskState.waiting` — a parked task; not in the ready queue, not running.
+  Distinct from `.sleeping` (timer-blocked).
+- `RuntimeState.mailboxWaiters : ActorId → List TaskId` — per-actor FIFO
+  wait queue, invariant-backed.
+- Four new `WellFormed` fields (fields 11–14): `waiters_waiting`,
+  `waiters_owned`, `waiting_queued`, `waiters_nodup`.
+- `wf_init` proves all 14 WF fields for the initial state.
+- `receive` (empty-mailbox, valid branch): parks the running task
+  (`TaskState.waiting`), clears `running`, appends to `mailboxWaiters a`.
+- `send`/`inject` (valid branch, wake-one): if the target actor has a
+  non-empty wait queue, dequeues the head waiter to `.ready` and
+  appends it to `readyQ`; nil branch unchanged.
+- `cancel` removes the task from its owner actor's `mailboxWaiters`.
+- `showState` in `Examples/Basic.lean` handles `| waiting =>`.
+
+### Changed (proof layer)
+- All three preservation files (`Lifecycle`, `Messaging`, `Time`) prove all
+  14 WF fields per operation (up from 10).
+- `Messaging.lean` preservation: full case-trees for nil/cons wake-one
+  branches of send/inject; nil/dequeue/parking branches of receive.
+- `Time.lean` preservation: four new waiter fields — time ops do not touch
+  `mailboxWaiters`, so all four close by pass-through.
+- `preserves_wf_cancel` extended with taskOwner-case-split waiter proofs.
+- `preserves_wf_inject` added (was inadvertently dropped in v0.5.0 split).
+
+### Axiom audit
+All new theorems depend only on `[propext, Quot.sound]`. No `sorryAx`.
+
+### Changed (RFC 034 — preservation-proof modularity)
+- `Henret/Proofs/InvariantsPreservation.lean` split from 780 to 102
+  lines (assembly only). Per-operation WellFormed preservation proofs
+  moved to:
+  - `Henret/Proofs/Preservation/Lifecycle.lean` (spawn/schedule/yield/
+    complete/cancel)
+  - `Henret/Proofs/Preservation/Messaging.lean` (send/receive/inject)
+  - `Henret/Proofs/Preservation/Time.lean` (sleep/tick/wake)
+- `step_preserves_wf` body is a dispatch table.
+- Each per-op lemma is self-contained; adding an operation or invariant
+  field now touches one focused file.
+
+
 ## v0.4.1 — public claim cleanup (RFC 030)
 
 Resolves all five release-blockers of the v0.4.0 review; the reviewer's

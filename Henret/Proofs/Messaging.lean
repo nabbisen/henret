@@ -14,7 +14,8 @@ theorem send_appends {s : RuntimeState} {t : TaskId} {b : ActorId}
     (m : Message) :
     ((step s (.send t b m)).1).mailboxes b =
       some ⟨mb.messages ++ [m]⟩ := by
-  simp [step, hrt, hts, how, hmb, upd, Mailbox.enqueue]
+  cases hw : s.mailboxWaiters b <;>
+    simp [step, hrt, hts, how, hmb, hw, upd, Mailbox.enqueue]
 
 /-- Send does not touch any mailbox other than the target's,
 regardless of guard outcomes. -/
@@ -26,7 +27,9 @@ theorem send_preserves_other {s : RuntimeState} {t : TaskId}
   · split
     · split
       · split
-        · simp [upd, h]
+        · cases hw : s.mailboxWaiters b with
+          | nil => simp [upd, h]
+          | cons w ws => simp [hw, upd, h]
         · rfl
       · rfl
     all_goals rfl
@@ -96,14 +99,20 @@ theorem receive_preserves_other {s : RuntimeState} {t : TaskId}
     all_goals rfl
   · rfl
 
-/-- Receive from an empty (own) mailbox is **blocked**, not invalid
-(RFC 029): a legal actor condition — the task would wait — distinct
-from a protocol violation. State unchanged. -/
-theorem receive_empty_blocked {s : RuntimeState} {t : TaskId}
+/-- Receive from an empty (own) mailbox parks the task: the result is
+`.blocked` and the state transitions — the task enters `.waiting`
+(RFC 031, replaces the old no-op `receive_empty_blocked`). -/
+theorem receive_empty_parks {s : RuntimeState} {t : TaskId}
     {a : ActorId}
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some a) (hmb : s.mailboxes a = some ⟨[]⟩) :
-    step s (.receive t) = (s, .blocked) := by
+    step s (.receive t) =
+      ({ s with
+           taskState      := upd s.taskState t (some .waiting)
+           running        := none
+           mailboxWaiters := fun ac => if ac = a then s.mailboxWaiters a ++ [t]
+                                       else s.mailboxWaiters ac },
+       .blocked) := by
   simp [step, hrt, hts, how, hmb, Mailbox.dequeue]
 
 /-- A receive by an unowned task is invalid: only actor tasks
@@ -154,12 +163,8 @@ theorem receive_only_own {s : RuntimeState} {t : TaskId} {m : Message}
               · simp [step, hrt, hts, how, hmb, hd, upd]
               · intro b hb
                 exact receive_preserves_other how hb
-      | new => simp [step, hrt, hts] at h
-      | ready => simp [step, hrt, hts] at h
-      | yielded => simp [step, hrt, hts] at h
-      | sleeping => simp [step, hrt, hts] at h
-      | completed => simp [step, hrt, hts] at h
-      | cancelled => simp [step, hrt, hts] at h
+      | new | ready | yielded | sleeping | completed | cancelled | waiting =>
+        simp [step, hrt, hts] at h
   · simp [step, hrt] at h
 
 /-! ## Environment injection (RFC 024) -/
@@ -169,8 +174,8 @@ theorem inject_appends {s : RuntimeState} {a : ActorId} {mb : Mailbox}
     (h : s.mailboxes a = some mb) (m : Message) :
     ((step s (.inject a m)).1).mailboxes a =
       some ⟨mb.messages ++ [m]⟩ := by
-  simp only [step, h]
-  simp [upd, Mailbox.enqueue]
+  cases hw : s.mailboxWaiters a <;>
+    simp [step, h, hw, upd, Mailbox.enqueue]
 
 /-- Injection does not touch any other actor's mailbox. -/
 theorem inject_preserves_other {s : RuntimeState} {a b : ActorId}
@@ -178,7 +183,9 @@ theorem inject_preserves_other {s : RuntimeState} {a b : ActorId}
     ((step s (.inject a m)).1).mailboxes b = s.mailboxes b := by
   simp only [step]
   split
-  · simp [upd, h]
+  · cases hw : s.mailboxWaiters a with
+    | nil => simp [hw, upd, h]
+    | cons w ws => simp [hw, upd, h]
   · rfl
 
 
@@ -203,14 +210,13 @@ theorem send_mailbox_isSome {s : RuntimeState} {t : TaskId}
           | some mbb =>
             by_cases hcb : c = b
             · subst hcb
-              exact ⟨mbb.enqueue m, by simp [step, hrt, hts, how, hmb, upd]⟩
-            · exact ⟨mb, by simpa [step, hrt, hts, how, hmb, upd, hcb] using h⟩
-      | new => exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
-      | ready => exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
-      | yielded => exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
-      | sleeping => exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
-      | completed => exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
-      | cancelled => exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
+              cases hw : s.mailboxWaiters c with
+              | nil => exact ⟨mbb.enqueue m, by simp [step, hrt, hts, how, hmb, hw, upd]⟩
+              | cons w ws => exact ⟨mbb.enqueue m, by simp [step, hrt, hts, how, hmb, hw, upd]⟩
+            · cases hw : s.mailboxWaiters b <;>
+                exact ⟨mb, by simpa [step, hrt, hts, how, hmb, hw, upd, hcb] using h⟩
+      | new | ready | yielded | sleeping | completed | cancelled | waiting =>
+        exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
   · exact ⟨mb, by simp [step, hrt]; exact h⟩
 
 /-- Inject never removes a mailbox. -/
@@ -222,8 +228,11 @@ theorem inject_mailbox_isSome {s : RuntimeState} {a c : ActorId}
   | some mba =>
     by_cases hca : c = a
     · subst hca
-      exact ⟨mba.enqueue m, by simp [step, hmb, upd]⟩
-    · exact ⟨mb, by simpa [step, hmb, upd, hca] using h⟩
+      cases hw : s.mailboxWaiters c with
+      | nil => exact ⟨mba.enqueue m, by simp [step, hmb, hw, upd]⟩
+      | cons w ws => exact ⟨mba.enqueue m, by simp [step, hmb, hw, upd]⟩
+    · cases hw : s.mailboxWaiters a <;>
+        exact ⟨mb, by simpa [step, hmb, hw, upd, hca] using h⟩
 
 /-- Receive never removes a mailbox. -/
 theorem receive_mailbox_isSome {s : RuntimeState} {t : TaskId}
@@ -248,12 +257,8 @@ theorem receive_mailbox_isSome {s : RuntimeState} {t : TaskId}
               · subst hca
                 exact ⟨p.2, by simp [step, hrt, hts, how, hmb, hd, upd]⟩
               · exact ⟨mb, by simpa [step, hrt, hts, how, hmb, hd, upd, hca] using h⟩
-      | new => exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
-      | ready => exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
-      | yielded => exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
-      | sleeping => exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
-      | completed => exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
-      | cancelled => exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
+      | new | ready | yielded | sleeping | completed | cancelled | waiting =>
+        exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
   · exact ⟨mb, by simp [step, hrt]; exact h⟩
 
 end Henret

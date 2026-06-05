@@ -124,15 +124,26 @@ structure WellFormed (s : RuntimeState) : Prop where
   owned_has_mailbox :
     ∀ t a, s.taskOwner t = some a → ∃ mb, s.mailboxes a = some mb
   /-- **Schedulable completeness** (RFC 028): every runnable task is in
-      the ready queue — the runtime never loses a runnable task.  This
-      is the converse of `readyQ_queued`; together they say the ready
-      queue contains *exactly* the runnable tasks. -/
+      the ready queue — the runtime never loses a runnable task. -/
   runnable_queued :
     ∀ t st, s.taskState t = some st → st.isRunnable = true → t ∈ s.readyQ
+  /-- Every task in a waiter list is in the `waiting` state (RFC 031). -/
+  waiters_waiting :
+    ∀ a t, t ∈ s.mailboxWaiters a → s.taskState t = some .waiting
+  /-- Every waiter waits on its **own** actor's mailbox (RFC 031). -/
+  waiters_owned :
+    ∀ a t, t ∈ s.mailboxWaiters a → s.taskOwner t = some a
+  /-- Every waiting task is in its own actor's waiter list (RFC 031). -/
+  waiting_queued :
+    ∀ t, s.taskState t = some .waiting →
+      ∃ a, s.taskOwner t = some a ∧ t ∈ s.mailboxWaiters a
+  /-- Waiter lists are duplicate-free — needed for deterministic wake-one (RFC 031). -/
+  waiters_nodup :
+    ∀ a, (s.mailboxWaiters a).Nodup
 
 /-- The initial state is well-formed. -/
 theorem wf_init : WellFormed RuntimeState.init := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> simp [RuntimeState.init]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> simp [RuntimeState.init]
 
 /-! ## Ownership uniqueness corollaries (RFC 004 acceptance) -/
 

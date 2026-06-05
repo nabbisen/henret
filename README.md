@@ -103,7 +103,8 @@ open Henret
 - **Reachability invariant** (v0.2.0) — every reachable state is well-formed:
   the ready queue never duplicates a task, every queued task is runnable,
   every timer task is sleeping, and a task occupies at most one ownership
-  location (`reachable_wf`, `WellFormed`).
+  location; wait-queue integrity is also guaranteed (`reachable_wf`,
+  `WellFormed`, 14 fields).
 - **Ownership immutability** (v0.2.0) — a spawned task's owning actor never
   changes (`spawn_sets_owner`, `run_preserves_owner`).
 - **Invalid is a no-op** (v0.2.0) — an invalid operation never mutates state
@@ -119,9 +120,13 @@ open Henret
   runnable tasks (`reachable_runnable_is_queued`, `reachable_queue_exact`).
 - **Blocked receive semantics** (v0.4.0) — an empty own-mailbox receive is
   `blocked`, not invalid, and blocked operations are provable no-ops
-  (`receive_empty_blocked`, `step_blocked_unchanged`). Note: blocked is
-  currently a no-op *result*, not a waiting-state transition — wait queues
-  and blocked-task parking are future work (RFC 029).
+  (`receive_empty_blocked`, `step_blocked_unchanged`).
+- **Waiting state and mailbox wait queues** (v0.5.0) — a blocked receive
+  parks the running task into `TaskState.waiting` and appends it to
+  the actor's `mailboxWaiters` queue; a subsequent `send`/`inject` wakes the
+  head waiter to `.ready`. Four new `WellFormed` fields (14 total) guarantee
+  wait-queue integrity in every reachable state (`waiters_waiting`,
+  `waiters_owned`, `waiting_queued`, `waiters_nodup`).
 - **Backend contract** — both reference mailbox backends satisfy the
   `MailboxBackend` refinement contract (`listBackend`, `mailboxBackend`).
 

@@ -21,10 +21,13 @@ structure RuntimeState where
   /-- Pending timers, sorted by deadline. -/
   timers    : List TimerEntry
   /-- Mailbox per actor id; `none` = actor does not exist. -/
-  mailboxes : ActorMap
+  mailboxes      : ActorMap
+  /-- FIFO wait queue per actor: tasks waiting to receive from that
+      actor's mailbox (RFC 031). -/
+  mailboxWaiters : ActorId → List TaskId
   /-- Current logical time; advanced only by `tick`, monotonically
       (RFC 015). -/
-  now       : Nat
+  now           : Nat
   /-- Fresh task-id counter; ids below it may exist, ids at or above
       it are unused. -/
   nextId    : TaskId
@@ -33,14 +36,15 @@ namespace RuntimeState
 
 /-- The initial state: nothing spawned, no actors, time zero. -/
 def init : RuntimeState where
-  taskState := fun _ => none
-  taskOwner := fun _ => none
-  readyQ    := []
-  running   := none
-  timers    := []
-  mailboxes := fun _ => none
-  now       := 0
-  nextId    := 0
+  taskState      := fun _ => none
+  taskOwner      := fun _ => none
+  readyQ         := []
+  running        := none
+  timers         := []
+  mailboxes      := fun _ => none
+  mailboxWaiters := fun _ => []
+  now            := 0
+  nextId         := 0
 
 end RuntimeState
 
@@ -107,11 +111,18 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
     | some st =>
       if st.isTerminal then (s, .invalid)
       else
+        -- For waiting tasks, also remove from owner's waiter list (RFC 031)
+        let ownerWaitersUpdate : ActorId → List TaskId :=
+          match s.taskOwner t with
+          | some a => fun ac => if ac = a then (s.mailboxWaiters a).filter (· ≠ t)
+                                else s.mailboxWaiters ac
+          | none   => s.mailboxWaiters
         ({ s with
-            taskState := upd s.taskState t (some .cancelled)
-            readyQ    := s.readyQ.filter (fun u => u ≠ t)
-            timers    := s.timers.filter (fun e => e.task ≠ t)
-            running   := if s.running = some t then none else s.running }, .ok)
+            taskState      := upd s.taskState t (some .cancelled)
+            readyQ         := s.readyQ.filter (fun u => u ≠ t)
+            timers         := s.timers.filter (fun e => e.task ≠ t)
+            running        := if s.running = some t then none else s.running
+            mailboxWaiters := ownerWaitersUpdate }, .ok)
     | none => (s, .invalid)
   | .send t b m =>
     if s.running = some t then
@@ -121,7 +132,17 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
         | some _ =>
           match s.mailboxes b with
           | some mb =>
-            ({ s with mailboxes := upd s.mailboxes b (some (mb.enqueue m)) }, .ok)
+            -- Enqueue the message; wake the head waiter of b if any.
+            let s' := { s with mailboxes := upd s.mailboxes b (some (mb.enqueue m)) }
+            match s.mailboxWaiters b with
+            | []      => (s', .ok)
+            | w :: ws =>
+              ({ s' with
+                   taskState      := upd s'.taskState w (some .ready)
+                   readyQ         := s'.readyQ ++ [w]
+                   mailboxWaiters := fun ac =>
+                     if ac = b then ws else s'.mailboxWaiters ac },
+               .ok)
           | none => (s, .invalid)
         | none => (s, .invalid)
       | _ => (s, .invalid)
@@ -137,7 +158,15 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
             match mb.dequeue with
             | some (m, mb') =>
               ({ s with mailboxes := upd s.mailboxes a (some mb') }, .received m)
-            | none => (s, .blocked)
+            | none =>
+              -- Park: task waits on actor a's mailbox (RFC 031).
+              ({ s with
+                   taskState      := upd s.taskState t (some .waiting)
+                   running        := none
+                   mailboxWaiters := fun ac =>
+                     if ac = a then s.mailboxWaiters a ++ [t]
+                     else s.mailboxWaiters ac },
+               .blocked)
           | none => (s, .invalid)
         | none => (s, .invalid)
       | _ => (s, .invalid)
@@ -145,7 +174,16 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
   | .inject a m =>
     match s.mailboxes a with
     | some mb =>
-      ({ s with mailboxes := upd s.mailboxes a (some (mb.enqueue m)) }, .ok)
+      -- Wake head waiter of a if any (RFC 031).
+      let s' := { s with mailboxes := upd s.mailboxes a (some (mb.enqueue m)) }
+      match s.mailboxWaiters a with
+      | []      => (s', .ok)
+      | w :: ws =>
+        ({ s' with
+             taskState      := upd s'.taskState w (some .ready)
+             readyQ         := s'.readyQ ++ [w]
+             mailboxWaiters := fun ac => if ac = a then ws else s'.mailboxWaiters ac },
+         .ok)
     | none => (s, .invalid)
   | .sleep t deadline =>
     if s.running = some t then

@@ -106,3 +106,15 @@ zero-assumption core.
 | 47 | Blocked operations never mutate state (blocked is currently a no-op *result*, not a waiting-state transition; wait queues are future work) | PROVEN | `step_blocked_unchanged` |
 | 48 | Empty own-mailbox receive is blocked (legal wait), not invalid; illegal receive stays invalid | PROVEN + TESTED | `receive_empty_blocked`, demo scenario 6 |
 | 49 | Past-deadline sleep policy: legal, wakes at next valid tick | DOCUMENTED (RFC 029) | `RuntimeOp.sleep` docstring |
+
+## v0.5.0 claims (blocked waiting state + mailbox wait queue, RFC 031)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 50 | A blocked receive parks the running task in `TaskState.waiting` and removes it from `running` | PROVEN | `preserves_wf_receive` (parking branch) |
+| 51 | A parked task is in its owner actor's `mailboxWaiters` list and nowhere else | PROVEN | `WellFormed.waiters_owned`, `WellFormed.waiting_queued` in every reachable state |
+| 52 | The `mailboxWaiters` list for each actor contains only `.waiting` tasks | PROVEN | `WellFormed.waiters_waiting` in every reachable state |
+| 53 | Each actor's wait queue is duplicate-free | PROVEN | `WellFormed.waiters_nodup` in every reachable state |
+| 54 | A valid send/inject to an actor with a non-empty wait queue wakes exactly the head waiter to `.ready` and appends it to `readyQ` | PROVEN | `preserves_wf_send`, `preserves_wf_inject` (wake-one branches) |
+| 55 | Cancel removes the task from its actor's `mailboxWaiters` | PROVEN | `preserves_wf_cancel` (waiter sub-proofs) |
+| 56 | All 14 `WellFormed` fields hold in every reachable state | PROVEN | `reachable_wf` (extended from 10 fields) |

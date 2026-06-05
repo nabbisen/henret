@@ -15,6 +15,7 @@ def showState : Option TaskState → String
   | some .sleeping => "sleeping"
   | some .completed => "completed"
   | some .cancelled => "cancelled"
+  | some .waiting => "waiting"
 
 /-! ## Scenario 1 — task lifecycle: spawn, schedule, yield, complete -/
 

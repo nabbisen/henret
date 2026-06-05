@@ -18,6 +18,8 @@ inductive TaskState where
   | completed
   /-- Cancelled. Terminal. -/
   | cancelled
+  /-- Parked waiting for a message in its actor's mailbox (RFC 031). -/
+  | waiting
 deriving Repr, DecidableEq, Inhabited
 
 namespace TaskState
