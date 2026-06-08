@@ -70,6 +70,9 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
     · simp only [step, if_pos hle]; exact hle
     · simp [step, hle]
   | spawn a => cases hts : s.taskState s.nextId <;> simp [step, hts]
+  | spawnChild t a =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;> simp_all
   | schedule =>
     cases hr : s.running with
     | some _ => simp [step, hr]
@@ -116,6 +119,9 @@ theorem step_preserves_sorted {s : RuntimeState}
     Timer.Sorted ((step s op).1).timers := by
   cases op with
   | spawn a => simp only [step]; split <;> exact h
+  | spawnChild t a =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;> simp_all
   | schedule =>
     simp only [step]
     split

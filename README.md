@@ -73,9 +73,9 @@ open Henret
 
 ## The model in one minute
 
-- `RuntimeOp` (`Henret/Scheduler/Op.lean`) — the operation grammar, eleven
+- `RuntimeOp` (`Henret/Scheduler/Op.lean`) — the operation grammar, twelve
   operations: `spawn`, `schedule`, `yield`, `complete`, `cancel`,
-  `send`, `receive`, `inject`, `sleep`, `tick`, `wake`.
+  `send`, `receive`, `inject`, `sleep`, `tick`, `wake`, `spawnChild`.
 - `RuntimeState` (`Henret/Scheduler/Model.lean`) — task states, ready queue,
   running slot, sorted logical-time timer queue, mailboxes, fresh-id counter.
 - `step : RuntimeState → RuntimeOp → RuntimeState × StepResult` — total and
@@ -104,9 +104,9 @@ open Henret
   the ready queue never duplicates a task, every queued task is runnable,
   every timer task is sleeping, and a task occupies at most one ownership
   location; wait-queue integrity is also guaranteed (`reachable_wf`,
-  `WellFormed`, 14 fields).
+  `WellFormed`, 16 fields).
 - **Ownership immutability** (v0.2.0) — a spawned task's owning actor never
-  changes (`spawn_sets_owner`, `run_preserves_owner`).
+  changes (`WellFormed.spawned_has_owner`, `reachable_spawned_has_owner`).
 - **Invalid is a no-op** (v0.2.0) — an invalid operation never mutates state
   (`step_invalid_unchanged`).
 - **Monotone logical time** (v0.2.0) — no operation decreases the clock;

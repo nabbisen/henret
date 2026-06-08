@@ -106,6 +106,16 @@ def main : IO Unit := do
   check "mailbox empty after consume"
     ((s14.mailboxes 7).map Mailbox.messages == some [])
 
+
+  IO.println "scenario 8: spawnChild parent chain (RFC 032)"
+  let s15 := spawnChildScenario
+  check "child task 1 has task 0 as parent"
+    (s15.taskParent 1 == some 0)
+  check "parent task 0 completed"
+    (s15.taskState 0 == some .completed)
+  check "child task 1 queued as .new"
+    (s15.taskState 1 == some .new)
+
   IO.println "all demo stages passed"
 
 /-!

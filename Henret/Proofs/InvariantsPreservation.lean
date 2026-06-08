@@ -26,6 +26,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
   | sleep t d  => exact preserves_wf_sleep h
   | tick t     => exact preserves_wf_tick h
   | wake t     => exact preserves_wf_wake h
+  | spawnChild t a => exact preserves_wf_spawnChild h a
 
 /-- Whole-program invariant preservation. -/
 theorem run_preserves_wf {s : RuntimeState} (h : WellFormed s) :

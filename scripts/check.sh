@@ -40,6 +40,13 @@ open Henret Henret.Native
 #print axioms receive_blocked_parks
 #print axioms reachable_waiters_exact
 #print axioms reachable_waiter_actor_unique
+#check @spawnChild_sets_parent
+#check @spawnChild_queues_child
+#check @step_preserves_parent
+#check @reachable_parent_lt
+#check @parent_chain_terminates
+#print axioms reachable_parent_lt
+#print axioms parent_chain_terminates
 #print axioms qRun_tracks
 #print axioms driveStackB_complete
 #print axioms nativeDequeModel_qRun_tracks

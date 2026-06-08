@@ -73,7 +73,7 @@ zero-assumption core.
 | 29 | Every reachable state is well-formed | PROVEN | `reachable_wf` (`run_preserves_wf` ∘ `wf_init`) |
 | 30 | The scheduler never duplicates a ready task | PROVEN | `WellFormed.readyQ_nodup` in every reachable state |
 | 31 | A task occupies at most one ownership location (queued / running / timer) | PROVEN | `WellFormed.ready_not_running`, `WellFormed.ready_no_timer`, `WellFormed.running_no_timer` |
-| 32 | A spawned task's owner is immutable | PROVEN | `spawn_sets_owner`, `step/run_preserves_owner` |
+| 32 | A spawned task's owner is immutable | PROVEN | `WellFormed.spawned_has_owner`, `reachable_spawned_has_owner` |
 | 33 | Invalid operations never mutate state | PROVEN | `step_invalid_unchanged` |
 | 34 | Logical time is monotone; backwards ticks are invalid no-ops | PROVEN | `step_clock_monotone`, `tick_backwards_invalid`, `tick_advances_clock` |
 | 35 | `tick` wakes only genuinely sleeping tasks | PROVEN + TESTED | filter in `step` + `WellFormed.timers_sleep`; demo scenario 6 |
@@ -118,3 +118,15 @@ zero-assumption core.
 | 54 | A valid send/inject to an actor with a non-empty wait queue wakes exactly the head waiter to `.ready` and appends it to `readyQ` | PROVEN | `preserves_wf_send`, `preserves_wf_inject` (wake-one branches) |
 | 55 | Cancel removes the task from its actor's `mailboxWaiters` | PROVEN | `preserves_wf_cancel` (waiter sub-proofs) |
 | 56 | All 14 `WellFormed` fields hold in every reachable state | PROVEN | `reachable_wf` (extended from 10 fields) |
+
+## v0.6.0 claims (actor-scoped spawn / supervision groundwork, RFC 032)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 57 | A successful `spawnChild` sets the new task's parent to the calling task | PROVEN | `spawnChild_sets_parent` |
+| 58 | A successful `spawnChild` sets the new task's owner and enqueues it | PROVEN | `spawnChild_sets_owner`, `spawnChild_queues_child` |
+| 59 | Parenthood is immutable: no operation other than `spawnChild` writes `taskParent`, and `spawnChild` only writes the fresh slot | PROVEN | `step_preserves_parent` |
+| 60 | In every reachable state, every parent has a strictly smaller id than its child (parent_lt invariant) | PROVEN | `WellFormed.parent_lt`, `reachable_parent_lt` |
+| 61 | In every reachable state, every recorded parent exists in some state (parent_spawned invariant) | PROVEN | `WellFormed.parent_spawned` |
+| 62 | All ancestor chains terminate: every task reaches a root within `t` steps | PROVEN | `parent_chain_terminates` (acyclicity deliverable) |
+| 63 | All 16 `WellFormed` fields hold in every reachable state (extended from 14 fields) | PROVEN | `reachable_wf` (extended) |

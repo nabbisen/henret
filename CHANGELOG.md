@@ -1,5 +1,65 @@
 # Changelog
 
+## v0.6.0 — Actor-scoped spawn and supervision groundwork (RFC 032)
+
+Implements the actor-scoped spawn operation and its full kernel-proven
+invariant structure. Extends `WellFormed` from 14 to 16 fields, adds the
+`spawnChild` runtime operation, and delivers the acyclicity guarantee for
+supervision trees.
+
+### New (`Henret/Scheduler/Model.lean`)
+- `RuntimeOp.spawnChild (t : TaskId) (a : ActorId)` — the running task `t`
+  spawns a new child task owned by actor `a`.
+- `RuntimeState.taskParent : TaskId → Option TaskId` — records each task's
+  parent (set once at spawn, `none` for roots).
+
+### New (`Henret/Proofs/Invariants.lean`)
+- `WellFormed.parent_lt` (field 15) — every recorded parent has a strictly
+  smaller `TaskId` than its child.
+- `WellFormed.parent_spawned` (field 16) — every recorded parent is in some
+  non-`none` state.
+- `wf_init` extended to 16 fields.
+
+### New (`Henret/Proofs/Parenthood.lean`)
+- `spawnChild_sets_parent`, `spawnChild_sets_owner`, `spawnChild_queues_child`
+  — direct effects of a valid spawn.
+- `spawnChild_not_running_invalid`, `spawnChild_unowned_invalid` — guard
+  theorems.
+- `step_preserves_parent` — `taskParent` is immutable after creation; only
+  `spawnChild` writes it and only to the fresh slot.
+- `reachable_parent_lt` — headline: in every reachable state every parent has
+  a smaller id than its child.
+- `parent_chain_terminates` — acyclicity deliverable: every ancestor chain
+  reaches a root in at most `t + 1` steps.
+
+### New (`Henret/Proofs/StepProjections.lean`)
+- `spawnChild_taskState_other`, `spawnChild_taskOwner_other`,
+  `spawnChild_taskParent_other`, `step_taskParent_stable`.
+
+### Extended (`Henret/Proofs/Preservation/`)
+- `preserves_wf_spawnChild` (new) — all 16 WF fields for the new operation.
+- All 11 existing preservation theorems extended to the 16-field `WellFormed`.
+
+### Extended (`Henret/Proofs/InvariantsPreservation.lean`)
+- `step_preserves_wf` dispatch extended with `spawnChild` case.
+
+### Extended (`Henret/Proofs/Ownership.lean`)
+- `step_preserves_spawned`, `step_preserves_terminal`, `step_invalid_unchanged`
+  extended with `spawnChild` cases.
+
+### Extended (`Henret/Proofs/Timers.lean`)
+- `step_clock_monotone`, `run_preserves_sorted` extended.
+
+### New (`Henret/Examples/Basic.lean`)
+- Demo scenario 8: `spawnChild` round-trip (3 `native_decide` checks).
+
+### Updated docs
+- `docs/proof-trust-test-matrix.md` rows 57–63.
+- `docs/proof-index.md` RFC 032 section.
+- `docs/guided-tour.md` section 9b.
+- `scripts/check.sh` and `scripts/axiom_audit.py` updated.
+
+
 ## v0.5.1 — release-gate repair and RFC 031 completion (RFC 035)
 
 Resolves all six release-blockers from the v0.5.0 architect review.

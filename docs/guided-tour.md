@@ -12,7 +12,7 @@ Six scenarios print their state and assert expected outcomes.
 
 ## 2. The operation grammar — `Henret/Scheduler/Op.lean`
 
-`RuntimeOp` is the entire surface of the model — eleven operations:
+`RuntimeOp` is the entire surface of the model — twelve operations:
 `spawn a`, `schedule`, `yield t`, `complete t`, `cancel t`,
 `send t b m` (the running task `t` sends to actor `b`),
 `receive t` (the running task `t` dequeues from its **own** actor's
@@ -61,7 +61,7 @@ separate "promotion" of `new` to `ready`.
 
 ## 6. The flagship proof — `Henret/Proofs/Lifecycle.lean`
 
-`step_preserves_terminal` walks all eleven operations and shows none of them can
+`step_preserves_terminal` walks all twelve operations and shows none of them can
 move a task out of `completed`/`cancelled`. `run_preserves_terminal` lifts it
 to whole programs by induction. Note *why* it holds: every state write goes
 through `upd` at a guarded key, and every guard excludes terminal states.
@@ -102,6 +102,34 @@ Two drivers: `driveOps` (op-level round-robin, fueled, TESTED) and `drain`
 `toList`. `listBackend` and `mailboxBackend` are reference implementations
 whose laws are kernel-checked fields. Copy this shape for your own component —
 see `docs/patterns/refinement-contract.md`.
+
+## 9b. Actor-scoped spawn and parenthood (RFC 032)
+
+`spawnChild t a` lets the running task `t` create a child task owned by actor
+`a`. The child starts in state `.new`, is enqueued immediately, and records `t`
+as its parent in the new `taskParent` field.
+
+Three kernel-proven guarantees make supervision safe:
+
+**`step_preserves_parent`** — `taskParent` is immutable after creation. No
+operation other than `spawnChild` touches it, and `spawnChild` only writes the
+fresh `nextId` slot. Concretely: once a supervision link is established it
+cannot be silently severed.
+
+**`reachable_parent_lt`** — In every reachable state, every recorded parent has
+a strictly smaller `TaskId` than its child. Because `nextId` only increases,
+this follows from `WellFormed.parent_lt` (field 15 of 16) and `reachable_wf`.
+
+**`parent_chain_terminates`** — Starting from any task `t`, walking the parent
+chain with `ancestor s t (t + 1)` always reaches a root (a task with
+`taskParent = none`) in at most `t + 1` steps. This is the acyclicity
+deliverable: supervision trees are proper trees.
+
+The two new `WellFormed` fields (15 = `WellFormed.parent_lt`, 16 = `WellFormed.parent_spawned`) are
+preserved by all 12 `RuntimeOp` cases; `preserves_wf_spawnChild` in
+`Lifecycle.lean` covers the new operation itself. `reachable_wf` now certifies
+all 16 fields.
+
 
 ## 10. The honesty ledger
 

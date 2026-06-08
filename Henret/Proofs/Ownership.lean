@@ -69,6 +69,28 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
       by_cases hu : u = s.nextId
       · subst hu; rw [h] at hts; cases hts
       · exact ⟨st, by simp [step, hts, upd, hu, h]⟩
+  | spawnChild pt pa =>
+    -- step result: if all guards pass, taskState updated at nextId only; else unchanged
+    have hstate : ∃ st', ((step s (.spawnChild pt pa)).1).taskState u = some st' := by
+      by_cases hrt : s.running = some pt
+      · cases hts2 : s.taskState pt with
+        | none => exact ⟨st, by simp [step, hrt, hts2, h]⟩
+        | some stpt =>
+          cases running_case : stpt with
+          | running =>
+            cases how : s.taskOwner pt with
+            | none => exact ⟨st, by simp_all [step, upd]⟩
+            | some _ =>
+              cases hfresh : s.taskState s.nextId with
+              | some _ => exact ⟨st, by simp_all [step, upd]⟩
+              | none =>
+                by_cases hu : u = s.nextId
+                · subst hu; rw [h] at hfresh; cases hfresh
+                · exact ⟨st, by simp_all [step, upd]⟩
+          | new | ready | yielded | sleeping | waiting | completed | cancelled =>
+            exact ⟨st, by simp_all [step, upd]⟩
+      · exact ⟨st, by simp [step, hrt, h]⟩
+    exact hstate
   | schedule =>
     cases hr : s.running with
     | some _ => exact ⟨st, by simp [step, hr, h]⟩
@@ -226,6 +248,24 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
       have hu : u ≠ s.nextId := fun he => by subst he; rw [h] at heq; cases heq
       simp [upd, hu, h]
     · exact h
+  | spawnChild pt pa =>
+    by_cases hrt : s.running = some pt
+    · cases hts2 : s.taskState pt with
+      | none => simp [step, hrt, hts2]; exact h
+      | some stpt =>
+          cases running_case : stpt with
+          | running =>
+            cases how : s.taskOwner pt with
+            | none => simp_all [step, upd]
+            | some _ =>
+              cases hfresh : s.taskState s.nextId with
+              | some _ => simp_all [step, upd]
+              | none =>
+                have hu : u ≠ s.nextId := fun he => by subst he; rw [h] at hfresh; cases hfresh
+                simp_all [step, upd]
+          | new | ready | yielded | sleeping | waiting | completed | cancelled =>
+            simp_all [step, upd]
+    · simp [step, hrt]; exact h
   | schedule =>
     cases hr : s.running with
     | some _ => simp [step, hr, h]
@@ -434,6 +474,19 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
     cases hts : s.taskState s.nextId with
     | none => simp [step, hts] at h
     | some _ => simp [step, hts]
+  | spawnChild t a =>
+    by_cases hrt : s.running = some t
+    · cases hts2 : s.taskState t with
+      | none => simp_all [step]
+      | some stpt => cases running_case : stpt with
+        | running => cases how : s.taskOwner t with
+          | none => simp_all [step]
+          | some _ => cases hfresh : s.taskState s.nextId with
+            | none => simp_all [step, upd]
+            | some _ => simp_all [step]
+        | new | ready | yielded | sleeping | waiting | completed | cancelled =>
+          simp_all [step]
+    · simp_all [step]
   | schedule =>
     cases hr : s.running with
     | some _ => simp [step, hr]

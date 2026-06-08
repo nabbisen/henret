@@ -38,6 +38,8 @@ ALLOWLIST = {
     "Henret.receive_blocked_parks":          (set(), STD),
     "Henret.reachable_waiters_exact":        (set(), STD),
     "Henret.reachable_waiter_actor_unique":  (set(), STD),
+    "Henret.reachable_parent_lt":              (set(), STD),
+    "Henret.parent_chain_terminates":           (set(), STD),
     # Pure native layer: still standard only.
     "Henret.Native.qRun_tracks":             (set(), STD),
     "Henret.Native.driveStackB_complete":    (set(), STD),

@@ -65,6 +65,29 @@ def driven : RuntimeState :=
 def drained : RuntimeState :=
   drain (run .init [.spawn 0, .spawn 0, .spawn 0, .spawn 0, .spawn 0])
 
+
+/-! ## Scenario 8 — spawnChild (RFC 032) -/
+
+/-- Root task spawns a child; verify parent chain terminates at none. -/
+def spawnChildScenario : RuntimeState :=
+  run .init [
+    .spawn 3,       -- task 0 queued (owned by actor 3)
+    .schedule,      -- task 0 running
+    .spawnChild 0 3,-- task 0 spawns child task 1 (owned by actor 3)
+    .complete 0]    -- task 0 completes
+
+/-- The spawned child has task 0 as parent. -/
+theorem spawnChild_parent_check :
+    spawnChildScenario.taskParent 1 = some 0 := by native_decide
+
+/-- The parent (task 0) was running (now completed after the last op). -/
+theorem spawnChild_parent_was_running :
+    spawnChildScenario.taskState 0 = some .completed := by native_decide
+
+/-- Task 1 is queued as .new (spawnChild enqueues it). -/
+theorem spawnChild_child_state :
+    spawnChildScenario.taskState 1 = some .new := by native_decide
+
 end Henret.Examples
 
 /-!

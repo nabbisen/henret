@@ -140,10 +140,19 @@ structure WellFormed (s : RuntimeState) : Prop where
   /-- Waiter lists are duplicate-free — needed for deterministic wake-one (RFC 031). -/
   waiters_nodup :
     ∀ a, (s.mailboxWaiters a).Nodup
+  /-- Parenthood is acyclic: every parent has a strictly smaller id than
+      its child. Follows from fresh-id monotonicity at `spawnChild` time;
+      makes cycle-freedom a corollary of `<`-well-foundedness (RFC 032). -/
+  parent_lt :
+    ∀ t p, s.taskParent t = some p → p < t
+  /-- A recorded parent is a real (spawned) task (RFC 032). -/
+  parent_spawned :
+    ∀ t p, s.taskParent t = some p → ∃ st, s.taskState p = some st
 
 /-- The initial state is well-formed. -/
 theorem wf_init : WellFormed RuntimeState.init := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> simp [RuntimeState.init]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    simp [RuntimeState.init]
 
 /-! ## Ownership uniqueness corollaries (RFC 004 acceptance) -/
 

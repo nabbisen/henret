@@ -28,6 +28,10 @@ structure RuntimeState where
   /-- Current logical time; advanced only by `tick`, monotonically
       (RFC 015). -/
   now           : Nat
+  /-- Parent map: `taskParent t = some p` means task `t` was created
+      by running task `p` via `spawnChild`. `none` means root or
+      unspawned. Written exactly once, at creation (RFC 032). -/
+  taskParent : TaskId → Option TaskId
   /-- Fresh task-id counter; ids below it may exist, ids at or above
       it are unused. -/
   nextId    : TaskId
@@ -43,6 +47,7 @@ def init : RuntimeState where
   timers         := []
   mailboxes      := fun _ => none
   mailboxWaiters := fun _ => []
+  taskParent     := fun _ => none
   now            := 0
   nextId         := 0
 
@@ -204,6 +209,29 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
           readyQ    := s.readyQ ++ woken
           timers    := Timer.remaining s.timers t
           now       := t }, .woke woken)
+    else (s, .invalid)
+  | .spawnChild t a =>
+    if s.running = some t then
+      match s.taskState t with
+      | some .running =>
+        match s.taskOwner t with
+        | some _ =>
+          let n := s.nextId
+          match s.taskState n with
+          | none =>
+            let mbs := match s.mailboxes a with
+              | some _ => s.mailboxes
+              | none   => upd s.mailboxes a (some Mailbox.empty)
+            ({ s with
+                taskState  := upd s.taskState n (some .new)
+                taskOwner  := upd s.taskOwner n (some a)
+                taskParent := upd s.taskParent n (some t)
+                readyQ     := s.readyQ ++ [n]
+                mailboxes  := mbs
+                nextId     := n + 1 }, .spawned n)
+          | some _ => (s, .invalid)
+        | none => (s, .invalid)
+      | _ => (s, .invalid)
     else (s, .invalid)
   | .wake t =>
     match s.taskState t with

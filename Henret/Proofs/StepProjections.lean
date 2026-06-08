@@ -105,4 +105,38 @@ variable (s : RuntimeState) (a : ActorId) (m : Message)
 
 end InjectProjections
 
+/-! ## spawnChild projections (RFC 032) -/
+section SpawnChildProjections
+variable (s : RuntimeState) (t : TaskId) (a : ActorId)
+
+/-- `spawnChild` does not touch any existing task's state. -/
+@[simp] theorem spawnChild_taskState_other {u : TaskId} (hu : u ≠ s.nextId) :
+    ((step s (.spawnChild t a)).1).taskState u = s.taskState u := by
+  simp only [step]; split <;> (try split) <;> (try split) <;> (try split) <;> simp [upd, hu]
+
+/-- `spawnChild` does not touch any existing task's owner. -/
+@[simp] theorem spawnChild_taskOwner_other {u : TaskId} (hu : u ≠ s.nextId) :
+    ((step s (.spawnChild t a)).1).taskOwner u = s.taskOwner u := by
+  simp only [step]; split <;> (try split) <;> (try split) <;> (try split) <;> simp [upd, hu]
+
+/-- `spawnChild` does not touch any existing task's parent. -/
+@[simp] theorem spawnChild_taskParent_other {u : TaskId} (hu : u ≠ s.nextId) :
+    ((step s (.spawnChild t a)).1).taskParent u = s.taskParent u := by
+  simp only [step]; split <;> (try split) <;> (try split) <;> (try split) <;> simp [upd, hu]
+
+/-- No operation other than `spawnChild` ever writes `taskParent`. -/
+@[simp] theorem step_taskParent_stable {u : TaskId} (s : RuntimeState) (op : RuntimeOp)
+    (hfresh : s.taskState s.nextId = none)
+    (h : ∀ t a, op ≠ .spawnChild t a) :
+    ((step s op).1).taskParent u = s.taskParent u := by
+  match op with
+  | .spawn _ | .schedule | .yield _ | .complete _ | .cancel _
+  | .send _ _ _ | .receive _ | .inject _ _ | .sleep _ _ | .tick _ | .wake _ =>
+      simp only [step]
+      split <;> (try split) <;> (try split) <;> (try split) <;>
+        (try split) <;> simp [upd, hfresh]
+  | .spawnChild t a => exact absurd rfl (h t a)
+
+end SpawnChildProjections
+
 end Henret

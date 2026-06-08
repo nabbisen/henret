@@ -5,6 +5,7 @@ import Henret.Proofs.Timers
 import Henret.Proofs.Ownership
 import Henret.Proofs.Invariants
 import Henret.Proofs.InvariantsPreservation
+import Henret.Proofs.Parenthood
 
 /-!
 # Henret.Proofs
@@ -14,4 +15,6 @@ actor-local receive discipline), timers and the logical clock,
 ownership, and the reachability invariant with its preservation
 theorem. Brings in
 `Henret.Model` transitively (RFC 025).
+Parenthood theorems (RFC 032): `reachable_parent_lt`,
+`parent_chain_terminates`.
 -/

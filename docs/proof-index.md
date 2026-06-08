@@ -25,7 +25,7 @@ Axiom audit: only `propext` and `Quot.sound` (Lean standard).
 - `wakeOne_preserves_of_ne_sleeping`, `wakeMany_preserves_of_ne_sleeping`,
   `wakeOne_other`, `wakeMany_preserves_other`, `wakeMany_wakes` — wake helper laws.
 - `step_preserves_terminal` — flagship: full case analysis over the
-  eleven-operation grammar.
+  twelve-operation grammar.
 - `step_preserves_completed`, `step_preserves_cancelled` — corollaries.
 - `run_preserves_terminal`, `run_preserves_completed`, `run_preserves_cancelled`.
 - `wake_exact`, `wake_sets_ready`, `wake_twice_invalid` — RFC 006 wake laws.
@@ -73,7 +73,7 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 
 - `wakeOne_isSome`, `wakeMany_isSome` — waking never un-spawns.
 - `step_preserves_spawned` — `some` states never return to `none`.
-- `spawn_sets_owner`, `step_preserves_owner`, `run_preserves_owner` —
+- `WellFormed.spawned_has_owner` (field), `reachable_spawned_has_owner` —
   ownership set at spawn, immutable forever.
 
 ## v0.2.0 — `Henret/Proofs/Invariants.lean`
@@ -81,7 +81,7 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 - `nodup_of_sublist`, `nodup_append_singleton`, `nodup_append`,
   `nodup_task_inj`, `mem_map_insertSorted`, `insertSorted_task_nodup` —
   core-only list/timer helpers.
-- `WellFormed` — the reachability invariant (fourteen fields as of RFC 031):
+- `WellFormed` — the reachability invariant (sixteen fields as of RFC 032):
   ready-queue soundness *and* completeness, running-slot consistency,
   timer discipline (uniqueness, sleep-coherence, sortedness), fresh-id
   discipline, ownership existence, owner-mailbox existence; wait-queue
@@ -93,7 +93,7 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 
 ## v0.2.0 — `Henret/Proofs/InvariantsPreservation.lean`
 
-- `step_preserves_wf` — all eleven operations preserve `WellFormed`.
+- `step_preserves_wf` — all twelve operations preserve `WellFormed`.
 - `run_preserves_wf`, `reachable_wf` — every reachable state is well-formed.
 
 ## v0.2.0 — additions to existing files
@@ -161,3 +161,17 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 - `WellFormed.waiting_queued` — every `.waiting` task appears in its owner's
   `mailboxWaiters`.
 - `WellFormed.waiters_nodup` — each `mailboxWaiters` list is duplicate-free.
+
+### RFC 032 — Actor-scoped spawn / supervision groundwork
+
+| Theorem | File | Notes |
+|---|---|---|
+| `spawnChild_sets_parent` | `Henret/Proofs/Parenthood.lean` | Child's `taskParent` = calling task |
+| `spawnChild_sets_owner` | `Henret/Proofs/Parenthood.lean` | Child's `taskOwner` = calling actor |
+| `spawnChild_queues_child` | `Henret/Proofs/Parenthood.lean` | Child appended to `readyQ` |
+| `spawnChild_not_running_invalid` | `Henret/Proofs/Parenthood.lean` | Guard: must be running |
+| `spawnChild_unowned_invalid` | `Henret/Proofs/Parenthood.lean` | Guard: must have owner |
+| `step_preserves_parent` | `Henret/Proofs/Parenthood.lean` | `taskParent` immutable post-creation |
+| `reachable_parent_lt` | `Henret/Proofs/Parenthood.lean` | Every parent has smaller id |
+| `parent_chain_terminates` | `Henret/Proofs/Parenthood.lean` | Chains terminate (acyclicity) |
+| `preserves_wf_spawnChild` | `Henret/Proofs/Preservation/Lifecycle.lean` | 16-field WF preservation |

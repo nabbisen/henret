@@ -49,6 +49,13 @@ inductive RuntimeOp where
   | tick (now : Nat) : RuntimeOp
   /-- Wake the sleeping task `t` directly. -/
   | wake (t : TaskId) : RuntimeOp
+  /-- The running task `t` creates a fresh child task owned by actor `a`
+      (creating the actor's mailbox if it does not exist) and queues it.
+      The child records `t` as its parent (`taskParent child = some t`).
+      Guards: `t` is the running task in `running` state with an owning
+      actor. The child's actor `a` is unrestricted (same-actor and
+      cross-actor spawning are both legal — RFC 032). -/
+  | spawnChild (t : TaskId) (a : ActorId) : RuntimeOp
 deriving Repr, DecidableEq
 
 end Henret

@@ -20,7 +20,7 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
           intro hm; rw [List.mem_map] at hm
           obtain ⟨e, he, hee⟩ := hm
           have h1 := h.timers_sleep e he; rw [hee, hts] at h1; cases h1
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · simp [step, hrt, hts]; exact h.readyQ_nodup
         · intro u hm
           simp [step, hrt, hts] at hm ⊢
@@ -72,6 +72,17 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
           · simp only [upd, if_neg hu] at hts'; exact h.waiting_queued u hts'
         · -- waiters_nodup: mailboxWaiters unchanged
           intro a; simp [step, hrt, hts]; exact h.waiters_nodup a
+        · -- parent_lt (RFC 032): taskParent not written by sleep
+          intro u p hp
+          exact h.parent_lt u p (by simp only [step, if_pos hrt, hts] at hp; exact hp)
+        · -- parent_spawned: sleep sets t → .sleeping; p still in some state
+          intro u p hp
+          have hpar : s.taskParent u = some p := by
+            simp only [step, if_pos hrt, hts] at hp; exact hp
+          obtain ⟨st, hst⟩ := h.parent_spawned u p hpar
+          by_cases hpt : p = t
+          · exact ⟨.sleeping, by simp only [step, if_pos hrt, hts, upd_self, hpt]⟩
+          · exact ⟨st, by simp only [step, if_pos hrt, hts, upd, if_neg hpt]; exact hst⟩
       | new | ready | yielded | sleeping | completed | cancelled | waiting =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
@@ -91,7 +102,7 @@ theorem preserves_wf_tick {s : RuntimeState} (h : WellFormed s) :
       intro a ha hm
       have h1 := h.readyQ_queued a ha
       rw [hwoken_sleep a hm] at h1; simp [Option.any, TaskState.isRunnable] at h1
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · simp only [step, if_pos hle]; rw [← hwdef]
       exact nodup_append h.readyQ_nodup hwoken_nodup hdisj
     · intro u hm
@@ -160,8 +171,18 @@ theorem preserves_wf_tick {s : RuntimeState} (h : WellFormed s) :
         rw [wakeMany_wakes hmw (hwoken_sleep u hmw)] at hts'; cases hts'
       rw [wakeMany_preserves_other hnot] at hts'
       exact h.waiting_queued u hts'
-    · -- waiters_nodup: mailboxWaiters unchanged
+    · -- waiters_nodup
       intro a; simp only [step, if_pos hle]; exact h.waiters_nodup a
+    · -- parent_lt (RFC 032): taskParent unchanged by tick
+      intro u p hp
+      exact h.parent_lt u p (by simp only [step, if_pos hle] at hp; exact hp)
+    · -- parent_spawned: tick may wake p → .ready; still some _
+      intro u p hp
+      simp only [step, if_pos hle] at hp
+      obtain ⟨st, hst⟩ := h.parent_spawned u p hp
+      by_cases hpw : p ∈ woken
+      · exact ⟨.ready, by simp only [step, if_pos hle]; rw [← hwdef]; exact wakeMany_wakes hpw (hwoken_sleep p hpw)⟩
+      · exact ⟨st, by simp only [step, if_pos hle]; rw [← hwdef]; rw [wakeMany_preserves_other hpw]; exact hst⟩
   · simpa [step, hle] using h
 
 theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
@@ -174,7 +195,7 @@ theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
       have hnq : t ∉ s.readyQ := fun hm => by
         have h1 := h.readyQ_queued t hm; rw [hts] at h1
         simp [Option.any, TaskState.isRunnable] at h1
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp [step, hts]; exact nodup_append_singleton h.readyQ_nodup hnq
       · intro u hm
         simp [step, hts] at hm ⊢; rcases hm with hm | rfl
@@ -224,8 +245,18 @@ theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
         by_cases hu : u = t
         · simp only [hu, upd_self] at hts'; cases hts'
         · simp only [upd, if_neg hu] at hts'; exact h.waiting_queued u hts'
-      · -- waiters_nodup: mailboxWaiters unchanged
+      · -- waiters_nodup
         intro a; simp [step, hts]; exact h.waiters_nodup a
+      · -- parent_lt (RFC 032)
+        intro u p hp
+        exact h.parent_lt u p (by simp only [step, hts] at hp; exact hp)
+      · -- parent_spawned: wake sets t → .ready; still some _
+        intro u p hp
+        have hpar : s.taskParent u = some p := by simp only [step, hts] at hp; exact hp
+        obtain ⟨st, hst⟩ := h.parent_spawned u p hpar
+        by_cases hpt : p = t
+        · exact ⟨.ready, by simp [step, hts, upd_self, hpt]⟩
+        · exact ⟨st, by simp [step, hts, upd, if_neg hpt]; exact hst⟩
     | new | ready | running | yielded | completed | cancelled | waiting =>
       simpa [step, hts] using h
 

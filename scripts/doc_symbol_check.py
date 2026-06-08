@@ -57,6 +57,13 @@ IGNORE = {
     "mailboxWaiters", "taskState", "readyQ", "mailboxes",
     # version/file tokens that appear in live docs
     "lake_build", "lake_exe", "lake_env",
+    # RuntimeState/RuntimeOp field and constructor names used in prose
+    "send", "receive", "inject", "taskOwner", "taskState", "taskParent",
+    "now", "running", "nextId", "timers",
+    # WellFormed fields referenced bare (the dotted WellFormed.X forms are checked)
+    "parent_lt", "parent_spawned",
+    # Historical name mentioned only in a rename note
+    "drivePopB",
 }
 
 NAME_RE = re.compile(r"`([A-Za-z][A-Za-z0-9_.']*)`")
