@@ -1,5 +1,50 @@
 # Changelog
 
+## v0.8.0 — Lean-Runtime Bridge (RFC 035)
+
+Formally connects the henret model to the lean-runtime work-stealing scheduler.
+Introduces the `Henret.Bridge` module: a `QOp` grammar translation, a
+`BridgeState` relation, and per-operation preservation theorems covering spawn,
+yield, wake, complete, receive, and sleep.
+
+### New (`Henret/Bridge/Grammar.lean`)
+- `QOp` — mirror of lean-runtime's queue-operation grammar (Push, Pop, Steal,
+  Wake, Inject) as a henret-internal inductive type.
+- `toQOps : RuntimeState → RuntimeOp → List QOp` — validity-aware translation;
+  returns `[]` when `step` would return `.invalid` (guards are checked).
+- Lemmas: `toQOps_spawn_valid/invalid`, `toQOps_yield_valid/invalid`,
+  `toQOps_wake_valid/invalid`, `toQOps_complete/receive/sleep_nil`,
+  `toQOps_schedule_nonempty`, `toQOps_send/inject_*_waiter`.
+- `wake` emits `Push 0 t` (not `Wake t`), correctly reflecting that a waking
+  sleeping task is appended to worker 0's ready queue.
+
+### New (`Henret/Bridge/State.lean`)
+- `WorkerQueues := WorkerIdx → List TaskId` — per-worker queue model.
+- `BridgeState : RuntimeState → WorkerQueues → Prop` — `queue_eq` (worker 0
+  equals henret's `readyQ`) + `other_empty` (single-worker model).
+- `applyQOp`, `applyQOps` — queue-model application of QOp sequences.
+- Structural constructors: `bridgeState_init`, `bridgeState_push0`,
+  `bridgeState_pop0`, `bridgeState_readyQ_unchanged`.
+
+### New (`Henret/Bridge/Preservation.lean`)
+- `bridge_stable` — BridgeState is preserved by readyQ-stable steps.
+- `reachable_bridge` — every reachable state has a `BridgeState` witness.
+- `bridge_spawn`, `bridge_yield`, `bridge_wake` — Push-effect operations.
+- `bridge_complete`, `bridge_receive`, `bridge_sleep` — readyQ-stable operations.
+
+### Documented gaps (RFC 036 scope)
+- `cancel` — filters `readyQ`; needs a `Filter` QOp.
+- `send`/`inject` with waiter — append to readyQ on wake; needs `Push`.
+- `tick` — wakes expired timers; needs `Push` per expiry.
+- `schedule` — `Pop 0` case; building block `bridgeState_pop0` exists.
+
+### Ecosystem
+- `lean-runtime-workspace` confirmed buildable (all 37 targets) and all
+  `runtimeTests` pass in the current sandbox environment.
+- RFC 035 document moved from `rfcs/proposed/` to `rfcs/done/`.
+
+---
+
 ## v0.7.0 — Message envelope and occurrence identity (RFC 033)
 
 Delivers globally unique delivery identity: every envelope carried by `send`

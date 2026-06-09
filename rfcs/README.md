@@ -40,6 +40,7 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 | [031](done/031-blocked-waiting-state.md) | Blocked Waiting State and Mailbox Wait Queue (v0.5.0/v0.5.1) |
 | [032](done/032-actor-scoped-spawn-supervision-groundwork.md) | Actor-Scoped Spawn and Supervision Groundwork (v0.6.0) |
 | [033](done/033-message-envelope-occurrence-identity.md) | Message Envelope and Occurrence Identity (v0.7.0) |
+| [035](done/035-lean-runtime-bridge.md) | Lean-Runtime Bridge (v0.8.0) |
 
 ## Proposed
 
@@ -48,7 +49,7 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 
 
 
-(All earlier RFCs shipped: 001–012 in v0.1.0; 013–018 in v0.2.0; 019–023 in v0.2.1; 024–025 in v0.3.0; 026–027 in v0.3.1; 028–029 in v0.4.0; 030 in v0.4.1; 034 in v0.5.0; 031 core in v0.5.0, acceptance criteria in v0.5.1; 033 in v0.7.0.)
+(All earlier RFCs shipped: 001–012 in v0.1.0; 013–018 in v0.2.0; 019–023 in v0.2.1; 024–025 in v0.3.0; 026–027 in v0.3.1; 028–029 in v0.4.0; 030 in v0.4.1; 034 in v0.5.0; 031 core in v0.5.0, acceptance criteria in v0.5.1; 033 in v0.7.0; 035 in v0.8.0.)
 
 ## Archive
 

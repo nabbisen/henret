@@ -1,6 +1,7 @@
 import Henret.Model
 import Henret.Proofs
 import Henret.Refinement
+import Henret.Bridge
 
 /-!
 # Henret

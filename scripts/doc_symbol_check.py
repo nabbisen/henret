@@ -38,6 +38,17 @@ IGNORE = {
     # RFC 033 WellFormed field names (not standalone theorems)
     "occ_fresh", "occ_nodup", "occ_disjoint",
     "nextMsgId", "occurrence",
+    # RFC 035 Bridge sub-namespace (Henret.Bridge.*) — not in open Henret scope
+    "bridgeState_init", "bridgeState_push0", "bridgeState_pop0",
+    "bridgeState_readyQ_unchanged", "applyQOp", "applyQOps",
+    "WorkerQueues", "BridgeState", "QOp", "toQOps",
+    "bridge_spawn", "bridge_yield", "bridge_wake", "bridge_stable",
+    "bridge_complete", "bridge_receive", "bridge_sleep", "reachable_bridge",
+    "toQOps_spawn_valid", "toQOps_spawn_invalid",
+    "toQOps_yield_valid", "toQOps_yield_invalid",
+    "toQOps_wake_valid", "toQOps_wake_invalid",
+    "toQOps_complete_nil", "toQOps_receive_nil", "toQOps_sleep_nil",
+    "toQOps_schedule_nonempty", "WorkerIdx", "pushWorker0",
     # operation syntax and grammar tokens
     "send t b m", "receive t", "inject a m", "spawn a", "yield t",
     "complete t", "cancel t", "sleep t deadline", "tick now", "wake t",
@@ -67,6 +78,8 @@ IGNORE = {
     "parent_lt", "parent_spawned",
     # Historical name mentioned only in a rename note
     "drivePopB",
+    # RFC 035 BridgeState field names (not standalone theorems)
+    "queue_eq", "other_empty",
 }
 
 NAME_RE = re.compile(r"`([A-Za-z][A-Za-z0-9_.']*)`")

@@ -213,3 +213,37 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 - `Henret/Proofs/Preservation/Messaging.lean` — 6 refine blocks × 3 occ bullets.
 
 **`Henret/Refinement/Contract.lean`** and **`ReferenceBackend.lean`** — updated to `Envelope` (was `Message`).
+
+### RFC 035 — Lean-Runtime Bridge (cross-project)
+
+**`Henret/Bridge/Grammar.lean`** — QOp grammar and translation:
+- `QOp` — mirror of lean-runtime's queue-operation grammar (Push, Pop, Steal, Wake, Inject).
+- `toQOps : RuntimeState → RuntimeOp → List QOp` — validity-aware translation:
+  `toQOps s op = []` whenever `step s op` would return `.invalid`.
+- Direct-effect lemmas: `toQOps_spawn_valid`, `toQOps_spawn_invalid`,
+  `toQOps_yield_valid`, `toQOps_yield_invalid`, `toQOps_wake_valid`,
+  `toQOps_wake_invalid`, `toQOps_complete_nil`, `toQOps_receive_nil`,
+  `toQOps_sleep_nil`, `toQOps_schedule_nonempty`.
+
+**`Henret/Bridge/State.lean`** — BridgeState relation:
+- `WorkerQueues := WorkerIdx → List TaskId` — per-worker task queues.
+- `BridgeState : RuntimeState → WorkerQueues → Prop` — `queue_eq` (worker 0 = henret
+  readyQ) + `other_empty` (single-worker model).
+- `bridgeState_init`, `bridgeState_push0`, `bridgeState_pop0`,
+  `bridgeState_readyQ_unchanged` — structural constructors.
+- `applyQOp`, `applyQOps` — queue-model QOp application.
+
+**`Henret/Bridge/Preservation.lean`** — bridge preservation:
+- `bridge_stable` — BridgeState is preserved by readyQ-stable steps.
+- `reachable_bridge` — every reachable state has a `BridgeState` witness.
+- Per-op clean-case theorems: `bridge_spawn`, `bridge_yield`, `bridge_wake`,
+  `bridge_complete`, `bridge_receive`, `bridge_sleep`.
+
+**Semantic note on `toQOps`**: `wake` emits `Push 0 t` (not `Wake`), accurately
+reflecting that a waking sleeping task is appended to worker 0's ready queue.
+
+**Documented gaps (RFC 036)**:
+- `cancel` — readyQ filter; needs a `Filter` QOp.
+- `send`/`inject` with waiter — wake-on-send appends to readyQ; needs `Push`.
+- `tick` — woken tasks; needs `Push` per timer expiry.
+- `schedule` — `Pop 0` case; building block `bridgeState_pop0` exists in State.lean.

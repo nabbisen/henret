@@ -143,3 +143,17 @@ zero-assumption core.
 | 69 | `inject` stamps its envelope with `source = none` (environment delivery) | PROVEN | `inject_stamps_none` |
 | 70 | All 19 `WellFormed` fields hold in every reachable state (extended from 16) | PROVEN | `reachable_wf` (extended) |
 | 71 | `MailboxBackend` contract updated: `enqueue/dequeue` now operate on `Envelope` | PROVEN | `Refinement.listBackend`, `Refinement.mailboxBackend` |
+
+## v0.8.0 claims (Lean-runtime bridge, RFC 035)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 72 | `QOp` grammar mirrors lean-runtime's queue-operation grammar | KERNEL | `Henret.Bridge.Grammar` (definition) |
+| 73 | `toQOps` is validity-aware: returns `[]` when `step` would return `.invalid` | PROVEN | `toQOps_spawn_invalid`, `toQOps_yield_invalid`, `toQOps_wake_invalid` |
+| 74 | Every reachable henret state has a `BridgeState` witness | PROVEN | `reachable_bridge` |
+| 75 | `bridge_stable`: BridgeState preserved by readyQ-stable steps | PROVEN | `Henret.Bridge.bridge_stable` |
+| 76 | `bridge_spawn`: spawn step preserves BridgeState | PROVEN | `Henret.Bridge.bridge_spawn` |
+| 77 | `bridge_yield`: yield step preserves BridgeState | PROVEN | `Henret.Bridge.bridge_yield` |
+| 78 | `bridge_wake`: wake step preserves BridgeState (Push 0 t for sleeping task) | PROVEN | `Henret.Bridge.bridge_wake` |
+| 79 | `bridge_complete`, `bridge_receive`, `bridge_sleep`: readyQ-stable ops preserve BridgeState | PROVEN | `Henret.Bridge.bridge_complete/receive/sleep` |
+| 80 | cancel/send-with-waiter/inject-with-waiter/tick bridge gaps | DOCUMENTED | RFC 036 scope; building blocks in `Bridge.State` |
