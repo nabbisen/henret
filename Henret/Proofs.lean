@@ -7,6 +7,7 @@ import Henret.Proofs.Invariants
 import Henret.Proofs.InvariantsPreservation
 import Henret.Proofs.Parenthood
 import Henret.Proofs.Occurrence
+import Henret.Proofs.Supervision
 
 /-!
 # Henret.Proofs

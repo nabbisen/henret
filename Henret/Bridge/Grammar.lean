@@ -41,6 +41,7 @@ import Henret.Model
   | `complete t`   | `[]`                     | `[]`               |
   | `receive t`    | `[]`                     | `[]`               |
   | `sleep t d`    | `[]`                     | `[]`               |
+  | `cancelTree r` | `[Filter 0 t₁, ..., Filter 0 tₙ]` (descendants) | `[]` (no descendants) |
 
   Guard compatibility: `toQOps s op = []` whenever `(step s op).2 = .invalid`.
 -/
@@ -135,6 +136,13 @@ def toQOps (s : RuntimeState) (op : RuntimeOp) : List QOp :=
   | .receive _ => []
   | .sleep _ _ => []
   | .complete _ => []
+  | .cancelTree root =>
+      -- Emit one Filter 0 t for each task in the cancellation set.
+      -- The cancellation set is computed from s: spawned tasks whose parent
+      -- chain reaches root. applyQOps of these Filters is equivalent to
+      -- filtering readyQ by (· ∉ descendantsOf s root), which matches
+      -- applyCancelTree's readyQ effect. See bridge_cancelTree.
+      (descendantsOf s root).map (fun t => .Filter 0 t)
   | .tick t =>
       -- Use argument t, not s.now (architect review §4.3)
       if s.now ≤ t then
@@ -254,6 +262,10 @@ theorem toQOps_receive_nil (s : RuntimeState) (t : TaskId) :
 
 theorem toQOps_sleep_nil (s : RuntimeState) (t : TaskId) (d : Nat) :
     toQOps s (.sleep t d) = [] := rfl
+
+theorem toQOps_cancelTree (s : RuntimeState) (root : TaskId) :
+    toQOps s (.cancelTree root) =
+    (descendantsOf s root).map (fun t => .Filter 0 t) := rfl
 
 theorem toQOps_tick_invalid (s : RuntimeState) (t : Nat) (h : ¬(s.now ≤ t)) :
     toQOps s (.tick t) = [] := by simp [toQOps, h]

@@ -71,6 +71,47 @@ def wakeMany (ts : TaskMap) : List TaskId → TaskMap
   | []      => ts
   | t :: r  => wakeMany (wakeOne ts t) r
 
+/-! ## Cascade cancel helpers (RFC 039) -/
+
+/-- Check whether task `t` is `root` or has `root` as an ancestor by following
+    the `taskParent` chain. Well-founded by strict decrease: the guard
+    `hp : p < t` ensures each recursive step uses a strictly smaller id.
+    For states where `taskParent` is not strictly decreasing (invalid states),
+    returns `false` conservatively. -/
+def isInSubtreeOf (s : RuntimeState) (root : TaskId) (t : TaskId) : Bool :=
+  if t = root then true
+  else match s.taskParent t with
+  | none   => false
+  | some p => if hp : p < t then isInSubtreeOf s root p else false
+termination_by t
+decreasing_by exact hp
+
+/-- The set of tasks to cancel: tasks in `0..nextId-1` that are spawned and
+    whose parent chain reaches `root` (including `root` itself). -/
+def descendantsOf (s : RuntimeState) (root : TaskId) : List TaskId :=
+  (List.range s.nextId).filter (fun t =>
+    s.taskState t != none && isInSubtreeOf s root t)
+
+/-- Apply one `cancelTree` step to the `RuntimeState`. Each component is
+    defined directly in terms of the original state and the cancellation set,
+    avoiding foldl for easier formal reasoning. -/
+def applyCancelTree (s : RuntimeState) (toCancel : List TaskId) : RuntimeState :=
+  { s with
+    -- Cancelled: if t ∈ toCancel and non-terminal, set to .cancelled.
+    -- If t ∈ toCancel but already terminal, leave unchanged (idempotent).
+    -- If t ∉ toCancel, leave unchanged.
+    taskState :=
+      fun t =>
+        if t ∈ toCancel then
+          match s.taskState t with
+          | none    => none
+          | some st => if st.isTerminal then some st else some .cancelled
+        else s.taskState t
+    readyQ         := s.readyQ.filter (· ∉ toCancel)
+    running        := if toCancel.any (fun t => s.running = some t) then none else s.running
+    timers         := s.timers.filter (fun e => e.task ∉ toCancel)
+    mailboxWaiters := fun a => (s.mailboxWaiters a).filter (· ∉ toCancel) }
+
 /-- One transition of the model. Total and executable. -/
 def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
   | .spawn a =>
@@ -252,6 +293,11 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
           readyQ    := s.readyQ ++ [t]
           timers    := s.timers.filter (fun e => e.task ≠ t) }, .ok)
     | _ => (s, .invalid)
+  | .cancelTree root =>
+    -- Cancel root and all descendants, regardless of root's spawn status.
+    -- Always returns .ok (RFC 039: no-op if nothing is spawned).
+    let toCancel := descendantsOf s root
+    (applyCancelTree s toCancel, .ok)
 
 /-- Run a list of operations, ignoring results (RFC 005). Invalid
 operations are no-ops by construction of `step`. -/

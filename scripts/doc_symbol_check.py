@@ -38,6 +38,8 @@ IGNORE = {
     # RFC 033 WellFormed field names (not standalone theorems)
     "occ_fresh", "occ_nodup", "occ_disjoint",
     "nextMsgId", "occurrence",
+    # RFC 038 WellFormed field names (not standalone theorems; use WellFormed.X form)
+    "owner_spawned", "parent_child_spawned",
     # RFC 035/036 Bridge sub-namespace types/internals — not standalone theorems
     "bridgeState_init", "bridgeState_push0", "bridgeState_pop0", "bridgeState_filter0",
     "bridgeState_readyQ_unchanged", "applyQOp", "applyQOps", "applyQOps_append",

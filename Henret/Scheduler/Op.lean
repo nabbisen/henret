@@ -54,6 +54,14 @@ inductive RuntimeOp where
       actor. The child's actor `a` is unrestricted (same-actor and
       cross-actor spawning are both legal — RFC 032). -/
   | spawnChild (t : TaskId) (a : ActorId) : RuntimeOp
+  /-- Cancel the task `root` and every descendant (tasks whose parent chain
+      reaches `root`). All affected tasks move to `.cancelled`; they are
+      removed from `readyQ`, `timers`, and `mailboxWaiters`. The `running`
+      slot is cleared if it holds a task in the cancellation set.
+      Mailbox contents and `taskOwner`/`taskParent` metadata are retained
+      for auditability. Always succeeds (returns `.ok`) regardless of
+      whether `root` is spawned. (RFC 039) -/
+  | cancelTree (root : TaskId) : RuntimeOp
 deriving Repr, DecidableEq
 
 end Henret

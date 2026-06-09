@@ -135,6 +135,7 @@ variable (s : RuntimeState) (t : TaskId) (a : ActorId)
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>
         (try split) <;> simp [upd, hfresh]
+  | .cancelTree _ => rfl
   | .spawnChild t a => exact absurd rfl (h t a)
 
 end SpawnChildProjections

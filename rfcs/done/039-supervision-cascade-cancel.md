@@ -1,6 +1,6 @@
 # RFC 039 — Supervision Semantics: Cascade Cancel
 
-**Status.** Proposed  
+**Status.** Implemented (v0.10.0)  
 **Target version.** v0.10.0  
 **Priority.** Medium  
 **Track.** Actor/task supervision semantics  

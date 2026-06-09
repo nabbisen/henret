@@ -2,6 +2,8 @@ import Henret.Proofs.Preservation.Lifecycle
 import Henret.Proofs.Ownership
 import Henret.Proofs.Preservation.Messaging
 import Henret.Proofs.Preservation.Time
+import Henret.Proofs.Supervision
+import Henret.Proofs.Preservation.Time
 
 namespace Henret
 
@@ -27,6 +29,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
   | tick t     => exact preserves_wf_tick h
   | wake t     => exact preserves_wf_wake h
   | spawnChild t a => exact preserves_wf_spawnChild h a
+  | cancelTree root => exact preserves_wf_cancelTree h root
 
 /-- Whole-program invariant preservation. -/
 theorem run_preserves_wf {s : RuntimeState} (h : WellFormed s) :

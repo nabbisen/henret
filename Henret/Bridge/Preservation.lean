@@ -64,7 +64,42 @@ private theorem applyQOps_pushes0 (wqs : WorkerQueues) (ts : List TaskId) :
     · simp [hw, List.append_assoc]
     · simp [hw]
 
-/-! ## Per-op readyQ lemmas (step projection helpers) -/
+-- Two focused lemmas for Filter-chain reasoning, used by bridge_cancelTree.
+-- Proving the full function equality is avoided; proving the two field
+-- obligations (at0, other) directly is simpler and sufficient.
+
+/-- Applying a list of Filter ops at worker 0 = filtering worker 0 by (· ∉ ts). -/
+private theorem applyQOps_filters0_at0 (wqs : WorkerQueues) (ts : List TaskId) :
+    (applyQOps wqs (ts.map (.Filter 0 ·))) 0 = (wqs 0).filter (· ∉ ts) := by
+  induction ts generalizing wqs with
+  | nil =>
+    simp only [List.map, applyQOps]
+    -- (wqs 0).filter (fun x => decide (x ∉ [])) = wqs 0
+    induction (wqs 0) with
+    | nil => simp
+    | cons a l ih =>
+      simp only [List.filter_cons, List.mem_nil_iff, not_false_eq_true,
+                 decide_eq_true_eq, ite_true]
+      exact congrArg (a :: ·) ih
+  | cons t rest ih =>
+    simp only [List.map, applyQOps, applyQOp, ite_true]
+    rw [ih (fun w' => if w' = 0 then (wqs 0).filter (· ≠ t) else wqs w')]
+    simp only [ite_true, List.filter_filter]
+    congr 1; funext x
+    have h : (x ∉ rest ∧ x ≠ t) ↔ (x ∉ t :: rest) := by
+      simp [List.mem_cons, not_or, and_comm]
+    rw [← Bool.decide_and]
+    exact decide_eq_decide.mpr h
+
+/-- Applying Filter ops leaves non-zero workers unchanged. -/
+private theorem applyQOps_filters0_other (wqs : WorkerQueues) (ts : List TaskId)
+    {w : WorkerIdx} (hw : w ≠ 0) :
+    (applyQOps wqs (ts.map (.Filter 0 ·))) w = wqs w := by
+  induction ts generalizing wqs with
+  | nil => simp [applyQOps]
+  | cons t rest ih =>
+    simp only [List.map, applyQOps, applyQOp, if_neg hw]
+    exact (ih (fun w' => if w' = 0 then (wqs 0).filter (· ≠ t) else wqs w')).trans (by simp [hw])
 
 -- readyQ is invariant under complete
 private theorem complete_rq (s : RuntimeState) (t : TaskId) :
@@ -421,6 +456,22 @@ theorem bridge_tick (s : RuntimeState) (t : Nat) (wqs : WorkerQueues)
 
 /-! ## Unified single-step bridge theorem -/
 
+/-- **Bridge for cancelTree** (RFC 039). Emits Filter ops for each cancelled task;
+    their combined effect matches `applyCancelTree`'s `readyQ` filter. -/
+theorem bridge_cancelTree (s : RuntimeState) (root : TaskId) (wqs : WorkerQueues)
+    (hbs : BridgeState s wqs) :
+    BridgeState (step s (.cancelTree root)).1
+                (applyQOps wqs (toQOps s (.cancelTree root))) := by
+  rw [toQOps_cancelTree]
+  have hrq : (step s (.cancelTree root)).1.readyQ =
+             s.readyQ.filter (· ∉ descendantsOf s root) := by
+    simp [step, applyCancelTree]
+  exact { queue_eq    := by
+            rw [hrq, hbs.queue_eq, ← applyQOps_filters0_at0]
+          other_empty := fun w hw => by
+            rw [applyQOps_filters0_other _ _ hw]
+            exact hbs.other_empty w hw }
+
 /-- **`bridge_step_single_worker`** — For any `RuntimeOp`, if `BridgeState` holds
     before the step, it holds after, with the translated queue effects applied.
     This is the central single-worker bridge theorem (RFC 036). -/
@@ -440,6 +491,7 @@ theorem bridge_step_single_worker (s : RuntimeState) (op : RuntimeOp) (wqs : Wor
   | .send t b m      => exact bridge_send s t b m wqs hbs
   | .inject a m      => exact bridge_inject s a m wqs hbs
   | .tick t          => exact bridge_tick s t wqs hbs
+  | .cancelTree root => exact bridge_cancelTree s root wqs hbs
 
 /-! ## applyQOps append lemma -/
 

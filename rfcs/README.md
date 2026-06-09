@@ -43,13 +43,13 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 | [035](done/035-lean-runtime-bridge.md) | Single-Worker Lean-Runtime Bridge Skeleton | v0.8.0 |
 | [036](done/036-single-worker-bridge-completion.md) | Bridge Claim Repair and Single-Worker Bridge Completion | v0.9.0 |
 | [037](done/037-v081-public-claim-repair.md) | Public Claim Repair (v0.9.0) | v0.9.0 |
+| [038](done/038-parent-owner-exactness.md) | Parent and Owner Exactness Invariants | v0.9.1 |
+| [039](done/039-supervision-cascade-cancel.md) | Supervision Semantics: Cascade Cancel | v0.10.0 |
 
 ## Proposed
 
 | RFC | Title | Target | Priority |
 |---|---|---|---|
-| [038](proposed/038-parent-owner-exactness.md) | Parent and Owner Exactness Invariants | v0.9.1 | Medium-high |
-| [039](proposed/039-supervision-cascade-cancel.md) | Supervision Semantics: Cascade Cancel | v0.10.0 | Medium |
 | [040](proposed/040-receive-timeout-multi-wait.md) | Receive Timeout and Multi-Wait Semantics | v0.11.0 | Medium |
 | [041](proposed/041-selective-receive.md) | Selective Receive | v0.11.x | Medium-low |
 | [042](proposed/042-preservation-proof-automation.md) | Preservation Proof Automation and Maintainability | v0.10.x | Ongoing |
@@ -100,4 +100,4 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 *Shipped: 001–012 in v0.1.0; 013–018 in v0.2.0; 019–023 in v0.2.1; 024–025 in v0.3.0;
 026–027 in v0.3.1; 028–029 in v0.4.0; 030 in v0.4.1; 034 in v0.5.0; 031 core in v0.5.0,
 acceptance criteria in v0.5.1; 033 in v0.7.0; 035 skeleton in v0.8.0;
-036 + 037 in v0.9.0.*
+036 + 037 in v0.9.0; 038 in v0.9.1; 039 in v0.10.0.*

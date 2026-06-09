@@ -131,6 +131,24 @@ def main : IO Unit := do
   check "bridge other workers empty"
     (finalQueues9 1 == [] && finalQueues9 2 == [])
 
+
+  IO.println "scenario 10: cascade cancel (RFC 039)"
+  -- Spawn root under actor 0, schedule it, spawn a child, spawn an unrelated
+  -- task under actor 1, then cancel the subtree rooted at task 0.
+  let s_a := run RuntimeState.init [.spawn 0]        -- task 0 spawned, actor 0
+  let s_b := run s_a [.schedule]                     -- task 0 is now running
+  let s_c := run s_b [.spawnChild 0 0]               -- task 1: child of task 0, actor 0
+  let s_d := run s_c [.spawn 1]                      -- task 2: unrelated, actor 1
+  let s_e := run s_d [.cancelTree 0]                 -- cancel subtree rooted at 0
+  check "cancelTree: root (task 0) is cancelled"
+    (s_e.taskState 0 == some .cancelled)
+  check "cancelTree: child (task 1) is cancelled"
+    (s_e.taskState 1 == some .cancelled)
+  check "cancelTree: unrelated task (task 2) unchanged (.new)"
+    (s_e.taskState 2 == some .new)
+  check "cancelTree: readyQ has no cancelled tasks"
+    (s_e.readyQ.all (fun t => !(s_e.taskState t == some .cancelled)))
+
   IO.println "all demo stages passed"
 
 /-!

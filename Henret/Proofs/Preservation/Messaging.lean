@@ -1,5 +1,6 @@
 import Henret.Proofs.Invariants
 import Henret.Proofs.Messaging
+import Henret.Proofs.Ownership
 
 namespace Henret
 
@@ -50,7 +51,7 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
               refine ⟨h.readyQ_nodup, fun u hm => h.readyQ_queued u hm, h.running_runs,
                 h.timers_nodup, h.timers_sleep, h.fresh_none, h.timers_sorted,
                 h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
-                h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_⟩
+                h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
               · intro u cc hown
                 obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                 by_cases hcc : cc = b
@@ -100,12 +101,18 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                   · intro heq; exact Nat.lt_irrefl _ (heq.symm ▸ h.occ_fresh ac mba ea hmba hea)
                 · simp only [upd, if_neg hac] at hmba; simp only [upd, if_neg hbc] at hmbb
                   exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
+              · -- owner_spawned (RFC 038): taskOwner unchanged; taskState = s.taskState
+                intro u a' how'
+                exact h.owner_spawned u a' how'
+              · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState = s.taskState
+                intro u p hp
+                exact h.parent_child_spawned u p hp
             | cons w ws =>
               have hwt  : s.taskState w = some .waiting := h.waiters_waiting b w (hw ▸ List.mem_cons_self w ws)
               have hwq  : w ∉ s.readyQ := waiting_not_in_readyQ h hwt
               have hwne : w ≠ t := waiter_ne_running h hwt hrt
               -- The step wakes w to .ready and bumps nextMsgId
-              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
               · -- readyQ_nodup
                 simp [step, hrt, hts, how, hmb, hw]
                 exact nodup_append_singleton h.readyQ_nodup hwq
@@ -239,6 +246,16 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                 · rw [send_preserves_other hac m] at hmba
                   rw [send_preserves_other hbc m] at hmbb
                   exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
+              · -- owner_spawned (RFC 038): taskOwner unchanged by send
+                intro u a' how'
+                obtain ⟨st, hst⟩ := h.owner_spawned u a'
+                  (by simpa [step, hrt, hts, how, hmb, hw] using how')
+                exact step_preserves_spawned hst _
+              · -- parent_child_spawned (RFC 038): taskParent unchanged by send
+                intro u p hp
+                obtain ⟨st, hst⟩ := h.parent_child_spawned u p
+                  (by simpa [step, hrt, hts, how, hmb, hw] using hp)
+                exact step_preserves_spawned hst _
       | new | ready | yielded | sleeping | completed | cancelled | waiting =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
@@ -270,7 +287,7 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
               refine ⟨h.readyQ_nodup, fun u hm => h.readyQ_queued u hm, h.running_runs,
                 h.timers_nodup, h.timers_sleep, h.fresh_none, h.timers_sorted,
                 h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
-                h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_⟩
+                h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
               · intro u cc hown
                 obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                 by_cases hcc : cc = a
@@ -314,6 +331,12 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
                     ea hea eb (hcons ▸ List.mem_cons_of_mem _ heb)
                 · simp only [upd, if_neg hac] at hmba; simp only [upd, if_neg hbc] at hmbb
                   exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
+              · -- owner_spawned (RFC 038): taskOwner unchanged; taskState = s.taskState
+                intro u a' how'
+                exact h.owner_spawned u a' how'
+              · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState = s.taskState
+                intro u p hp
+                exact h.parent_child_spawned u p hp
             | none =>
               have ht_not_waiter : t ∉ s.mailboxWaiters a := fun hmem =>
                 absurd (h.waiters_waiting a t hmem) (by simp [hts])
@@ -323,7 +346,7 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
                                                         else s.mailboxWaiters ac } := by
                 simp [step, hrt, hts, how, hmb, hd]
               rw [hstep_p]
-              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
               · exact h.readyQ_nodup
               · intro u hm
                 by_cases hut : u = t
@@ -406,6 +429,18 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
               · -- occ_disjoint: mailboxes unchanged
                 intro a' b' mba mbb hab hmba hmbb ea hea eb heb
                 exact h.occ_disjoint a' b' mba mbb hab hmba hmbb ea hea eb heb
+              · -- owner_spawned (RFC 038): taskOwner unchanged; taskState changes at t
+                intro u a' how'
+                obtain ⟨st, hst⟩ := h.owner_spawned u a' how'
+                by_cases hut : u = t
+                · subst hut; exact ⟨.waiting, by simp [upd_self]⟩
+                · exact ⟨st, by simp [upd_ne _ _ hut]; exact hst⟩
+              · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState changes at t
+                intro u p hp
+                obtain ⟨st, hst⟩ := h.parent_child_spawned u p hp
+                by_cases hut : u = t
+                · subst hut; exact ⟨.waiting, by simp [upd_self]⟩
+                · exact ⟨st, by simp [upd_ne _ _ hut]; exact hst⟩
       | new | ready | yielded | sleeping | completed | cancelled | waiting =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
@@ -428,7 +463,7 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
       refine ⟨h.readyQ_nodup, fun u hm => h.readyQ_queued u hm, h.running_runs,
         h.timers_nodup, h.timers_sleep, h.fresh_none, h.timers_sorted,
         h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
-        h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_⟩
+        h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · intro u cc hown
         obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
         by_cases hcc : cc = a
@@ -477,10 +512,16 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
           · intro heq; exact Nat.lt_irrefl _ (heq.symm ▸ h.occ_fresh ac mba ea hmba hea)
         · simp only [upd, if_neg hac] at hmba; simp only [upd, if_neg hbc] at hmbb
           exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
+      · -- owner_spawned (RFC 038): taskOwner unchanged; taskState = s.taskState
+        intro u a' how'
+        exact h.owner_spawned u a' how'
+      · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState = s.taskState
+        intro u p hp
+        exact h.parent_child_spawned u p hp
     | cons w ws =>
       have hwt  : s.taskState w = some .waiting := h.waiters_waiting a w (hw ▸ List.mem_cons_self w ws)
       have hwq  : w ∉ s.readyQ := waiting_not_in_readyQ h hwt
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp [step, hmb, hw]; exact nodup_append_singleton h.readyQ_nodup hwq
       · intro u hm; simp [step, hmb, hw] at hm ⊢
         rcases hm with hm | rfl
@@ -598,5 +639,13 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
         · rw [inject_preserves_other hac m] at hmba
           rw [inject_preserves_other hbc m] at hmbb
           exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
+      · -- owner_spawned (RFC 038): taskOwner unchanged; taskState changes at w
+        intro u a' how'
+        obtain ⟨st, hst⟩ := h.owner_spawned u a' (by simpa [step, hmb, hw] using how')
+        exact step_preserves_spawned hst (.inject a m)
+      · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState changes at w
+        intro u p hp
+        obtain ⟨st, hst⟩ := h.parent_child_spawned u p (by simpa [step, hmb, hw] using hp)
+        exact step_preserves_spawned hst (.inject a m)
 
 end Henret

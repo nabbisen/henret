@@ -123,15 +123,21 @@ zero-assumption core.
 
 | # | Claim | Class | Evidence |
 |---:|---|---|---|
-| 57 | A successful `spawnChild` sets the new task's parent to the calling task | PROVEN | `spawnChild_sets_parent` |
-| 58 | A successful `spawnChild` sets the new task's owner and enqueues it | PROVEN | `spawnChild_sets_owner`, `spawnChild_queues_child` |
+| 57 | A successful `spawnChild` sets the new task's parent to the calling task (`parentOwner`/`childActor` are distinct after RFC 038 generalization) | PROVEN | `spawnChild_sets_parent` |
+| 58 | A successful `spawnChild` sets the child's owner to `childActor` and enqueues it (RFC 038: no longer conflates parent owner with child actor) | PROVEN | `spawnChild_sets_owner`, `spawnChild_queues_child`, `spawnChild_child_spawned` |
 | 59 | Parenthood is immutable: no operation other than `spawnChild` writes `taskParent`, and `spawnChild` only writes the fresh slot | PROVEN | `step_preserves_parent` |
 | 60 | In every reachable state, every parent has a strictly smaller id than its child (parent_lt invariant) | PROVEN | `WellFormed.parent_lt`, `reachable_parent_lt` |
 | 61 | In every reachable state, every recorded parent exists in some state (parent_spawned invariant) | PROVEN | `WellFormed.parent_spawned` |
 | 62 | All ancestor chains terminate: every task reaches a root within `t` steps | PROVEN | `parent_chain_terminates` (acyclicity deliverable) |
-| 63 | All 16 `WellFormed` fields hold in every reachable state (extended from 14 fields) | PROVEN | `reachable_wf` (extended) |
+| 63 | All 21 `WellFormed` fields hold in every reachable state (RFC 038: extended from 19 to 21) | PROVEN | `reachable_wf` (extended) |
 
-## v0.7.0 claims (message envelope and occurrence identity, RFC 033)
+## v0.9.1 claims (owner / parent exactness, RFC 038)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 85 | Every owned task is spawned: if `taskOwner t = some a` then `∃ st, taskState t = some st` | PROVEN | `WellFormed.owner_spawned`, `reachable_owner_spawned` |
+| 86 | Every task with a parent is itself spawned: if `taskParent t = some p` then `∃ st, taskState t = some st` | PROVEN | `WellFormed.parent_child_spawned`, `reachable_parent_child_spawned` |
+| 87 | `parentOwner` and `childActor` in `spawnChild` are independent; the child's actor is the argument, not derived from the parent | PROVEN | `spawnChild_sets_owner` (generalized in RFC 038) |
 
 | # | Claim | Class | Evidence |
 |---:|---|---|---|
@@ -161,3 +167,16 @@ zero-assumption core.
 | 82 | `bridge_run_tracks_single_worker`: trace-level bridge from init through any op sequence | PROVEN | `Henret.Bridge.bridge_run_tracks_single_worker` |
 | 83 | Bridge is a queue projection only: relates `readyQ` to worker 0; no fairness, no actor semantics | OUTSCOPE | Documented in `docs/bridge-architecture.md` |
 | 84 | Multi-worker bridge extension | OUTSCOPE | Deferred to RFC 043 |
+
+## v0.10.0 claims (cascade cancel, RFC 039)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 88 | `cancelTree root` sets every non-terminal spawned task in the subtree to `.cancelled` | PROVEN | `cancelTree_cancels_task`, `cancelTree_cancels_root` |
+| 89 | `cancelTree root` leaves every task outside the subtree with unchanged `taskState` | PROVEN | `cancelTree_preserves_task_state` |
+| 90 | After `cancelTree`, cancelled tasks are absent from `readyQ`, `timers`, and all `mailboxWaiters` | PROVEN | `cancelTree_removes_from_readyQ`, `cancelTree_removes_from_timers`, `cancelTree_removes_from_waiters` |
+| 91 | `cancelTree` always succeeds (returns `.ok`) regardless of `root` spawn status | PROVEN | `cancelTree_step_eq` (step returns `.ok`) |
+| 92 | All 21 `WellFormed` fields hold after `cancelTree` (preservation) | PROVEN | `preserves_wf_cancelTree` (in `Supervision.lean`) |
+| 93 | `descendantsOf s root` is duplicate-free (nodup) and bounded by `nextId` | PROVEN | `descendantsOf_nodup`, `descendantsOf_bound` |
+| 94 | `BridgeState` is preserved by `cancelTree`; `toQOps` emits `Filter 0 t` for each descendant | PROVEN | `bridge_cancelTree`, `bridge_step_single_worker` now covers 13 ops |
+| 95 | `isInSubtreeOf` is well-founded (terminates by `<` on `TaskId`; conservative `false` for non-decreasing chains) | PROVEN | Lean's well-founded recursion checker via `termination_by t` |

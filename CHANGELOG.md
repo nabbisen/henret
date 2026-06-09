@@ -1,6 +1,118 @@
 # Changelog
 
-## v0.9.0 — Single-Worker Bridge Completion (RFC 036 + RFC 037)
+## v0.10.0 — Supervision Semantics: Cascade Cancel (RFC 039)
+
+Adds the first supervision operation: `cancelTree root`, which cancels a task
+and every task in its subtree (all tasks whose `taskParent` chain reaches `root`).
+
+### New `RuntimeOp`: `cancelTree (root : TaskId)` (13th constructor)
+
+Always returns `.ok`. Cancels root and all descendants regardless of
+`root`'s spawn status (no-op if the subtree is empty or already terminal).
+
+### New infrastructure (in `Henret/Scheduler/Model.lean`)
+
+- **`isInSubtreeOf s root t : Bool`** — computable parent-chain check.
+  Well-founded by strict decrease (`p < t` enforced at each step); returns
+  `false` conservatively for non-decreasing chains.
+- **`descendantsOf s root : List TaskId`** — the cancellation set: all tasks
+  in `[0, nextId)` that are spawned and whose parent chain reaches `root`.
+- **`applyCancelTree s toCancel : RuntimeState`** — direct conditional
+  state transformer: `if t ∈ toCancel then (cancel t) else (leave t)`.
+  All five affected fields (`taskState`, `readyQ`, `running`, `timers`,
+  `mailboxWaiters`) are defined directly from the original state.
+
+### New file: `Henret/Proofs/Supervision.lean` (290 lines, zero `sorry`)
+
+Twelve theorems including `preserves_wf_cancelTree` (all 21 `WellFormed`
+fields) and the correctness lemmas:
+
+- `cancelTree_cancels_task` — non-terminal subtree tasks → `.cancelled`
+- `cancelTree_preserves_task_state` — outside-subtree tasks unchanged
+- `cancelTree_cancels_root` — root itself cancelled (if non-terminal)
+- `cancelTree_removes_from_readyQ / timers / waiters` — cleanup verified
+
+### Bridge extended
+
+`toQOps (.cancelTree root)` emits `(descendantsOf s root).map (.Filter 0 ·)`,
+completing the bridge coverage for all 13 RuntimeOps. `bridge_cancelTree` is
+proved using two helper lemmas: `applyQOps_filters0_at0` (worker-0 value) and
+`applyQOps_filters0_other` (non-zero workers unchanged).
+
+### Proof engineering notes
+
+- Import cycle avoided by placing `preserves_wf_cancelTree` in `Supervision.lean`
+  (imports `Invariants` + `Ownership` only; `InvariantsPreservation` imports
+  `Supervision`, not vice versa through `Parenthood`).
+- `decide_eq_decide.mpr` proved critical for `Bool` equality from `Prop ↔ Prop`
+  without triggering `▸` motive errors.
+- Explicit `rw [← Bool.decide_and]` + `decide_eq_decide.mpr` replaced all
+  `simp`-loop-prone predicate equality proofs.
+
+### Invariants maintained
+- Zero `sorry`, zero project-specific axioms.
+- All 95 proof-trust-test-matrix claims pass.
+- Doc-symbol check: 170 names verified.
+- Demo scenario 10 (cancelTree regression) added to `Main.lean`.
+
+---
+
+
+
+Strengthens `WellFormed` with two new exactness fields and generalizes
+the `spawnChild` theorem family to properly separate parent actor from
+child actor.
+
+### New `WellFormed` fields (21 total, up from 19)
+
+- **`owner_spawned`** (field 20) — every task with a `taskOwner` has a
+  `taskState`; i.e., owned tasks are always spawned.
+- **`parent_child_spawned`** (field 21) — every task with a `taskParent`
+  has a `taskState`; i.e., tasks with parents are always spawned.
+
+Both fields hold trivially in `init` (no owners or parents) and are
+preserved by all 12 scheduler operations.
+
+### Generalized `spawnChild` theorem family (`Henret/Proofs/Parenthood.lean`)
+
+The `spawnChild` theorems previously conflated the parent task's actor
+(`parentOwner`) with the child's actor (`childActor`), accepting only
+the same-actor case. All four theorems now use separate `parentOwner` and
+`childActor` parameters, accurately reflecting that a child may be owned
+by any actor:
+
+- `spawnChild_sets_parent` — child's `taskParent` = calling task id.
+- `spawnChild_sets_owner` — child's `taskOwner` = `childActor` (not the
+  parent's owner). *(RFC 038 key fix)*
+- `spawnChild_queues_child` — child appended to `readyQ`.
+- `spawnChild_child_spawned` — child's `taskState` = `some .new`. *(new)*
+
+### New reachability corollaries
+
+- `reachable_owner_spawned` — projects `WellFormed.owner_spawned` through
+  `reachable_wf`.
+- `reachable_parent_child_spawned` — projects `WellFormed.parent_child_spawned`
+  through `reachable_wf`.
+
+### Preservation updates
+
+All three preservation files updated for the 2 new fields:
+`Preservation/Lifecycle.lean`, `Preservation/Messaging.lean`,
+`Preservation/Time.lean`. Each adds `import Henret.Proofs.Ownership`
+for access to `step_preserves_spawned`.
+
+### Invariants maintained
+- Zero `sorry`, zero project-specific axioms.
+- New fields depend only on Lean kernel axioms (`propext`, `Quot.sound`,
+  `Classical.choice`).
+- All 9 previous gate checks remain green.
+- Doc-symbol check: 158 names verified (down 2 from 160 due to bare
+  field names `owner_spawned`/`parent_child_spawned` correctly moved to
+  IGNORE; their `WellFormed.X` fully-qualified forms remain checked).
+
+---
+
+
 
 Completes the single-worker queue-projection bridge and resolves all
 v0.8.0 public claim issues identified in the architect review.

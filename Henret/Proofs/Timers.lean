@@ -112,6 +112,7 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
     cases hts : s.taskState t with
     | none => simp [step, hts]
     | some st => cases st <;> simp [step, hts]
+  | cancelTree _ => exact Nat.le_refl _
 
 /-- Every operation preserves timer-queue sortedness. -/
 theorem step_preserves_sorted {s : RuntimeState}
@@ -164,6 +165,10 @@ theorem step_preserves_sorted {s : RuntimeState}
     split
     · exact Timer.sorted_filter _ h
     · exact h
+  | cancelTree _ =>
+    -- cancelTree filters timers; a sublist of a sorted list is sorted
+    simp only [step]
+    exact Timer.sorted_filter _ h
 
 /-- Whole-program corollary: the queue is sorted in every reachable
 state of any program starting from a sorted queue. -/

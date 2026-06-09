@@ -163,10 +163,17 @@ structure WellFormed (s : RuntimeState) : Prop where
       s.mailboxes a = some mba → s.mailboxes b = some mbb →
       ∀ ea ∈ mba.messages, ∀ eb ∈ mbb.messages,
         ea.occurrence ≠ eb.occurrence
+  /-- Every owned task is spawned: a task with a `taskOwner` has a `taskState` (RFC 038). -/
+  owner_spawned :
+    ∀ t a, s.taskOwner t = some a → ∃ st, s.taskState t = some st
+  /-- Every task with a parent is itself spawned: a task with a `taskParent`
+      has a `taskState` (RFC 038). -/
+  parent_child_spawned :
+    ∀ t p, s.taskParent t = some p → ∃ st, s.taskState t = some st
 
-/-- The initial state is well-formed (19 fields). -/
+/-- The initial state is well-formed (21 fields). -/
 theorem wf_init : WellFormed RuntimeState.init := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [RuntimeState.init]
 
 /-! ## Ownership uniqueness corollaries (RFC 004 acceptance) -/

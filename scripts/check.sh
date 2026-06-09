@@ -61,6 +61,20 @@ open Henret Henret.Native Henret.Bridge
 #check @bridge_send
 #check @bridge_inject
 #check @bridge_tick
+-- RFC 038 owner/parent exactness theorems
+#print axioms reachable_owner_spawned
+#print axioms reachable_parent_child_spawned
+#check @spawnChild_child_spawned
+#check @WellFormed.owner_spawned
+#check @WellFormed.parent_child_spawned
+-- RFC 039 cascade cancel theorems
+#print axioms preserves_wf_cancelTree
+#print axioms cancelTree_cancels_task
+#print axioms cancelTree_preserves_task_state
+#print axioms bridge_cancelTree
+#check @cancelTree_cancels_root
+#check @cancelTree_removes_from_readyQ
+#check @descendantsOf_nodup
 LEAN
 lake env lean "$AUDIT" | python3 scripts/axiom_audit.py
 rm -f "$AUDIT"

@@ -1,6 +1,6 @@
 # RFC 038 — Parent and Owner Exactness Invariants
 
-**Status.** Proposed  
+**Status.** Implemented (v0.9.1)  
 **Target version.** v0.9.1  
 **Priority.** Medium-high  
 **Track.** Semantic kernel exactness  

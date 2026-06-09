@@ -6,46 +6,68 @@ namespace Henret
 /-!
 # Henret.Proofs.Parenthood
 
-Direct theorems about `spawnChild` and the parenthood relation (RFC 032).
+Direct theorems about `spawnChild` and the parenthood relation (RFC 032 + RFC 038).
 
 ## Headline theorems
 * `spawnChild_sets_parent` — the child records the running task as its parent.
+* `spawnChild_sets_owner` — the child is owned by the specified `childActor`
+  (generalized in RFC 038: `parentOwner` and `childActor` are now distinct).
+* `spawnChild_child_spawned` — the child's task state is `.new` after creation.
 * `spawnChild_not_running_invalid` / `spawnChild_unowned_invalid` — guard theorems.
 * `step_preserves_parent` — parenthood is immutable after creation.
 * `reachable_parent_lt` — in every reachable state, every parent has a
   strictly smaller id than its child.
 * `parent_chain_terminates` — every ancestor chain reaches a root in at
   most `t` steps (acyclicity deliverable).
+* `reachable_owner_spawned` — every owned task is spawned (RFC 038).
+* `reachable_parent_child_spawned` — every task with a parent is spawned (RFC 038).
 -/
 
 /-! ## Creation effects -/
 
-/-- A successful `spawnChild` sets the new task's parent to the caller. -/
-theorem spawnChild_sets_parent {s : RuntimeState} {t : TaskId} {a : ActorId}
-    (hrt  : s.running = some t)
-    (hts  : s.taskState t = some .running)
-    (how  : s.taskOwner t = some a)
+/-- A successful `spawnChild` sets the new task's parent to the caller.
+    `parentOwner` and `childActor` are distinct: the child actor is `childActor`,
+    not necessarily `taskOwner t`. (RFC 038 generalization.) -/
+theorem spawnChild_sets_parent {s : RuntimeState} {t : TaskId}
+    {parentOwner childActor : ActorId}
+    (hrt    : s.running = some t)
+    (hts    : s.taskState t = some .running)
+    (how    : s.taskOwner t = some parentOwner)
     (hfresh : s.taskState s.nextId = none) :
-    ((step s (.spawnChild t a)).1).taskParent s.nextId = some t := by
+    ((step s (.spawnChild t childActor)).1).taskParent s.nextId = some t := by
   simp [step, hrt, hts, how, hfresh, upd_self]
 
-/-- `spawnChild` sets the child's owner. -/
-theorem spawnChild_sets_owner {s : RuntimeState} {t : TaskId} {a : ActorId}
-    (hrt  : s.running = some t)
-    (hts  : s.taskState t = some .running)
-    (how  : s.taskOwner t = some a)
+/-- `spawnChild` sets the child's owner to `childActor`.
+    `parentOwner` is the parent task's actor; `childActor` is the child's actor.
+    These need not be equal. (RFC 038 generalization.) -/
+theorem spawnChild_sets_owner {s : RuntimeState} {t : TaskId}
+    {parentOwner childActor : ActorId}
+    (hrt    : s.running = some t)
+    (hts    : s.taskState t = some .running)
+    (how    : s.taskOwner t = some parentOwner)
     (hfresh : s.taskState s.nextId = none) :
-    ((step s (.spawnChild t a)).1).taskOwner s.nextId = some a := by
+    ((step s (.spawnChild t childActor)).1).taskOwner s.nextId = some childActor := by
   simp [step, hrt, hts, how, hfresh, upd_self]
 
-/-- `spawnChild` queues the child. -/
-theorem spawnChild_queues_child {s : RuntimeState} {t : TaskId} {a : ActorId}
-    (hrt  : s.running = some t)
-    (hts  : s.taskState t = some .running)
-    (how  : s.taskOwner t = some a)
+/-- `spawnChild` queues the child task. (RFC 038 generalization.) -/
+theorem spawnChild_queues_child {s : RuntimeState} {t : TaskId}
+    {parentOwner childActor : ActorId}
+    (hrt    : s.running = some t)
+    (hts    : s.taskState t = some .running)
+    (how    : s.taskOwner t = some parentOwner)
     (hfresh : s.taskState s.nextId = none) :
-    s.nextId ∈ ((step s (.spawnChild t a)).1).readyQ := by
+    s.nextId ∈ ((step s (.spawnChild t childActor)).1).readyQ := by
   simp [step, hrt, hts, how, hfresh]
+
+/-- The freshly spawned child task has state `.new`. (RFC 038) -/
+theorem spawnChild_child_spawned {s : RuntimeState} {t : TaskId}
+    {parentOwner childActor : ActorId}
+    (hrt    : s.running = some t)
+    (hts    : s.taskState t = some .running)
+    (how    : s.taskOwner t = some parentOwner)
+    (hfresh : s.taskState s.nextId = none) :
+    ((step s (.spawnChild t childActor)).1).taskState s.nextId = some .new := by
+  simp [step, hrt, hts, how, hfresh, upd_self]
 
 /-! ## Guard theorems -/
 
@@ -81,6 +103,7 @@ theorem step_preserves_parent {s : RuntimeState} {op : RuntimeOp} {u : TaskId}
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>
         simp [upd, hu]
+  | .cancelTree _ => rfl
 
 /-! ## Headline theorems -/
 
@@ -91,6 +114,20 @@ theorem reachable_parent_lt (ops : List RuntimeOp)
     (h : (run RuntimeState.init ops).taskParent t = some p) :
     p < t :=
   (reachable_wf ops).parent_lt t p h
+
+/-- In every reachable state, every owned task is spawned. (RFC 038) -/
+theorem reachable_owner_spawned (ops : List RuntimeOp)
+    {t : TaskId} {a : ActorId}
+    (h : (run RuntimeState.init ops).taskOwner t = some a) :
+    ∃ st, (run RuntimeState.init ops).taskState t = some st :=
+  (reachable_wf ops).owner_spawned t a h
+
+/-- In every reachable state, every task with a parent is itself spawned. (RFC 038) -/
+theorem reachable_parent_child_spawned (ops : List RuntimeOp)
+    {t p : TaskId}
+    (h : (run RuntimeState.init ops).taskParent t = some p) :
+    ∃ st, (run RuntimeState.init ops).taskState t = some st :=
+  (reachable_wf ops).parent_child_spawned t p h
 
 /-! ## Ancestor chain and termination -/
 

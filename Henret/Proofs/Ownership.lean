@@ -233,6 +233,14 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
         · exact ⟨st, by simp [step, hts, upd, if_neg hut]; exact h⟩
       | new | ready | running | yielded | completed | cancelled | waiting =>
         exact ⟨st, by simp [step, hts, h]⟩
+  | cancelTree root =>
+    simp only [step, applyCancelTree]
+    by_cases hu : u ∈ descendantsOf s root
+    · simp only [hu, ite_true, h]
+      by_cases hterm : st.isTerminal
+      · exact ⟨st, by simp [hterm]⟩
+      · exact ⟨.cancelled, by simp [hterm]⟩
+    · exact ⟨st, by simp [hu, h]⟩
 
 /-- One step never moves a task out of a terminal state.
 Requires `WellFormed s` because send/inject wake-one can write `.ready`
@@ -421,8 +429,11 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
         · simp [step, hts, upd, hut]; exact h
       | new | ready | running | yielded | completed | cancelled | waiting =>
         simp [step, hts]; exact h
-
-/-- Completed tasks never resume (RFC 004 acceptance). -/
+  | cancelTree root =>
+    simp only [step, applyCancelTree]
+    by_cases hu : u ∈ descendantsOf s root
+    · simp only [hu, ite_true, h, hterm]
+    · simp [hu, h]
 theorem step_preserves_completed {s : RuntimeState} {u : TaskId}
     (h_wf : WellFormed s) (h : s.taskState u = some .completed) (op : RuntimeOp) :
     ((step s op).1).taskState u = some .completed :=
@@ -575,6 +586,7 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
     cases hts : s.taskState t with
     | none => simp [step, hts]
     | some st => cases st <;> simp [step, hts] <;> simp [step, hts] at h
+  | cancelTree _ => simp [step] at h
 
 
 end Henret

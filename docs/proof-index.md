@@ -162,19 +162,26 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
   `mailboxWaiters`.
 - `WellFormed.waiters_nodup` — each `mailboxWaiters` list is duplicate-free.
 
-### RFC 032 — Actor-scoped spawn / supervision groundwork
+### RFC 032 / RFC 038 — Actor-scoped spawn / supervision groundwork / owner-parent exactness
 
 | Theorem | File | Notes |
 |---|---|---|
-| `spawnChild_sets_parent` | `Henret/Proofs/Parenthood.lean` | Child's `taskParent` = calling task |
-| `spawnChild_sets_owner` | `Henret/Proofs/Parenthood.lean` | Child's `taskOwner` = calling actor |
-| `spawnChild_queues_child` | `Henret/Proofs/Parenthood.lean` | Child appended to `readyQ` |
+| `spawnChild_sets_parent` | `Henret/Proofs/Parenthood.lean` | Child's `taskParent` = calling task; `parentOwner`/`childActor` now distinct (RFC 038) |
+| `spawnChild_sets_owner` | `Henret/Proofs/Parenthood.lean` | Child's `taskOwner` = `childActor` (generalized in RFC 038; parent actor need not equal child actor) |
+| `spawnChild_queues_child` | `Henret/Proofs/Parenthood.lean` | Child appended to `readyQ`; generalized (RFC 038) |
+| `spawnChild_child_spawned` | `Henret/Proofs/Parenthood.lean` | Child's `taskState` = `some .new` after creation (RFC 038) |
 | `spawnChild_not_running_invalid` | `Henret/Proofs/Parenthood.lean` | Guard: must be running |
 | `spawnChild_unowned_invalid` | `Henret/Proofs/Parenthood.lean` | Guard: must have owner |
 | `step_preserves_parent` | `Henret/Proofs/Parenthood.lean` | `taskParent` immutable post-creation |
 | `reachable_parent_lt` | `Henret/Proofs/Parenthood.lean` | Every parent has smaller id |
 | `parent_chain_terminates` | `Henret/Proofs/Parenthood.lean` | Chains terminate (acyclicity) |
-| `preserves_wf_spawnChild` | `Henret/Proofs/Preservation/Lifecycle.lean` | 16-field WF preservation |
+| `reachable_owner_spawned` | `Henret/Proofs/Parenthood.lean` | Every owned task has a `taskState` (RFC 038, from `WellFormed.owner_spawned`) |
+| `reachable_parent_child_spawned` | `Henret/Proofs/Parenthood.lean` | Every task with a parent has a `taskState` (RFC 038, from `WellFormed.parent_child_spawned`) |
+| `preserves_wf_spawnChild` | `Henret/Proofs/Preservation/Lifecycle.lean` | 21-field WF preservation |
+
+`WellFormed` extended to **twenty-one fields** in RFC 038 (+2 over RFC 033's nineteen):
+- `owner_spawned` (field 20) — every task with a `taskOwner` has a `taskState`.
+- `parent_child_spawned` (field 21) — every task with a `taskParent` has a `taskState`.
 
 ### RFC 033 — Message envelope and occurrence identity
 
@@ -248,7 +255,7 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 - Per-op bridge theorems (all 12 RuntimeOps covered):
   `bridge_spawn`, `bridge_spawnChild`, `bridge_schedule`, `bridge_yield`, `bridge_wake`,
   `bridge_cancel`, `bridge_send`, `bridge_inject`, `bridge_receive`, `bridge_sleep`,
-  `bridge_tick`, `bridge_complete`.
+  `bridge_tick`, `bridge_complete`, `bridge_cancelTree` (RFC 039).
 - **`bridge_step_single_worker`** — unified single-step bridge: for any `RuntimeOp`, if
   `BridgeState s wqs` holds, then `BridgeState (step s op).1 (applyQOps wqs (toQOps s op))`.
 - **`bridge_run_general`** — trace bridge from any starting state.
@@ -258,3 +265,28 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 **Bridge scope note**: this is a queue projection bridge. It relates `readyQ` to worker 0's
 queue. It does not claim fairness, native execution, or actor semantics. Multi-worker
 extension is deferred to RFC 043. See `docs/bridge-architecture.md`.
+
+---
+
+### RFC 039 — Supervision Semantics: Cascade Cancel
+
+| Theorem | File | Notes |
+|---|---|---|
+| `cancelTree_step_eq` | `Henret/Proofs/Supervision.lean` | `(step s (.cancelTree r)).1 = applyCancelTree s (descendantsOf s r)` — `rfl` |
+| `cancelTree_cancels_task` | `Henret/Proofs/Supervision.lean` | Non-terminal tasks in `descendantsOf s root` are `.cancelled` after step |
+| `cancelTree_preserves_task_state` | `Henret/Proofs/Supervision.lean` | Tasks not in `descendantsOf s root` retain their state |
+| `cancelTree_cancels_root` | `Henret/Proofs/Supervision.lean` | The root itself is `.cancelled` (if spawned and non-terminal) |
+| `cancelTree_removes_from_readyQ` | `Henret/Proofs/Supervision.lean` | Cancelled tasks are not in `readyQ` after step |
+| `cancelTree_removes_from_timers` | `Henret/Proofs/Supervision.lean` | Cancelled timer entries are removed |
+| `cancelTree_removes_from_waiters` | `Henret/Proofs/Supervision.lean` | Cancelled tasks are removed from all `mailboxWaiters` lists |
+| `preserves_wf_cancelTree` | `Henret/Proofs/Supervision.lean` | All 21 `WellFormed` fields preserved by `cancelTree` |
+| `bridge_cancelTree` | `Henret/Bridge/Preservation.lean` | `BridgeState` preserved by `cancelTree`; `toQOps` emits `Filter 0 t` per descendant |
+| `descendantsOf_includes_root` | `Henret/Proofs/Supervision.lean` | Root is in `descendantsOf s root` when spawned |
+| `descendantsOf_nodup` | `Henret/Proofs/Supervision.lean` | No duplicates in the cancellation set |
+
+**New infrastructure:**
+- `isInSubtreeOf s root t : Bool` — computable parent-chain check (well-founded by `<` on `TaskId`)
+- `descendantsOf s root : List TaskId` — computable cancellation set (all spawned subtree tasks)
+- `applyCancelTree s tc : RuntimeState` — direct conditional state transformer (not foldl)
+
+`RuntimeOp` extended to **13 constructors** (`cancelTree (root : TaskId)` added in RFC 039).
