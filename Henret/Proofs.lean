@@ -3,6 +3,7 @@ import Henret.Proofs.Lifecycle
 import Henret.Proofs.Messaging
 import Henret.Proofs.Timers
 import Henret.Proofs.Ownership
+import Henret.Proofs.StepFields
 import Henret.Proofs.Invariants
 import Henret.Proofs.InvariantsPreservation
 import Henret.Proofs.Parenthood

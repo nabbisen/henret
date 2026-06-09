@@ -1,5 +1,54 @@
 # Changelog
 
+## v0.10.1 — Preservation Proof Automation (RFC 042)
+
+Adds proof infrastructure in `StepFields.lean` that reduces the most repetitive
+WellFormed preservation bullets to one-liners.
+
+### New file: `Henret/Proofs/StepFields.lean` (147 lines, zero `sorry`)
+
+Five helper theorems:
+
+- **`wf_occ_fresh_pass`** — `occ_fresh` holds in `s'` when both `mailboxes` and
+  `nextMsgId` are unchanged relative to `s`.
+- **`wf_occ_nodup_pass`** — `occ_nodup` holds in `s'` when `mailboxes` is unchanged.
+- **`wf_occ_disjoint_pass`** — `occ_disjoint` holds in `s'` when `mailboxes` is
+  unchanged.
+- **`wf_parent_lt_pass`** — `parent_lt` holds in `s'` when `taskParent` is unchanged.
+- **`wf_parent_spawned_pass`** — `parent_spawned` holds in `s'` when `taskParent`
+  is unchanged and spawned tasks stay spawned.
+
+`OccFields` structure and `wf_occ_pass` bundle all three occurrence bullets for
+cases where callers need the full package.
+
+### Preservation files updated
+
+- **`Preservation/Lifecycle.lean`**: 901 → 887 lines. `schedule`, `yield`,
+  `complete`, `cancel` occ/parent bullets refactored. `spawnChild` occ_*
+  bullets refactored. `spawn` `parent_lt` refactored.
+- **`Preservation/Messaging.lean`**: 651 → 645 lines. `send` and `inject`
+  `parent_spawned` bullets refactored using `step_preserves_spawned`.
+- **`Preservation/Time.lean`**: already refactored during RFC 038/039 development.
+
+### Caveat documented
+
+`step_preserves_spawned hst _` only applies when the goal's LHS is in
+`((step s op).1).taskState` form. When simp has reduced the step result to a
+struct literal in the proof context (currently the `receive` parking branch),
+the manual case split remains. This is documented in `docs/proof-engineering.md`.
+
+### New documentation
+
+`docs/proof-engineering.md` — full before/after diff examples, usage rules,
+when-to-use guidance, and a template for new operations.
+
+### Invariants maintained
+- Zero `sorry`, zero project-specific axioms.
+- `lake build Henret` passes cleanly (40 RFCs in `done/`).
+- Doc-symbol check: 170 names verified.
+
+---
+
 ## v0.10.0 — Supervision Semantics: Cascade Cancel (RFC 039)
 
 Adds the first supervision operation: `cancelTree root`, which cancels a task

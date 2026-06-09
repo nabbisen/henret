@@ -1,5 +1,6 @@
 import Henret.Proofs.Invariants
 import Henret.Proofs.Ownership
+import Henret.Proofs.StepFields
 
 namespace Henret
 
@@ -74,7 +75,7 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
           intro a; simp [step, hrt, hts]; exact h.waiters_nodup a
         · -- parent_lt (RFC 032): taskParent not written by sleep
           intro u p hp
-          exact h.parent_lt u p (by simp only [step, if_pos hrt, hts] at hp; exact hp)
+          exact wf_parent_lt_pass h (by simp [step, if_pos hrt, hts]) u p hp
         · -- parent_spawned: sleep sets t → .sleeping; p still in some state
           intro u p hp
           have hpar : s.taskParent u = some p := by
@@ -83,16 +84,15 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
           by_cases hpt : p = t
           · exact ⟨.sleeping, by simp only [step, if_pos hrt, hts, upd_self, hpt]⟩
           · exact ⟨st, by simp only [step, if_pos hrt, hts, upd, if_neg hpt]; exact hst⟩
-        · -- occ_fresh (RFC 033): mailboxes unaffected
-          intro a mb env hmb henv; simp only [step, if_pos hrt, hts] at hmb ⊢
-          exact h.occ_fresh a mb env hmb henv
-        · -- occ_nodup (RFC 033): mailboxes unaffected
-          intro a mb hmb; simp only [step, if_pos hrt, hts] at hmb
-          exact h.occ_nodup a mb hmb
-        · -- occ_disjoint (RFC 033): mailboxes unaffected
+        · -- occ_fresh (RFC 033 → RFC 042 helper): mailboxes unaffected by sleep
+          intro a mb env hmb henv
+          exact wf_occ_fresh_pass h (by simp [step, if_pos hrt, hts]) (by simp [step, if_pos hrt, hts]) a mb env hmb henv
+        · -- occ_nodup (RFC 033 → RFC 042 helper)
+          intro a mb hmb
+          exact wf_occ_nodup_pass h (by simp [step, if_pos hrt, hts]) a mb hmb
+        · -- occ_disjoint (RFC 033 → RFC 042 helper)
           intro a b mba mbb hab hmba hmbb ea hea eb heb
-          simp only [step, if_pos hrt, hts] at hmba hmbb
-          exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
+          exact wf_occ_disjoint_pass h (by simp [step, if_pos hrt, hts]) a b mba mbb hab hmba hmbb ea hea eb heb
         · -- owner_spawned (RFC 038): taskOwner unchanged
           intro u a' how'
           obtain ⟨st, hst⟩ := h.owner_spawned u a'
@@ -195,7 +195,7 @@ theorem preserves_wf_tick {s : RuntimeState} (h : WellFormed s) :
       intro a; simp only [step, if_pos hle]; exact h.waiters_nodup a
     · -- parent_lt (RFC 032): taskParent unchanged by tick
       intro u p hp
-      exact h.parent_lt u p (by simp only [step, if_pos hle] at hp; exact hp)
+      exact wf_parent_lt_pass h (by simp [step, if_pos hle]) u p hp
     · -- parent_spawned: tick may wake p → .ready; still some _
       intro u p hp
       simp only [step, if_pos hle] at hp
@@ -203,16 +203,15 @@ theorem preserves_wf_tick {s : RuntimeState} (h : WellFormed s) :
       by_cases hpw : p ∈ woken
       · exact ⟨.ready, by simp only [step, if_pos hle]; rw [← hwdef]; exact wakeMany_wakes hpw (hwoken_sleep p hpw)⟩
       · exact ⟨st, by simp only [step, if_pos hle]; rw [← hwdef]; rw [wakeMany_preserves_other hpw]; exact hst⟩
-    · -- occ_fresh (RFC 033): mailboxes unaffected
-      intro a mb env hmb henv; simp only [step, if_pos hle] at hmb ⊢
-      exact h.occ_fresh a mb env hmb henv
-    · -- occ_nodup (RFC 033): mailboxes unaffected
-      intro a mb hmb; simp only [step, if_pos hle] at hmb
-      exact h.occ_nodup a mb hmb
-    · -- occ_disjoint (RFC 033): mailboxes unaffected
+    · -- occ_fresh (RFC 033 → RFC 042 helper): mailboxes unaffected by tick
+      intro a mb env hmb henv
+      exact wf_occ_fresh_pass h (by simp [step, if_pos hle]) (by simp [step, if_pos hle]) a mb env hmb henv
+    · -- occ_nodup (RFC 033 → RFC 042 helper)
+      intro a mb hmb
+      exact wf_occ_nodup_pass h (by simp [step, if_pos hle]) a mb hmb
+    · -- occ_disjoint (RFC 033 → RFC 042 helper)
       intro a b mba mbb hab hmba hmbb ea hea eb heb
-      simp only [step, if_pos hle] at hmba hmbb
-      exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
+      exact wf_occ_disjoint_pass h (by simp [step, if_pos hle]) a b mba mbb hab hmba hmbb ea hea eb heb
     · -- owner_spawned (RFC 038): taskOwner unchanged
       intro u a' how'
       obtain ⟨st, hst⟩ := h.owner_spawned u a'
@@ -289,7 +288,7 @@ theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
         intro a; simp [step, hts]; exact h.waiters_nodup a
       · -- parent_lt (RFC 032)
         intro u p hp
-        exact h.parent_lt u p (by simp only [step, hts] at hp; exact hp)
+        exact wf_parent_lt_pass h (by simp [step, hts]) u p hp
       · -- parent_spawned: wake sets t → .ready; still some _
         intro u p hp
         have hpar : s.taskParent u = some p := by simp only [step, hts] at hp; exact hp
@@ -297,16 +296,15 @@ theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
         by_cases hpt : p = t
         · exact ⟨.ready, by simp [step, hts, upd_self, hpt]⟩
         · exact ⟨st, by simp [step, hts, upd, if_neg hpt]; exact hst⟩
-      · -- occ_fresh (RFC 033): mailboxes unaffected
-        intro a mb env hmb henv; simp only [step, hts] at hmb ⊢
-        exact h.occ_fresh a mb env hmb henv
-      · -- occ_nodup (RFC 033): mailboxes unaffected
-        intro a mb hmb; simp only [step, hts] at hmb
-        exact h.occ_nodup a mb hmb
-      · -- occ_disjoint (RFC 033): mailboxes unaffected
+      · -- occ_fresh (RFC 033 → RFC 042 helper): mailboxes unaffected by wake
+        intro a mb env hmb henv
+        exact wf_occ_fresh_pass h (by simp [step, hts]) (by simp [step, hts]) a mb env hmb henv
+      · -- occ_nodup (RFC 033 → RFC 042 helper)
+        intro a mb hmb
+        exact wf_occ_nodup_pass h (by simp [step, hts]) a mb hmb
+      · -- occ_disjoint (RFC 033 → RFC 042 helper)
         intro a b mba mbb hab hmba hmbb ea hea eb heb
-        simp only [step, hts] at hmba hmbb
-        exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
+        exact wf_occ_disjoint_pass h (by simp [step, hts]) a b mba mbb hab hmba hmbb ea hea eb heb
       · -- owner_spawned (RFC 038): taskOwner unchanged
         intro u a' how'
         obtain ⟨st, hst⟩ := h.owner_spawned u a'

@@ -45,6 +45,7 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 | [037](done/037-v081-public-claim-repair.md) | Public Claim Repair (v0.9.0) | v0.9.0 |
 | [038](done/038-parent-owner-exactness.md) | Parent and Owner Exactness Invariants | v0.9.1 |
 | [039](done/039-supervision-cascade-cancel.md) | Supervision Semantics: Cascade Cancel | v0.10.0 |
+| [042](done/042-preservation-proof-automation.md) | Preservation Proof Automation | v0.10.1 |
 
 ## Proposed
 
@@ -52,7 +53,7 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 |---|---|---|---|
 | [040](proposed/040-receive-timeout-multi-wait.md) | Receive Timeout and Multi-Wait Semantics | v0.11.0 | Medium |
 | [041](proposed/041-selective-receive.md) | Selective Receive | v0.11.x | Medium-low |
-| [042](proposed/042-preservation-proof-automation.md) | Preservation Proof Automation and Maintainability | v0.10.x | Ongoing |
+
 | [043](proposed/043-multi-worker-bridge-extension.md) | Multi-Worker Bridge Model Extension | v0.12.0 | After 036 |
 | [044](proposed/044-runtime-integration-contract.md) | Runtime Integration Contract for External Consumers | v0.12.0 | High (external) |
 | [045](proposed/045-execution-trace-ledger.md) | Execution Trace Ledger | — | — |
@@ -100,4 +101,4 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 *Shipped: 001–012 in v0.1.0; 013–018 in v0.2.0; 019–023 in v0.2.1; 024–025 in v0.3.0;
 026–027 in v0.3.1; 028–029 in v0.4.0; 030 in v0.4.1; 034 in v0.5.0; 031 core in v0.5.0,
 acceptance criteria in v0.5.1; 033 in v0.7.0; 035 skeleton in v0.8.0;
-036 + 037 in v0.9.0; 038 in v0.9.1; 039 in v0.10.0.*
+036 + 037 in v0.9.0; 038 in v0.9.1; 039 in v0.10.0; 042 in v0.10.1.*

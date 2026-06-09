@@ -1,5 +1,7 @@
 import Henret.Proofs.Invariants
 import Henret.Proofs.Ownership
+import Henret.Proofs.StepFields
+import Henret.Proofs.StepFields
 
 namespace Henret
 
@@ -94,8 +96,9 @@ theorem preserves_wf_spawn (h : WellFormed s) (a : ActorId) :
         exact ⟨a', by simp only [upd, if_neg hu]; exact ha', hmem⟩
     · -- waiters_nodup (RFC 031)
       intro a; simp only [step, hts]; exact h.waiters_nodup a
-    · -- parent_lt (RFC 032)
-      intro t p hp; exact h.parent_lt t p (by simp only [step, hts, upd] at hp; exact hp)
+    · -- parent_lt (RFC 042)
+      intro t p hp
+      exact wf_parent_lt_pass h (by simp [step, hts]) t p hp
     · -- parent_spawned (RFC 032)
       intro t p hp
       have hpar : s.taskParent t = some p := by simp only [step, hts, upd] at hp; exact hp
@@ -244,27 +247,22 @@ theorem preserves_wf_schedule (h : WellFormed s) :
         · -- waiters_nodup (RFC 031)
           intro a; simp only [step, hr, hq, if_pos hrun]
           exact h.waiters_nodup a
-        · -- parent_lt (RFC 032)
+        · -- parent_lt (RFC 042)
           intro u p hp
-          exact h.parent_lt u p (by simp only [step, hr, hq, if_pos hrun] at hp; exact hp)
-        · -- parent_spawned (RFC 032)
+          exact wf_parent_lt_pass h (by simp [step, hr, hq, if_pos hrun]) u p hp
+        · -- parent_spawned (RFC 042)
           intro u p hp
-          have hpar : s.taskParent u = some p := by
-            simp only [step, hr, hq, if_pos hrun] at hp; exact hp
-          obtain ⟨st, hst⟩ := h.parent_spawned u p hpar
-          by_cases hpt : p = t
-          · exact ⟨.running, by simp [step, hr, hq, if_pos hrun, upd_self, hpt]⟩
-          · exact ⟨st, by simp only [step, hr, hq, if_pos hrun, upd, if_neg hpt, hst]⟩
-        · -- occ_fresh (RFC 033): mailboxes unaffected
-          intro a mb env hmb henv; simp only [step, hr, hq, if_pos hrun] at hmb ⊢
-          exact h.occ_fresh a mb env hmb henv
-        · -- occ_nodup (RFC 033): mailboxes unaffected
-          intro a mb hmb; simp only [step, hr, hq, if_pos hrun] at hmb
-          exact h.occ_nodup a mb hmb
-        · -- occ_disjoint (RFC 033): mailboxes unaffected
+          obtain ⟨st, hst⟩ := h.parent_spawned u p (by simpa [step, hr, hq, if_pos hrun] using hp)
+          exact step_preserves_spawned hst _
+        · -- occ_fresh (RFC 042)
+          intro a mb env hmb henv
+          exact wf_occ_fresh_pass h (by simp [step, hr, hq, if_pos hrun]) (by simp [step, hr, hq, if_pos hrun]) a mb env hmb henv
+        · -- occ_nodup (RFC 042)
+          intro a mb hmb
+          exact wf_occ_nodup_pass h (by simp [step, hr, hq, if_pos hrun]) a mb hmb
+        · -- occ_disjoint (RFC 042)
           intro a b mba mbb hab hmba hmbb ea hea eb heb
-          simp only [step, hr, hq, if_pos hrun] at hmba hmbb
-          exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
+          exact wf_occ_disjoint_pass h (by simp [step, hr, hq, if_pos hrun]) a b mba mbb hab hmba hmbb ea hea eb heb
         · -- owner_spawned (RFC 038): taskOwner unchanged by schedule
           intro u a' how
           obtain ⟨st, hst⟩ := h.owner_spawned u a'
@@ -345,26 +343,22 @@ theorem preserves_wf_yield (h : WellFormed s) :
         · -- waiters_nodup (RFC 031)
           intro a; simp [step, hrt, hts]
           exact h.waiters_nodup a
-        · -- parent_lt (RFC 032)
+        · -- parent_lt (RFC 042)
           intro u p hp
-          exact h.parent_lt u p (by simp only [step, hrt, hts] at hp; exact hp)
-        · -- parent_spawned (RFC 032)
+          exact wf_parent_lt_pass h (by simp [step, hrt, hts]) u p hp
+        · -- parent_spawned (RFC 042)
           intro u p hp
-          have hpar : s.taskParent u = some p := by simp only [step, hrt, hts] at hp; exact hp
-          obtain ⟨st, hst⟩ := h.parent_spawned u p hpar
-          by_cases hpt : p = t
-          · exact ⟨.yielded, by simp [step, hrt, hts, upd_self, hpt]⟩
-          · exact ⟨st, by simp [step, hrt, hts, upd, if_neg hpt]; exact hst⟩
-        · -- occ_fresh (RFC 033): mailboxes unaffected
-          intro a mb env hmb henv; simp only [step, hrt, hts] at hmb ⊢
-          exact h.occ_fresh a mb env hmb henv
-        · -- occ_nodup (RFC 033): mailboxes unaffected
-          intro a mb hmb; simp only [step, hrt, hts] at hmb
-          exact h.occ_nodup a mb hmb
-        · -- occ_disjoint (RFC 033): mailboxes unaffected
+          obtain ⟨st, hst⟩ := h.parent_spawned u p (by simpa [step, hrt, hts] using hp)
+          exact step_preserves_spawned hst _
+        · -- occ_fresh (RFC 042)
+          intro a mb env hmb henv
+          exact wf_occ_fresh_pass h (by simp [step, hrt, hts]) (by simp [step, hrt, hts]) a mb env hmb henv
+        · -- occ_nodup (RFC 042)
+          intro a mb hmb
+          exact wf_occ_nodup_pass h (by simp [step, hrt, hts]) a mb hmb
+        · -- occ_disjoint (RFC 042)
           intro a b mba mbb hab hmba hmbb ea hea eb heb
-          simp only [step, hrt, hts] at hmba hmbb
-          exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
+          exact wf_occ_disjoint_pass h (by simp [step, hrt, hts]) a b mba mbb hab hmba hmbb ea hea eb heb
         · -- owner_spawned (RFC 038): taskOwner unchanged by yield
           intro u a' how
           obtain ⟨st, hst⟩ := h.owner_spawned u a'
@@ -444,9 +438,9 @@ theorem preserves_wf_complete (h : WellFormed s) :
         · -- waiters_nodup (RFC 031)
           intro a; simp [step, hrt, hts]
           exact h.waiters_nodup a
-        · -- parent_lt (RFC 032)
+        · -- parent_lt (RFC 042)
           intro u p hp
-          exact h.parent_lt u p (by simp only [step, hrt, hts] at hp; exact hp)
+          exact wf_parent_lt_pass h (by simp [step, hrt, hts]) u p hp
         · -- parent_spawned (RFC 032)
           intro u p hp
           have hpar : s.taskParent u = some p := by simp only [step, hrt, hts] at hp; exact hp
@@ -454,16 +448,15 @@ theorem preserves_wf_complete (h : WellFormed s) :
           by_cases hpt : p = t
           · exact ⟨.completed, by simp [step, hrt, hts, upd_self, hpt]⟩
           · exact ⟨st, by simp [step, hrt, hts, upd, if_neg hpt]; exact hst⟩
-        · -- occ_fresh (RFC 033): mailboxes unaffected
-          intro a mb env hmb henv; simp only [step, hrt, hts] at hmb ⊢
-          exact h.occ_fresh a mb env hmb henv
-        · -- occ_nodup (RFC 033): mailboxes unaffected
-          intro a mb hmb; simp only [step, hrt, hts] at hmb
-          exact h.occ_nodup a mb hmb
-        · -- occ_disjoint (RFC 033): mailboxes unaffected
+        · -- occ_fresh (RFC 042)
+          intro a mb env hmb henv
+          exact wf_occ_fresh_pass h (by simp [step, hrt, hts]) (by simp [step, hrt, hts]) a mb env hmb henv
+        · -- occ_nodup (RFC 042)
+          intro a mb hmb
+          exact wf_occ_nodup_pass h (by simp [step, hrt, hts]) a mb hmb
+        · -- occ_disjoint (RFC 042)
           intro a b mba mbb hab hmba hmbb ea hea eb heb
-          simp only [step, hrt, hts] at hmba hmbb
-          exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
+          exact wf_occ_disjoint_pass h (by simp [step, hrt, hts]) a b mba mbb hab hmba hmbb ea hea eb heb
         · -- owner_spawned (RFC 038): taskOwner unchanged by complete
           intro u a' how
           obtain ⟨st, hst⟩ := h.owner_spawned u a'
@@ -602,30 +595,23 @@ theorem preserves_wf_cancel (h : WellFormed s) :
           · subst hao; simp only [if_pos rfl]
             exact (h.waiters_nodup a).filter _
           · simp only [if_neg hao]; exact h.waiters_nodup a
-      · -- parent_lt (RFC 032)
+      · -- parent_lt (RFC 042)
         intro u p hp
-        exact h.parent_lt u p (by simp only [step, hts, hterm, Bool.false_eq_true, if_false] at hp; exact hp)
-      · -- parent_spawned (RFC 032): cancel sets t → .cancelled which still exists
+        exact wf_parent_lt_pass h (by simp [step, hts, hterm, Bool.false_eq_true, if_false]) u p hp
+      · -- parent_spawned (RFC 042)
         intro u p hp
-        have hpar : s.taskParent u = some p := by
-          simp only [step, hts, hterm, Bool.false_eq_true, if_false] at hp; exact hp
-        obtain ⟨st, hst⟩ := h.parent_spawned u p hpar
-        by_cases hpt : p = t
-        · exact ⟨.cancelled, by simp [step, hts, hterm, upd_self, hpt]⟩
-        · exact ⟨st, by simp only [step, hts, hterm, Bool.false_eq_true, if_false,
-                                    upd, if_neg hpt, hst]⟩
-      · -- occ_fresh (RFC 033): mailboxes unaffected
+        obtain ⟨st, hst⟩ := h.parent_spawned u p
+          (by simp only [step, hts, hterm, Bool.false_eq_true, if_false] at hp; exact hp)
+        exact step_preserves_spawned hst _
+      · -- occ_fresh (RFC 042)
         intro a mb env hmb henv
-        simp only [step, hts, hterm, if_false] at hmb ⊢
-        exact h.occ_fresh a mb env hmb henv
-      · -- occ_nodup (RFC 033): mailboxes unaffected
+        exact wf_occ_fresh_pass h (by simp [step, hts, hterm, if_false]) (by simp [step, hts, hterm, if_false]) a mb env hmb henv
+      · -- occ_nodup (RFC 042)
         intro a mb hmb
-        simp only [step, hts, hterm, if_false] at hmb
-        exact h.occ_nodup a mb hmb
-      · -- occ_disjoint (RFC 033): mailboxes unaffected
+        exact wf_occ_nodup_pass h (by simp [step, hts, hterm, if_false]) a mb hmb
+      · -- occ_disjoint (RFC 042)
         intro a b mba mbb hab hmba hmbb ea hea eb heb
-        simp only [step, hts, hterm, if_false] at hmba hmbb
-        exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
+        exact wf_occ_disjoint_pass h (by simp [step, hts, hterm, if_false]) a b mba mbb hab hmba hmbb ea hea eb heb
       · -- owner_spawned (RFC 038): taskOwner unchanged by cancel
         intro u a' how
         obtain ⟨st, hst⟩ := h.owner_spawned u a'

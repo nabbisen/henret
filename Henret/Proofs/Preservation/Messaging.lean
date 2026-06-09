@@ -1,6 +1,8 @@
 import Henret.Proofs.Invariants
 import Henret.Proofs.Messaging
 import Henret.Proofs.Ownership
+import Henret.Proofs.StepFields
+import Henret.Proofs.StepFields
 
 namespace Henret
 
@@ -194,14 +196,10 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
               · -- parent_lt
                 intro u p hp
                 exact h.parent_lt u p (by simpa [step, hrt, hts, how, hmb, hw] using hp)
-              · -- parent_spawned: send cons wakes w → .ready; parent still exists
+              · -- parent_spawned (RFC 042)
                 intro u p hp
-                have hpar : s.taskParent u = some p :=
-                  by simpa [step, hrt, hts, how, hmb, hw] using hp
-                obtain ⟨st, hst⟩ := h.parent_spawned u p hpar
-                by_cases hpw : p = w
-                · exact ⟨.ready, by simp [step, hrt, hts, how, hmb, hw, upd_self, hpw]⟩
-                · exact ⟨st, by simp [step, hrt, hts, how, hmb, hw, upd, if_neg hpw]; exact hst⟩
+                obtain ⟨st, hst⟩ := h.parent_spawned u p (by simpa [step, hrt, hts, how, hmb, hw] using hp)
+                exact step_preserves_spawned hst _
               · -- occ_fresh (RFC 033): send cons, nextMsgId + 1
                 intro ac mc env hmbc henv
                 have hmi : ((step s (.send t b m)).1).nextMsgId = s.nextMsgId + 1 := by
@@ -416,9 +414,8 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
                 exact fun u p hp => h.parent_lt u p (by simpa [step, hrt, hts, how, hmb, hd] using hp)
               · -- parent_spawned: receive parks t → .waiting; still some _
                 intro u p hp
-                have hpar : s.taskParent u = some p :=
-                  by simpa [step, hrt, hts, how, hmb, hd] using hp
-                obtain ⟨st, hst⟩ := h.parent_spawned u p hpar
+                obtain ⟨st, hst⟩ := h.parent_spawned u p
+                  (by simpa [step, hrt, hts, how, hmb, hd] using hp)
                 by_cases hpt : p = t
                 · exact ⟨.waiting, by simp [step, hrt, hts, how, hmb, hd, upd_self, hpt]⟩
                 · exact ⟨st, by simp [step, hrt, hts, how, hmb, hd, upd, if_neg hpt]; exact hst⟩
@@ -588,13 +585,10 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
         · simp only [if_neg hab]; exact h.waiters_nodup a'
       · -- parent_lt
         exact fun u p hp => h.parent_lt u p (by simpa [step, hmb, hw] using hp)
-      · -- parent_spawned: inject may wake w → .ready; still some _
+      · -- parent_spawned (RFC 042)
         intro u p hp
-        have hpar := (by simpa [step, hmb, hw] using hp : s.taskParent u = some p)
-        obtain ⟨st, hst⟩ := h.parent_spawned u p hpar
-        by_cases hpw : p = w
-        · exact ⟨.ready, by simp [step, hmb, hw, upd_self, hpw]⟩
-        · exact ⟨st, by simp [step, hmb, hw, upd, if_neg hpw]; exact hst⟩
+        obtain ⟨st, hst⟩ := h.parent_spawned u p (by simpa [step, hmb, hw] using hp)
+        exact step_preserves_spawned hst _
       · -- occ_fresh (RFC 033): inject cons
         intro ac mc env hmbc henv
         have hmi : ((step s (.inject a m)).1).nextMsgId = s.nextMsgId + 1 := by

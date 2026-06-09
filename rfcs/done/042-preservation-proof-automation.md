@@ -1,6 +1,6 @@
 # RFC 042 — Preservation Proof Automation and Maintainability
 
-**Status.** Proposed  
+**Status.** Implemented (v0.10.1)  
 **Target version.** v0.10.x infrastructure track  
 **Priority.** Ongoing; implement before RFC 040 if preservation cost rises  
 **Track.** Proof engineering  
