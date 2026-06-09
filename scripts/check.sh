@@ -25,7 +25,7 @@ cat > "$AUDIT" << 'LEAN'
 import Henret
 import Henret.Native.DequeModel
 import Henret.Native.Assumptions
-open Henret Henret.Native
+open Henret Henret.Native Henret.Bridge
 #print axioms step_preserves_terminal
 #print axioms step_invalid_unchanged
 #print axioms run_preserves_owner
@@ -50,18 +50,34 @@ open Henret Henret.Native
 #print axioms qRun_tracks
 #print axioms driveStackB_complete
 #print axioms nativeDequeModel_qRun_tracks
+-- RFC 036 bridge theorems (single-worker queue projection)
+#print axioms bridge_step_single_worker
+#print axioms bridge_run_tracks_single_worker
+#print axioms bridge_run_general
+#check @bridge_spawn
+#check @bridge_spawnChild
+#check @bridge_schedule
+#check @bridge_cancel
+#check @bridge_send
+#check @bridge_inject
+#check @bridge_tick
 LEAN
 lake env lean "$AUDIT" | python3 scripts/axiom_audit.py
 rm -f "$AUDIT"
 
-echo "== gate 6/7: documentation consistency (RFC 021) =="
-if grep -rn "five scenarios\|rfcs/proposed/010\|RFC 010 (proposed)\|remains in proposed\|send_preserves_tasks\|receive_preserves_tasks\|10-operation\|six-field reachability\|nine-field reachability\|\\\`send a m\\\`\|\\\`receive a\\\`\|five .#eval" \
-     README.md docs/ examples/ CHANGELOG.md Henret/ Main.lean 2>/dev/null \
+echo "== gate 6/7: documentation consistency (RFC 021 + RFC 037) =="
+if grep -rn "five scenarios\|rfcs/proposed/010\|RFC 010 (proposed)\|remains in proposed\|send_preserves_tasks\|receive_preserves_tasks\|10-operation\|six-field reachability\|nine-field reachability\|\\`send a m\\`\|\\`receive a\\`\|five .#eval" \\
+     README.md docs/ examples/ CHANGELOG.md Henret/ Main.lean 2>/dev/null \\
      | grep -v "\.lake" | grep -v "docs/reviews/" | grep -v "rfcs/done/" | grep -v "docs/handoff-"; then
-  echo "FAIL: stale documentation phrase found"; exit 1
+  echo "FAIL: stale documentation phrase found (v0.2.x/v0.3.x era)"; exit 1
+fi
+# v0.8.0 review stale phrases (RFC 037)
+if grep -rn "six scenarios\|field 15 of 16\|all 16 fields\|carries no source actor\|requires an envelope or occurrence identity\|neither touches task state\|RFC 035.*Connecting" \\
+     README.md docs/ examples/ CHANGELOG.md Henret/ Main.lean 2>/dev/null \\
+     | grep -v "\.lake" | grep -v "docs/reviews/" | grep -v "rfcs/done/" | grep -v "docs/handoff-"; then
+  echo "FAIL: stale v0.8.0 phrase found (RFC 037 gates)"; exit 1
 fi
 echo "docs consistency ok"
-
 echo "== gate 7/7: doc-symbol checker (RFC 026) =="
 DOCSYM=$(mktemp /tmp/henret-docsym-XXXX.lean)
 python3 scripts/doc_symbol_check.py > "$DOCSYM"

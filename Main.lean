@@ -1,4 +1,5 @@
 import Henret
+import Henret.Bridge
 import Henret.Examples.Basic
 
 open Henret Henret.Examples
@@ -115,6 +116,20 @@ def main : IO Unit := do
     (s15.taskState 0 == some .completed)
   check "child task 1 queued as .new"
     (s15.taskState 1 == some .new)
+
+  IO.println "scenario 9: bridge queue projection tracks readyQ (RFC 036)"
+  -- Run a sequence and verify BridgeState holds at the end via the
+  -- trace theorem. This exercises bridge_run_tracks_single_worker.
+  let ops9 : List Henret.RuntimeOp := [.spawn 0, .schedule, .yield 1]
+  let finalState9 := Henret.run Henret.RuntimeState.init ops9
+  let finalQueues9 := Henret.Bridge.applyQOps
+    Henret.Bridge.WorkerQueues.init
+    (Henret.Bridge.toQOpsTrace Henret.RuntimeState.init ops9)
+  -- bridge_run_tracks_single_worker guarantees finalState9.readyQ = finalQueues9 0
+  check "bridge queue projection matches readyQ"
+    (finalState9.readyQ == finalQueues9 0)
+  check "bridge other workers empty"
+    (finalQueues9 1 == [] && finalQueues9 2 == [])
 
   IO.println "all demo stages passed"
 

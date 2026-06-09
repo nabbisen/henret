@@ -8,7 +8,10 @@ Read top to bottom; each stop is small.
 lake exe henret-demo
 ```
 
-Six scenarios print their state and assert expected outcomes.
+The demo exercises a sequence of regression scenarios covering task lifecycle,
+mailboxes, sleep/tick, cancellation, parenthood, occurrence identity, and
+bridge-facing behavior. Each scenario prints its state and asserts expected
+outcomes.
 
 ## 2. The operation grammar — `Henret/Scheduler/Op.lean`
 
@@ -118,17 +121,18 @@ cannot be silently severed.
 
 **`reachable_parent_lt`** — In every reachable state, every recorded parent has
 a strictly smaller `TaskId` than its child. Because `nextId` only increases,
-this follows from `WellFormed.parent_lt` (field 15 of 16) and `reachable_wf`.
+this follows from `WellFormed.parent_lt` and `reachable_wf`.
 
 **`parent_chain_terminates`** — Starting from any task `t`, walking the parent
 chain with `ancestor s t (t + 1)` always reaches a root (a task with
 `taskParent = none`) in at most `t + 1` steps. This is the acyclicity
 deliverable: supervision trees are proper trees.
 
-The two new `WellFormed` fields (15 = `WellFormed.parent_lt`, 16 = `WellFormed.parent_spawned`) are
+`WellFormed.parent_lt` and `WellFormed.parent_spawned` are the parenthood
+fields of the current 19-field invariant. Both are
 preserved by all 12 `RuntimeOp` cases; `preserves_wf_spawnChild` in
 `Lifecycle.lean` covers the new operation itself. `reachable_wf` now certifies
-all 16 fields.
+all 19 fields.
 
 
 ## 10. The honesty ledger

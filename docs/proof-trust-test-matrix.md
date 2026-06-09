@@ -144,16 +144,20 @@ zero-assumption core.
 | 70 | All 19 `WellFormed` fields hold in every reachable state (extended from 16) | PROVEN | `reachable_wf` (extended) |
 | 71 | `MailboxBackend` contract updated: `enqueue/dequeue` now operate on `Envelope` | PROVEN | `Refinement.listBackend`, `Refinement.mailboxBackend` |
 
-## v0.8.0 claims (Lean-runtime bridge, RFC 035)
+## v0.8.0 / v0.9.0 claims (Lean-runtime bridge, RFC 035 skeleton → RFC 036 complete)
 
 | # | Claim | Class | Evidence |
 |---:|---|---|---|
-| 72 | `QOp` grammar mirrors lean-runtime's queue-operation grammar | KERNEL | `Henret.Bridge.Grammar` (definition) |
-| 73 | `toQOps` is validity-aware: returns `[]` when `step` would return `.invalid` | PROVEN | `toQOps_spawn_invalid`, `toQOps_yield_invalid`, `toQOps_wake_invalid` |
-| 74 | Every reachable henret state has a `BridgeState` witness | PROVEN | `reachable_bridge` |
+| 72 | `QOp` grammar mirrors lean-runtime's queue-operation grammar plus `Filter` (RFC 036) | KERNEL | `Henret.Bridge.Grammar` (definition) |
+| 73 | `toQOps` is guard-compatible: `toQOps s op = []` whenever `(step s op).2 = .invalid` | PROVEN | per-op invalid lemmas (`toQOps_*_invalid`, `toQOps_*_nil`) |
+| 74 | Every reachable henret state has a `BridgeState` witness | PROVEN | `reachable_bridge` (corollary of 80) |
 | 75 | `bridge_stable`: BridgeState preserved by readyQ-stable steps | PROVEN | `Henret.Bridge.bridge_stable` |
 | 76 | `bridge_spawn`: spawn step preserves BridgeState | PROVEN | `Henret.Bridge.bridge_spawn` |
 | 77 | `bridge_yield`: yield step preserves BridgeState | PROVEN | `Henret.Bridge.bridge_yield` |
-| 78 | `bridge_wake`: wake step preserves BridgeState (Push 0 t for sleeping task) | PROVEN | `Henret.Bridge.bridge_wake` |
+| 78 | `bridge_wake`: wake step preserves BridgeState (`Push 0 t` for sleeping task) | PROVEN | `Henret.Bridge.bridge_wake` |
 | 79 | `bridge_complete`, `bridge_receive`, `bridge_sleep`: readyQ-stable ops preserve BridgeState | PROVEN | `Henret.Bridge.bridge_complete/receive/sleep` |
-| 80 | cancel/send-with-waiter/inject-with-waiter/tick bridge gaps | DOCUMENTED | RFC 036 scope; building blocks in `Bridge.State` |
+| 80 | `bridge_spawnChild`, `bridge_schedule`, `bridge_cancel`, `bridge_send`, `bridge_inject`, `bridge_tick`: all remaining ops preserve BridgeState (RFC 036) | PROVEN | `Henret.Bridge.*` |
+| 81 | `bridge_step_single_worker`: single unified bridge step for all 12 RuntimeOps | PROVEN | `Henret.Bridge.bridge_step_single_worker` |
+| 82 | `bridge_run_tracks_single_worker`: trace-level bridge from init through any op sequence | PROVEN | `Henret.Bridge.bridge_run_tracks_single_worker` |
+| 83 | Bridge is a queue projection only: relates `readyQ` to worker 0; no fairness, no actor semantics | OUTSCOPE | Documented in `docs/bridge-architecture.md` |
+| 84 | Multi-worker bridge extension | OUTSCOPE | Deferred to RFC 043 |

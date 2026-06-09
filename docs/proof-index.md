@@ -214,36 +214,47 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 
 **`Henret/Refinement/Contract.lean`** and **`ReferenceBackend.lean`** — updated to `Envelope` (was `Message`).
 
-### RFC 035 — Lean-Runtime Bridge (cross-project)
+### RFC 035 / RFC 036 — Lean-Runtime Bridge (complete single-worker projection)
 
-**`Henret/Bridge/Grammar.lean`** — QOp grammar and translation:
-- `QOp` — mirror of lean-runtime's queue-operation grammar (Push, Pop, Steal, Wake, Inject).
-- `toQOps : RuntimeState → RuntimeOp → List QOp` — validity-aware translation:
+**`Henret/Bridge/Grammar.lean`** — QOp grammar and translation (RFC 036):
+- `QOp` — bridge queue-operation grammar: Push, Pop, Filter (new in RFC 036),
+  Steal, Wake, Inject (mirrored from lean-runtime; not emitted by single-worker `toQOps`).
+- `toQOps : RuntimeState → RuntimeOp → List QOp` — guard-compatible translation;
   `toQOps s op = []` whenever `step s op` would return `.invalid`.
+  Emits only `Push`, `Pop`, and `Filter` in the single-worker bridge.
 - Direct-effect lemmas: `toQOps_spawn_valid`, `toQOps_spawn_invalid`,
-  `toQOps_yield_valid`, `toQOps_yield_invalid`, `toQOps_wake_valid`,
-  `toQOps_wake_invalid`, `toQOps_complete_nil`, `toQOps_receive_nil`,
-  `toQOps_sleep_nil`, `toQOps_schedule_nonempty`.
+  `toQOps_spawnChild_valid`, `toQOps_schedule_nonempty`, `toQOps_schedule_empty`,
+  `toQOps_yield_valid`, `toQOps_yield_invalid`,
+  `toQOps_wake_valid`, `toQOps_wake_invalid`,
+  `toQOps_cancel_valid`, `toQOps_cancel_invalid_terminal`, `toQOps_cancel_invalid_unspawned`,
+  `toQOps_send_valid_waiter`, `toQOps_send_valid_no_waiter`,
+  `toQOps_inject_valid_waiter`, `toQOps_inject_valid_no_waiter`, `toQOps_inject_invalid`,
+  `toQOps_tick_valid`, `toQOps_tick_invalid`,
+  `toQOps_complete_nil`, `toQOps_receive_nil`, `toQOps_sleep_nil`.
 
-**`Henret/Bridge/State.lean`** — BridgeState relation:
+**`Henret/Bridge/State.lean`** — BridgeState relation and queue model:
 - `WorkerQueues := WorkerIdx → List TaskId` — per-worker task queues.
-- `BridgeState : RuntimeState → WorkerQueues → Prop` — `queue_eq` (worker 0 = henret
-  readyQ) + `other_empty` (single-worker model).
-- `bridgeState_init`, `bridgeState_push0`, `bridgeState_pop0`,
+- `WorkerQueues.init` — empty initial worker-queue map.
+- `BridgeState : RuntimeState → WorkerQueues → Prop` — queue projection bridge:
+  `queue_eq` (worker 0 = henret readyQ) + `other_empty` (single-worker model).
+- `bridgeState_init`, `bridgeState_push0`, `bridgeState_pop0`, `bridgeState_filter0` (RFC 036),
   `bridgeState_readyQ_unchanged` — structural constructors.
-- `applyQOp`, `applyQOps` — queue-model QOp application.
+- `applyQOp`, `applyQOps` — queue-model QOp application (Filter case added in RFC 036).
+- `toQOpsTrace` — state-threading trace translation.
 
-**`Henret/Bridge/Preservation.lean`** — bridge preservation:
+**`Henret/Bridge/Preservation.lean`** — complete bridge preservation (RFC 036):
 - `bridge_stable` — BridgeState is preserved by readyQ-stable steps.
-- `reachable_bridge` — every reachable state has a `BridgeState` witness.
-- Per-op clean-case theorems: `bridge_spawn`, `bridge_yield`, `bridge_wake`,
-  `bridge_complete`, `bridge_receive`, `bridge_sleep`.
+- `applyQOps_append` — `applyQOps wqs (as ++ bs) = applyQOps (applyQOps wqs as) bs`.
+- Per-op bridge theorems (all 12 RuntimeOps covered):
+  `bridge_spawn`, `bridge_spawnChild`, `bridge_schedule`, `bridge_yield`, `bridge_wake`,
+  `bridge_cancel`, `bridge_send`, `bridge_inject`, `bridge_receive`, `bridge_sleep`,
+  `bridge_tick`, `bridge_complete`.
+- **`bridge_step_single_worker`** — unified single-step bridge: for any `RuntimeOp`, if
+  `BridgeState s wqs` holds, then `BridgeState (step s op).1 (applyQOps wqs (toQOps s op))`.
+- **`bridge_run_general`** — trace bridge from any starting state.
+- **`bridge_run_tracks_single_worker`** — headline trace theorem: `BridgeState (run init ops) (applyQOps WorkerQueues.init (toQOpsTrace init ops))`.
+- `reachable_bridge` — backward-compatible existential form (proved via `bridge_run_tracks_single_worker`).
 
-**Semantic note on `toQOps`**: `wake` emits `Push 0 t` (not `Wake`), accurately
-reflecting that a waking sleeping task is appended to worker 0's ready queue.
-
-**Documented gaps (RFC 036)**:
-- `cancel` — readyQ filter; needs a `Filter` QOp.
-- `send`/`inject` with waiter — wake-on-send appends to readyQ; needs `Push`.
-- `tick` — woken tasks; needs `Push` per timer expiry.
-- `schedule` — `Pop 0` case; building block `bridgeState_pop0` exists in State.lean.
+**Bridge scope note**: this is a queue projection bridge. It relates `readyQ` to worker 0's
+queue. It does not claim fairness, native execution, or actor semantics. Multi-worker
+extension is deferred to RFC 043. See `docs/bridge-architecture.md`.

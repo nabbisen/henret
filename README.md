@@ -56,9 +56,10 @@ lake build            # builds the model and all proofs (kernel-checked)
 lake exe henret-demo  # runs executable scenarios with regression checks
 ```
 
-The demo exercises six scenarios — task lifecycle, mailbox send/receive,
-sleep/tick with no early wake, terminal cancellation, and two drivers that
-complete every spawned task — and exits non-zero if any check regresses.
+The demo exercises a sequence of regression scenarios covering task lifecycle,
+mailbox send/receive, sleep/tick, cancellation, parenthood, occurrence
+identity, and bridge-facing behavior, and exits non-zero if any check
+regresses.
 
 In your own file:
 
@@ -91,9 +92,12 @@ open Henret
 - **Wake exactness** — `wake t` touches no other task; a duplicate wake is
   invalid, so it cannot duplicate ready entries (`wake_exact`,
   `wake_twice_invalid`).
-- **Message ownership** — `send` appends exactly one message to exactly one
-  mailbox; `receive` consumes exactly the head; neither touches task state
-  (`send_appends`, `receive_consumes_one`, `send_preserves_other`, ...).
+- **Message ownership** — Mailbox payload effects: `send`/`inject` append
+  exactly one envelope to the target mailbox; successful `receive` removes
+  exactly the head envelope (`send_appends`, `receive_consumes_one`,
+  `send_preserves_other`, ...). Scheduling side effects: under Mesa semantics,
+  delivery may wake one waiting task; an empty own-mailbox `receive` parks the
+  running task.
 - **Timer correctness** — `tick now` never wakes a timer with
   `deadline > now`, wakes every expired sleeping task, and preserves timer
   queue sortedness (`tick_no_early_wake`, `tick_wakes_expired`,
@@ -151,7 +155,7 @@ is merely tested or explicitly out of scope.
 ## Learning path
 
 1. [`docs/guided-tour.md`](docs/guided-tour.md) — read this first.
-2. `Henret/Examples/Basic.lean` — `#eval`-able scenarios (opt-in import; the demo executable drives seven self-checking scenarios).
+2. `Henret/Examples/Basic.lean` — `#eval`-able scenarios (opt-in import; the demo executable drives all regression scenarios).
 3. `Henret/Scheduler/Model.lean` — the `step` function is the semantics.
 4. `Henret/Proofs/Lifecycle.lean` — the flagship monotonicity proof.
 5. [`docs/patterns/refinement-contract.md`](docs/patterns/refinement-contract.md)

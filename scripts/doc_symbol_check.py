@@ -38,17 +38,22 @@ IGNORE = {
     # RFC 033 WellFormed field names (not standalone theorems)
     "occ_fresh", "occ_nodup", "occ_disjoint",
     "nextMsgId", "occurrence",
-    # RFC 035 Bridge sub-namespace (Henret.Bridge.*) — not in open Henret scope
-    "bridgeState_init", "bridgeState_push0", "bridgeState_pop0",
-    "bridgeState_readyQ_unchanged", "applyQOp", "applyQOps",
-    "WorkerQueues", "BridgeState", "QOp", "toQOps",
-    "bridge_spawn", "bridge_yield", "bridge_wake", "bridge_stable",
-    "bridge_complete", "bridge_receive", "bridge_sleep", "reachable_bridge",
+    # RFC 035/036 Bridge sub-namespace types/internals — not standalone theorems
+    "bridgeState_init", "bridgeState_push0", "bridgeState_pop0", "bridgeState_filter0",
+    "bridgeState_readyQ_unchanged", "applyQOp", "applyQOps", "applyQOps_append",
+    "WorkerQueues", "WorkerQueues.init", "BridgeState", "QOp", "toQOps", "toQOpsTrace",
+    "bridge_stable", "WorkerIdx", "pushWorker0",
+    # toQOps direct-effect lemmas (internal; listed in proof-index but not live docs)
     "toQOps_spawn_valid", "toQOps_spawn_invalid",
+    "toQOps_spawnChild_valid",
     "toQOps_yield_valid", "toQOps_yield_invalid",
     "toQOps_wake_valid", "toQOps_wake_invalid",
+    "toQOps_cancel_valid", "toQOps_cancel_invalid_terminal", "toQOps_cancel_invalid_unspawned",
+    "toQOps_send_valid_waiter", "toQOps_send_valid_no_waiter",
+    "toQOps_inject_valid_waiter", "toQOps_inject_valid_no_waiter", "toQOps_inject_invalid",
+    "toQOps_tick_valid", "toQOps_tick_invalid",
     "toQOps_complete_nil", "toQOps_receive_nil", "toQOps_sleep_nil",
-    "toQOps_schedule_nonempty", "WorkerIdx", "pushWorker0",
+    "toQOps_schedule_nonempty", "toQOps_schedule_empty",
     # operation syntax and grammar tokens
     "send t b m", "receive t", "inject a m", "spawn a", "yield t",
     "complete t", "cancel t", "sleep t deadline", "tick now", "wake t",
@@ -118,7 +123,7 @@ def main() -> int:
         "import Henret",
         "import Henret.Native.DequeModel",
         "import Henret.Native.Assumptions",
-        "open Henret Henret.Native",
+        "open Henret Henret.Native Henret.Bridge",
         "",
     ]
     for n in sorted(names):

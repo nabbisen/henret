@@ -1,5 +1,74 @@
 # Changelog
 
+## v0.9.0 — Single-Worker Bridge Completion (RFC 036 + RFC 037)
+
+Completes the single-worker queue-projection bridge and resolves all
+v0.8.0 public claim issues identified in the architect review.
+
+### RFC 037 — Public Claim Repair
+
+- `docs/guided-tour.md` — replaced stale "Six scenarios" count with
+  count-free prose matching the actual demo sequence.
+- `scripts/check.sh` gate 6 — extended with v0.8.0 stale-phrase checks
+  (hard-coded scenario count, parenthood field counts, provenance note,
+  task-state claim, RFC 035 old title). All gates now green.
+- All other RFC 037 edits (send provenance note, README messaging section,
+  guided tour field counts, RFC 035 status) were already applied in the
+  v0.8.0 working copy.
+
+### RFC 036 — Bridge Claim Repair and Single-Worker Bridge Completion
+
+#### QOp grammar (`Henret/Bridge/Grammar.lean`)
+- `QOp.Filter` — new constructor for cancellation queue effect.
+- `toQOps` rewritten to be fully guard-compatible: `toQOps s op = []`
+  whenever `(step s op).2 = .invalid`, for all 12 operations.
+  - `tick` now uses the argument `t` (not `s.now`).
+  - `cancel` emits `[Filter 0 t]` for non-terminal tasks.
+  - `send`/`inject` fully check running state, task state, owner, and
+    mailbox existence before emitting queue effects.
+  - `Wake` is no longer emitted (Design A per RFC 036); all wake effects
+    are expressed as `Push 0 t`.
+- New direct-effect lemmas: `toQOps_cancel_valid`,
+  `toQOps_cancel_invalid_terminal`, `toQOps_cancel_invalid_unspawned`,
+  `toQOps_send_valid_waiter`, `toQOps_send_valid_no_waiter`,
+  `toQOps_inject_valid_waiter`, `toQOps_inject_valid_no_waiter`,
+  `toQOps_inject_invalid`, `toQOps_tick_valid`, `toQOps_tick_invalid`,
+  `toQOps_schedule_empty`, `toQOps_spawnChild_valid`.
+
+#### BridgeState and queue model (`Henret/Bridge/State.lean`)
+- `WorkerQueues.init` — empty initial worker-queue map.
+- `bridgeState_filter0` — BridgeState is preserved by `Filter 0 t`.
+- `applyQOp .Filter` — removes all occurrences of task `t` from a worker's queue.
+- `toQOpsTrace` — state-threading trace translation for the trace theorem.
+
+#### Bridge preservation (`Henret/Bridge/Preservation.lean`)
+- New per-op theorems: `bridge_spawnChild`, `bridge_schedule`,
+  `bridge_cancel`, `bridge_send`, `bridge_inject`, `bridge_tick`.
+- `applyQOps_append` — `applyQOps wqs (as ++ bs) = applyQOps (applyQOps wqs as) bs`.
+- **`bridge_step_single_worker`** — unified single-step bridge for all 12 `RuntimeOp`s.
+- **`bridge_run_general`** — trace bridge from any starting `BridgeState`.
+- **`bridge_run_tracks_single_worker`** — headline trace theorem:
+  `BridgeState (run init ops) (applyQOps WorkerQueues.init (toQOpsTrace init ops))`.
+- `reachable_bridge` now proved via `bridge_run_tracks_single_worker`.
+
+#### Documentation
+- `docs/bridge-architecture.md` — new document describing bridge scope,
+  QOp grammar, translation table, headline theorems, and what is not claimed.
+- `docs/proof-index.md` — bridge section updated for RFC 036 completion.
+- `docs/proof-trust-test-matrix.md` — claims 80–84 added (all 12 bridge ops,
+  bridge_step_single_worker, bridge_run_tracks_single_worker, scope notes).
+- `scripts/check.sh` gate 5 — axiom audit extended with RFC 036 bridge theorems.
+- `scripts/doc_symbol_check.py` — IGNORE list updated; 153 names now checked
+  (up from 135); `open Henret.Bridge` added to preamble.
+
+### Invariants maintained
+- Zero `sorry`, zero project-specific axioms.
+- All new bridge theorems depend only on `propext`, `Quot.sound`, and
+  `Classical.choice` — the standard Lean 4 kernel axioms.
+- `WellFormed` and all 19-field reachability proofs unchanged.
+
+---
+
 ## v0.8.0 — Lean-Runtime Bridge (RFC 035)
 
 Formally connects the henret model to the lean-runtime work-stealing scheduler.

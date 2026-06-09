@@ -1,6 +1,7 @@
-# RFC 035 — Lean-Runtime Bridge: Connecting the Henret Model to the Work-Stealing Runtime
+# RFC 035 — Single-Worker Lean-Runtime Bridge Skeleton
 
-**Status.** Implemented (v0.8.0)
+**Status.** Implemented as bridge skeleton in v0.8.0; full single-worker bridge
+preservation deferred to RFC 036.
 **Tracks.** Cross-project semantic bridge between `henret` and `lean-runtime-workspace`.
 **Touches.** `henret` model semantics, `lean-runtime-workspace/lean-runtime` refinement layer, new `Henret/Bridge/` module, documentation.
 
