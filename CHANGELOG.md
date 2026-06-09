@@ -1,5 +1,74 @@
 # Changelog
 
+## v0.7.0 — Message envelope and occurrence identity (RFC 033)
+
+Delivers globally unique delivery identity: every envelope carried by `send`
+or `inject` is stamped with a `MessageId` allocated from `nextMsgId`, and the
+kernel proves that no two envelopes in any reachable state share the same id.
+
+### Model changes
+
+**`Henret/Actor/Mailbox.lean`**
+- `MessageId := Nat` — occurrence-id type alias.
+- `Envelope` (new structure) — `occurrence : MessageId`, `source : Option ActorId`,
+  `body : Message`. The unit of in-transit storage; replaces bare `Message`.
+- `Mailbox.messages : List Envelope` (was `List Message`).
+- `Mailbox.enqueue : Mailbox → Envelope → Mailbox` (was `→ Message →`).
+- `Mailbox.dequeue : Mailbox → Option (Envelope × Mailbox)`.
+
+**`Henret/Scheduler/Model.lean`**
+- `RuntimeState.nextMsgId : MessageId` (new field, init = 0).
+- `send t b m` — stamps `env := ⟨s.nextMsgId, s.taskOwner t, m⟩`, bumps `nextMsgId`.
+- `inject a m` — stamps `env := ⟨s.nextMsgId, none, m⟩`, bumps `nextMsgId`.
+- `receive t` — dequeues an `Envelope`; `StepResult.received` now carries `Envelope`.
+
+**`Henret/Core/Result.lean`**
+- `StepResult.received` carries `Envelope` (was `Message`).
+
+### New (`Henret/Proofs/Invariants.lean`)
+- `WellFormed.occ_fresh` (field 17) — every envelope's occurrence id is
+  strictly less than `nextMsgId`.
+- `WellFormed.occ_nodup` (field 18) — within each mailbox all occurrence ids
+  are distinct.
+- `WellFormed.occ_disjoint` (field 19) — across different mailboxes all
+  occurrence ids are distinct.
+- `wf_init` extended to 19 fields.
+
+### New (`Henret/Proofs/Occurrence.lean`)
+- `reachable_occurrence_unique` — **headline**: in every reachable state, equal
+  occurrence ids in any two (possibly equal) mailboxes imply the same envelope
+  in the same mailbox. Globally unique delivery identity.
+- `send_stamps_source` — the envelope delivered by `send t b m` carries
+  `source = s.taskOwner t`.
+- `inject_stamps_none` — the envelope delivered by `inject a m` carries
+  `source = none`.
+
+### Updated
+
+**All three preservation files** — extended to 19 fields (3 new occ bullets per
+refine block):
+- `Henret/Proofs/Preservation/Lifecycle.lean` — 7 refine blocks.
+- `Henret/Proofs/Preservation/Time.lean` — 3 refine blocks.
+- `Henret/Proofs/Preservation/Messaging.lean` — 6 refine blocks;
+  send/inject occ proofs use `send_appends` / `inject_appends` for
+  the cons-waiter case.
+
+**`Henret/Proofs/Messaging.lean`** — `send_appends`, `inject_appends`,
+`receive_only_own`, `receive_consumes_one`, `receive_length` updated for `Envelope`.
+
+**`Henret/Refinement/Contract.lean`** and **`ReferenceBackend.lean`** — updated:
+`enqueue`/`dequeue`/`toList` now operate on `Envelope` (was `Message`).
+
+**`Henret/Proofs.lean`** — exports `Henret.Proofs.Occurrence`.
+
+### Demo and examples
+- Scenarios 2 and 7 updated with exact `Envelope` constructor values (occurrence
+  ids are deterministic and kernel-assigned).
+- `examples/02_actor_mailbox.lean` — `#eval` comment updated; stale
+  `spawn_sets_owner` reference replaced.
+
+---
+
 ## v0.6.0 — Actor-scoped spawn and supervision groundwork (RFC 032)
 
 Implements the actor-scoped spawn operation and its full kernel-proven

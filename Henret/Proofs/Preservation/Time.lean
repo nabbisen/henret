@@ -20,7 +20,7 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
           intro hm; rw [List.mem_map] at hm
           obtain ⟨e, he, hee⟩ := hm
           have h1 := h.timers_sleep e he; rw [hee, hts] at h1; cases h1
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · simp [step, hrt, hts]; exact h.readyQ_nodup
         · intro u hm
           simp [step, hrt, hts] at hm ⊢
@@ -83,6 +83,16 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
           by_cases hpt : p = t
           · exact ⟨.sleeping, by simp only [step, if_pos hrt, hts, upd_self, hpt]⟩
           · exact ⟨st, by simp only [step, if_pos hrt, hts, upd, if_neg hpt]; exact hst⟩
+        · -- occ_fresh (RFC 033): mailboxes unaffected
+          intro a mb env hmb henv; simp only [step, if_pos hrt, hts] at hmb ⊢
+          exact h.occ_fresh a mb env hmb henv
+        · -- occ_nodup (RFC 033): mailboxes unaffected
+          intro a mb hmb; simp only [step, if_pos hrt, hts] at hmb
+          exact h.occ_nodup a mb hmb
+        · -- occ_disjoint (RFC 033): mailboxes unaffected
+          intro a b mba mbb hab hmba hmbb ea hea eb heb
+          simp only [step, if_pos hrt, hts] at hmba hmbb
+          exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
       | new | ready | yielded | sleeping | completed | cancelled | waiting =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
@@ -102,7 +112,7 @@ theorem preserves_wf_tick {s : RuntimeState} (h : WellFormed s) :
       intro a ha hm
       have h1 := h.readyQ_queued a ha
       rw [hwoken_sleep a hm] at h1; simp [Option.any, TaskState.isRunnable] at h1
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · simp only [step, if_pos hle]; rw [← hwdef]
       exact nodup_append h.readyQ_nodup hwoken_nodup hdisj
     · intro u hm
@@ -183,6 +193,16 @@ theorem preserves_wf_tick {s : RuntimeState} (h : WellFormed s) :
       by_cases hpw : p ∈ woken
       · exact ⟨.ready, by simp only [step, if_pos hle]; rw [← hwdef]; exact wakeMany_wakes hpw (hwoken_sleep p hpw)⟩
       · exact ⟨st, by simp only [step, if_pos hle]; rw [← hwdef]; rw [wakeMany_preserves_other hpw]; exact hst⟩
+    · -- occ_fresh (RFC 033): mailboxes unaffected
+      intro a mb env hmb henv; simp only [step, if_pos hle] at hmb ⊢
+      exact h.occ_fresh a mb env hmb henv
+    · -- occ_nodup (RFC 033): mailboxes unaffected
+      intro a mb hmb; simp only [step, if_pos hle] at hmb
+      exact h.occ_nodup a mb hmb
+    · -- occ_disjoint (RFC 033): mailboxes unaffected
+      intro a b mba mbb hab hmba hmbb ea hea eb heb
+      simp only [step, if_pos hle] at hmba hmbb
+      exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
   · simpa [step, hle] using h
 
 theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
@@ -195,7 +215,7 @@ theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
       have hnq : t ∉ s.readyQ := fun hm => by
         have h1 := h.readyQ_queued t hm; rw [hts] at h1
         simp [Option.any, TaskState.isRunnable] at h1
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp [step, hts]; exact nodup_append_singleton h.readyQ_nodup hnq
       · intro u hm
         simp [step, hts] at hm ⊢; rcases hm with hm | rfl
@@ -257,6 +277,16 @@ theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
         by_cases hpt : p = t
         · exact ⟨.ready, by simp [step, hts, upd_self, hpt]⟩
         · exact ⟨st, by simp [step, hts, upd, if_neg hpt]; exact hst⟩
+      · -- occ_fresh (RFC 033): mailboxes unaffected
+        intro a mb env hmb henv; simp only [step, hts] at hmb ⊢
+        exact h.occ_fresh a mb env hmb henv
+      · -- occ_nodup (RFC 033): mailboxes unaffected
+        intro a mb hmb; simp only [step, hts] at hmb
+        exact h.occ_nodup a mb hmb
+      · -- occ_disjoint (RFC 033): mailboxes unaffected
+        intro a b mba mbb hab hmba hmbb ea hea eb heb
+        simp only [step, hts] at hmba hmbb
+        exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
     | new | ready | running | yielded | completed | cancelled | waiting =>
       simpa [step, hts] using h
 

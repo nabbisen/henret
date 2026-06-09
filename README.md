@@ -104,7 +104,7 @@ open Henret
   the ready queue never duplicates a task, every queued task is runnable,
   every timer task is sleeping, and a task occupies at most one ownership
   location; wait-queue integrity is also guaranteed (`reachable_wf`,
-  `WellFormed`, 16 fields).
+  `WellFormed`, 19 fields).
 - **Ownership immutability** (v0.2.0) — a spawned task's owning actor never
   changes (`WellFormed.spawned_has_owner`, `reachable_spawned_has_owner`).
 - **Invalid is a no-op** (v0.2.0) — an invalid operation never mutates state
@@ -131,12 +131,18 @@ open Henret
   clears the running slot, and appends the task to its actor's
   `mailboxWaiters` queue (`receive_empty_parks`, `receive_blocked_parks`). A
   later valid `send`/`inject` wakes the head waiter to `.ready`. Four new
-  `WellFormed` fields (14 total) guarantee wait-queue integrity in every
+  `WellFormed` fields (14 total, now 19 as of v0.7.0) guarantee wait-queue integrity in every
   reachable state (`waiters_waiting`, `waiters_owned`, `waiting_queued`,
   `waiters_nodup`); `reachable_waiters_exact` is the exact-membership theorem
   mirroring `reachable_queue_exact`.
+- **Occurrence identity** (v0.7.0) — every envelope delivered by `send` or
+  `inject` is stamped with a globally unique `MessageId` allocated from
+  `nextMsgId`. Three new `WellFormed` fields (`occ_fresh`, `occ_nodup`,
+  `occ_disjoint`, 19 total) guarantee that no two envelopes in any reachable
+  mailboxes share an occurrence id (`reachable_occurrence_unique`).
 - **Backend contract** — both reference mailbox backends satisfy the
-  `MailboxBackend` refinement contract (`listBackend`, `mailboxBackend`).
+  `MailboxBackend` refinement contract (`listBackend`, `mailboxBackend`);
+  updated for v0.7.0 to operate on `Envelope` (was `Message`).
 
 See [`docs/proof-index.md`](docs/proof-index.md) for the full theorem list and
 [`docs/proof-trust-test-matrix.md`](docs/proof-trust-test-matrix.md) for what

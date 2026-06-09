@@ -130,3 +130,16 @@ zero-assumption core.
 | 61 | In every reachable state, every recorded parent exists in some state (parent_spawned invariant) | PROVEN | `WellFormed.parent_spawned` |
 | 62 | All ancestor chains terminate: every task reaches a root within `t` steps | PROVEN | `parent_chain_terminates` (acyclicity deliverable) |
 | 63 | All 16 `WellFormed` fields hold in every reachable state (extended from 14 fields) | PROVEN | `reachable_wf` (extended) |
+
+## v0.7.0 claims (message envelope and occurrence identity, RFC 033)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 64 | Every delivered envelope carries a unique occurrence id allocated from `nextMsgId` | PROVEN | `WellFormed.occ_fresh` in every reachable state |
+| 65 | Within each mailbox, all occurrence ids are distinct (per-mailbox uniqueness) | PROVEN | `WellFormed.occ_nodup` in every reachable state |
+| 66 | Across all mailboxes, all occurrence ids are distinct (global uniqueness) | PROVEN | `WellFormed.occ_disjoint` in every reachable state |
+| 67 | **Headline**: equal occurrence ids in any reachable mailboxes implies the same envelope in the same mailbox | PROVEN | `reachable_occurrence_unique` |
+| 68 | `send` stamps its envelope with `source = taskOwner t` (sender's actor) | PROVEN | `send_stamps_source` |
+| 69 | `inject` stamps its envelope with `source = none` (environment delivery) | PROVEN | `inject_stamps_none` |
+| 70 | All 19 `WellFormed` fields hold in every reachable state (extended from 16) | PROVEN | `reachable_wf` (extended) |
+| 71 | `MailboxBackend` contract updated: `enqueue/dequeue` now operate on `Envelope` | PROVEN | `Refinement.listBackend`, `Refinement.mailboxBackend` |

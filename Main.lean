@@ -21,9 +21,9 @@ def main : IO Unit := do
   IO.println "scenario 2: mailbox send/receive"
   let (s2, trace) := mailboxScenario
   check "received message 1"
-    (trace.contains (.received ⟨1, 100⟩))
+    (trace.contains (.received ⟨0, some 7, ⟨1, 100⟩⟩))
   check "mailbox holds exactly message 2"
-    ((s2.mailboxes 7).map Mailbox.messages == some [⟨2, 200⟩])
+    ((s2.mailboxes 7).map Mailbox.messages == some [⟨1, some 7, ⟨2, 200⟩⟩])
 
   IO.println "scenario 3: sleep and tick (no early wake)"
   let s3 := sleepTick
@@ -98,11 +98,11 @@ def main : IO Unit := do
   check "waiter list drained" (s12.mailboxWaiters 7 == [])
   check "woken task re-queued" (s12.readyQ.contains 0)
   check "message sits in mailbox until re-receive (Mesa, no handoff)"
-    ((s12.mailboxes 7).map Mailbox.messages == some [⟨1, 100⟩])
+    ((s12.mailboxes 7).map Mailbox.messages == some [⟨0, none, ⟨1, 100⟩⟩])
   let s13 := run s12 [.schedule]
   let (s14, r14) := step s13 (.receive 0)
   check "re-issued receive consumes the delivered message"
-    (r14 matches .received ⟨1, 100⟩)
+    (r14 matches .received ⟨0, none, ⟨1, 100⟩⟩)
   check "mailbox empty after consume"
     ((s14.mailboxes 7).map Mailbox.messages == some [])
 

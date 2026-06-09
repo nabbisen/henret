@@ -35,6 +35,10 @@ structure RuntimeState where
   /-- Fresh task-id counter; ids below it may exist, ids at or above
       it are unused. -/
   nextId    : TaskId
+  /-- Fresh message occurrence-id counter; every delivered envelope
+      receives the current value and the counter is bumped.
+      Analogue of `nextId` for occurrence uniqueness (RFC 033). -/
+  nextMsgId : MessageId
 
 namespace RuntimeState
 
@@ -50,6 +54,7 @@ def init : RuntimeState where
   taskParent     := fun _ => none
   now            := 0
   nextId         := 0
+  nextMsgId      := 0
 
 end RuntimeState
 
@@ -137,8 +142,11 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
         | some _ =>
           match s.mailboxes b with
           | some mb =>
-            -- Enqueue the message; wake the head waiter of b if any.
-            let s' := { s with mailboxes := upd s.mailboxes b (some (mb.enqueue m)) }
+            -- Stamp envelope with occurrence id and sender's actor; wake head waiter of b if any (RFC 033).
+            let env : Envelope := ⟨s.nextMsgId, s.taskOwner t, m⟩
+            let s' := { s with
+                          mailboxes := upd s.mailboxes b (some (mb.enqueue env))
+                          nextMsgId := s.nextMsgId + 1 }
             match s.mailboxWaiters b with
             | []      => (s', .ok)
             | w :: ws =>
@@ -161,8 +169,8 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
           match s.mailboxes a with
           | some mb =>
             match mb.dequeue with
-            | some (m, mb') =>
-              ({ s with mailboxes := upd s.mailboxes a (some mb') }, .received m)
+            | some (env, mb') =>
+              ({ s with mailboxes := upd s.mailboxes a (some mb') }, .received env)
             | none =>
               -- Park: task waits on actor a's mailbox (RFC 031).
               ({ s with
@@ -179,8 +187,11 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
   | .inject a m =>
     match s.mailboxes a with
     | some mb =>
-      -- Wake head waiter of a if any (RFC 031).
-      let s' := { s with mailboxes := upd s.mailboxes a (some (mb.enqueue m)) }
+      -- Stamp envelope with occurrence id and none source (environment); wake head waiter if any (RFC 033).
+      let env : Envelope := ⟨s.nextMsgId, none, m⟩
+      let s' := { s with
+                    mailboxes := upd s.mailboxes a (some (mb.enqueue env))
+                    nextMsgId := s.nextMsgId + 1 }
       match s.mailboxWaiters a with
       | []      => (s', .ok)
       | w :: ws =>

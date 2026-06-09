@@ -34,7 +34,7 @@ def msg : Message := ⟨1, 42⟩
 def s4 := (step s3 (.inject 10 msg)).1
 
 #eval s4.mailboxes 10
--- some { messages := [{ id := 1, payload := 42 }] }
+-- some { messages := [{ occurrence := 0, source := none, body := { id := 1, payload := 42 } }] }
 #eval s4.mailboxes 20
 -- some { messages := [] }  — actor 20 is unaffected
 
@@ -50,5 +50,5 @@ Each spawned task records its owning actor in `taskOwner`. -/
 -- some 10   — task 0 is owned by actor 10 (set at spawn)
 
 -- The theorems: ownership is set at spawn and immutable thereafter.
-#check @Henret.spawn_sets_owner
-#check @Henret.run_preserves_owner
+#check @Henret.WellFormed.spawned_has_owner
+-- reachable_spawned_has_owner: every reachable spawned task has an owner

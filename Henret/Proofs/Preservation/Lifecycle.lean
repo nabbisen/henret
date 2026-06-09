@@ -14,7 +14,7 @@ theorem preserves_wf_spawn (h : WellFormed s) (a : ActorId) :
   | none =>
     have hnq : s.nextId ∉ s.readyQ := fun hm => by
       have h1 := h.readyQ_queued _ hm; rw [hts] at h1; simp [Option.any] at h1
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · simp only [step, hts]
       exact nodup_append_singleton h.readyQ_nodup hnq
     · intro u hm
@@ -102,6 +102,52 @@ theorem preserves_wf_spawn (h : WellFormed s) (a : ActorId) :
       -- taskState_new at p: spawn only sets nextId; no parent is nextId by parent_lt+fresh_none
       have hpn : p ≠ s.nextId := fun he => absurd (he ▸ hts) (by rw [h.parent_spawned t p hpar |>.choose_spec]; simp)
       exact ⟨st, by simp only [step, hts, upd, if_neg hpn]; exact hst⟩
+    · -- occ_fresh (RFC 033): spawn creates empty mailbox at most
+      intro ac mb env hmb henv; simp only [step, hts] at hmb ⊢
+      cases hmba : s.mailboxes a with
+      | some _ => simp only [hmba] at hmb; exact h.occ_fresh ac mb env hmb henv
+      | none =>
+        simp only [hmba] at hmb
+        by_cases hac : ac = a
+        · subst hac; rw [upd_self] at hmb
+          have hmeq : Mailbox.empty = mb := Option.some.inj hmb; subst hmeq
+          simp [Mailbox.empty] at henv
+        · exact h.occ_fresh ac mb env (by simp only [upd, if_neg hac] at hmb; exact hmb) henv
+    · -- occ_nodup (RFC 033): spawn creates empty mailbox at most
+      intro ac mb hmb; simp only [step, hts] at hmb
+      cases hmba : s.mailboxes a with
+      | some _ => simp only [hmba] at hmb; exact h.occ_nodup ac mb hmb
+      | none =>
+        simp only [hmba] at hmb
+        by_cases hac : ac = a
+        · subst hac; rw [upd_self] at hmb
+          have hmeq : Mailbox.empty = mb := Option.some.inj hmb; subst hmeq
+          simp [Mailbox.empty]
+        · exact h.occ_nodup ac mb (by simp only [upd, if_neg hac] at hmb; exact hmb)
+    · -- occ_disjoint (RFC 033): spawn creates empty mailbox at most
+      intro ac b mba mbb hab hmba hmbb ea hea eb heb
+      simp only [step, hts] at hmba hmbb
+      have hmba' : s.mailboxes ac = some mba := by
+        cases hm : s.mailboxes a with
+        | some _ => simp only [hm] at hmba; exact hmba
+        | none =>
+          simp only [hm] at hmba
+          by_cases h1 : ac = a
+          · subst h1; rw [upd_self] at hmba
+            have hmeq : Mailbox.empty = mba := Option.some.inj hmba; subst hmeq
+            simp [Mailbox.empty] at hea
+          · simp only [upd, if_neg h1] at hmba; exact hmba
+      have hmbb' : s.mailboxes b = some mbb := by
+        cases hm : s.mailboxes a with
+        | some _ => simp only [hm] at hmbb; exact hmbb
+        | none =>
+          simp only [hm] at hmbb
+          by_cases h1 : b = a
+          · subst h1; rw [upd_self] at hmbb
+            have hmeq : Mailbox.empty = mbb := Option.some.inj hmbb; subst hmeq
+            simp [Mailbox.empty] at heb
+          · simp only [upd, if_neg h1] at hmbb; exact hmbb
+      exact h.occ_disjoint ac b mba mbb hab hmba' hmbb' ea hea eb heb
 
 theorem preserves_wf_schedule (h : WellFormed s) :
     WellFormed ((step s .schedule).1) := by
@@ -117,7 +163,7 @@ theorem preserves_wf_schedule (h : WellFormed s) :
           cases hto : s.taskState t with
           | none => rw [hto] at hrun; simp [Option.any] at hrun
           | some x => exact ⟨x, rfl⟩
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · simp only [step, hr, hq, if_pos hrun]; exact hnodup.2
         · intro u hm
           simp only [step, hr, hq, if_pos hrun] at hm ⊢
@@ -194,6 +240,17 @@ theorem preserves_wf_schedule (h : WellFormed s) :
           by_cases hpt : p = t
           · exact ⟨.running, by simp [step, hr, hq, if_pos hrun, upd_self, hpt]⟩
           · exact ⟨st, by simp only [step, hr, hq, if_pos hrun, upd, if_neg hpt, hst]⟩
+        · -- occ_fresh (RFC 033): mailboxes unaffected
+          intro a mb env hmb henv; simp only [step, hr, hq, if_pos hrun] at hmb ⊢
+          exact h.occ_fresh a mb env hmb henv
+        · -- occ_nodup (RFC 033): mailboxes unaffected
+          intro a mb hmb; simp only [step, hr, hq, if_pos hrun] at hmb
+          exact h.occ_nodup a mb hmb
+        · -- occ_disjoint (RFC 033): mailboxes unaffected
+          intro a b mba mbb hab hmba hmbb ea hea eb heb
+          simp only [step, hr, hq, if_pos hrun] at hmba hmbb
+          exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
+
       · simp at hrun; simpa [step, hr, hq, hrun] using h
 
 theorem preserves_wf_yield (h : WellFormed s) :
@@ -207,7 +264,7 @@ theorem preserves_wf_yield (h : WellFormed s) :
         have hnq : t ∉ s.readyQ := fun hm => by
           have h1 := h.readyQ_queued t hm; rw [hts] at h1
           simp [Option.any, TaskState.isRunnable] at h1
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · simp only [step, hrt, hts, if_pos rfl]; simp only [if_pos]
           exact nodup_append_singleton h.readyQ_nodup hnq
         · intro u hm
@@ -273,6 +330,17 @@ theorem preserves_wf_yield (h : WellFormed s) :
           by_cases hpt : p = t
           · exact ⟨.yielded, by simp [step, hrt, hts, upd_self, hpt]⟩
           · exact ⟨st, by simp [step, hrt, hts, upd, if_neg hpt]; exact hst⟩
+        · -- occ_fresh (RFC 033): mailboxes unaffected
+          intro a mb env hmb henv; simp only [step, hrt, hts] at hmb ⊢
+          exact h.occ_fresh a mb env hmb henv
+        · -- occ_nodup (RFC 033): mailboxes unaffected
+          intro a mb hmb; simp only [step, hrt, hts] at hmb
+          exact h.occ_nodup a mb hmb
+        · -- occ_disjoint (RFC 033): mailboxes unaffected
+          intro a b mba mbb hab hmba hmbb ea hea eb heb
+          simp only [step, hrt, hts] at hmba hmbb
+          exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
+
       | new | ready | yielded | sleeping | completed | cancelled | waiting =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
@@ -285,7 +353,7 @@ theorem preserves_wf_complete (h : WellFormed s) :
     | some s' =>
       cases s' with
       | running =>
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · simp [step, hrt, hts]; exact h.readyQ_nodup
         · intro u hm
           simp [step, hrt, hts] at hm ⊢
@@ -351,6 +419,17 @@ theorem preserves_wf_complete (h : WellFormed s) :
           by_cases hpt : p = t
           · exact ⟨.completed, by simp [step, hrt, hts, upd_self, hpt]⟩
           · exact ⟨st, by simp [step, hrt, hts, upd, if_neg hpt]; exact hst⟩
+        · -- occ_fresh (RFC 033): mailboxes unaffected
+          intro a mb env hmb henv; simp only [step, hrt, hts] at hmb ⊢
+          exact h.occ_fresh a mb env hmb henv
+        · -- occ_nodup (RFC 033): mailboxes unaffected
+          intro a mb hmb; simp only [step, hrt, hts] at hmb
+          exact h.occ_nodup a mb hmb
+        · -- occ_disjoint (RFC 033): mailboxes unaffected
+          intro a b mba mbb hab hmba hmbb ea hea eb heb
+          simp only [step, hrt, hts] at hmba hmbb
+          exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
+
       | new | ready | yielded | sleeping | completed | cancelled | waiting =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
@@ -363,7 +442,7 @@ theorem preserves_wf_cancel (h : WellFormed s) :
     by_cases hterm : s'.isTerminal = true
     · simpa [step, hts, hterm] using h
     · simp at hterm
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp [step, hts, hterm]; exact h.readyQ_nodup.filter _
       · intro u hm
         simp [step, hts, hterm] at hm ⊢
@@ -490,7 +569,18 @@ theorem preserves_wf_cancel (h : WellFormed s) :
         · exact ⟨.cancelled, by simp [step, hts, hterm, upd_self, hpt]⟩
         · exact ⟨st, by simp only [step, hts, hterm, Bool.false_eq_true, if_false,
                                     upd, if_neg hpt, hst]⟩
-
+      · -- occ_fresh (RFC 033): mailboxes unaffected
+        intro a mb env hmb henv
+        simp only [step, hts, hterm, if_false] at hmb ⊢
+        exact h.occ_fresh a mb env hmb henv
+      · -- occ_nodup (RFC 033): mailboxes unaffected
+        intro a mb hmb
+        simp only [step, hts, hterm, if_false] at hmb
+        exact h.occ_nodup a mb hmb
+      · -- occ_disjoint (RFC 033): mailboxes unaffected
+        intro a b mba mbb hab hmba hmbb ea hea eb heb
+        simp only [step, hts, hterm, if_false] at hmba hmbb
+        exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
 
 -- Helper: key spawnChild proof patterns mirror spawn exactly
 -- (spawnChild only adds taskParent; all other WF fields follow the same logic)
@@ -524,7 +614,7 @@ theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
                   mailboxes  := upd s.mailboxes childA (some Mailbox.empty)
                   nextId     := s.nextId + 1 } := by simp [step, hrt, hts, how, hfresh, hma]
               rw [hstep_eq]
-              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
               · exact nodup_append_singleton h.readyQ_nodup hnq
               · intro u hm
                 rw [List.mem_append, List.mem_singleton] at hm
@@ -602,6 +692,32 @@ theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
                   by_cases hpn : p = s.nextId
                   · exact ⟨.new, by simp only [hpn, upd_self]⟩
                   · exact ⟨st', by simp only [upd, if_neg hpn]; exact hst'⟩
+              · -- occ_fresh (RFC 033): new mailbox is Mailbox.empty
+                intro ac mb env hmb henv
+                by_cases hac : ac = childA
+                · subst hac; simp only [upd_self, Option.some.injEq] at hmb; subst hmb
+                  simp [Mailbox.empty] at henv
+                · exact h.occ_fresh ac mb env (by simp only [upd, if_neg hac] at hmb; exact hmb) henv
+              · -- occ_nodup (RFC 033): new mailbox is Mailbox.empty
+                intro ac mb hmb
+                by_cases hac : ac = childA
+                · subst hac; simp only [upd_self, Option.some.injEq] at hmb; subst hmb
+                  simp [Mailbox.empty]
+                · exact h.occ_nodup ac mb (by simp only [upd, if_neg hac] at hmb; exact hmb)
+              · -- occ_disjoint (RFC 033): new mailbox is Mailbox.empty
+                intro ac b mba mbb hab hmba hmbb ea hea eb heb
+                have hmba' : s.mailboxes ac = some mba := by
+                  by_cases h1 : ac = childA
+                  · subst h1; simp only [upd_self, Option.some.injEq] at hmba; subst hmba
+                    simp [Mailbox.empty] at hea
+                  · simp only [upd, if_neg h1] at hmba; exact hmba
+                have hmbb' : s.mailboxes b = some mbb := by
+                  by_cases h1 : b = childA
+                  · subst h1; simp only [upd_self, Option.some.injEq] at hmbb; subst hmbb
+                    simp [Mailbox.empty] at heb
+                  · simp only [upd, if_neg h1] at hmbb; exact hmbb
+                exact h.occ_disjoint ac b mba mbb hab hmba' hmbb' ea hea eb heb
+
             | some existingMb =>
               -- mailboxes field: s.mailboxes (unchanged)
               have hstep_eq : (step s (.spawnChild t childA)).1 = { s with
@@ -611,7 +727,7 @@ theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
                   readyQ     := s.readyQ ++ [s.nextId]
                   nextId     := s.nextId + 1 } := by simp [step, hrt, hts, how, hfresh, hma]
               rw [hstep_eq]
-              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
               · exact nodup_append_singleton h.readyQ_nodup hnq
               · intro u hm
                 rw [List.mem_append, List.mem_singleton] at hm
@@ -687,6 +803,14 @@ theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
                   by_cases hpn : p = s.nextId
                   · exact ⟨.new, by simp only [hpn, upd_self]⟩
                   · exact ⟨st', by simp only [upd, if_neg hpn]; exact hst'⟩
+              · -- occ_fresh (RFC 033): mailboxes = s.mailboxes after rw [hstep_eq]
+                intro a mb env hmb henv; exact h.occ_fresh a mb env hmb henv
+              · -- occ_nodup (RFC 033)
+                intro a mb hmb; exact h.occ_nodup a mb hmb
+              · -- occ_disjoint (RFC 033)
+                intro a b mba mbb hab hmba hmbb ea hea eb heb
+                exact h.occ_disjoint a b mba mbb hab hmba hmbb ea hea eb heb
+
       | new | ready | yielded | sleeping | waiting | completed | cancelled =>
           simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h

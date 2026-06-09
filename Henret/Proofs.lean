@@ -6,15 +6,17 @@ import Henret.Proofs.Ownership
 import Henret.Proofs.Invariants
 import Henret.Proofs.InvariantsPreservation
 import Henret.Proofs.Parenthood
+import Henret.Proofs.Occurrence
 
 /-!
 # Henret.Proofs
 
 Every theorem about the model: lifecycle, messaging (including the
-actor-local receive discipline), timers and the logical clock,
-ownership, and the reachability invariant with its preservation
-theorem. Brings in
-`Henret.Model` transitively (RFC 025).
+actor-local receive discipline and occurrence identity), timers and
+the logical clock, ownership, and the reachability invariant with its
+preservation theorem.
 Parenthood theorems (RFC 032): `reachable_parent_lt`,
 `parent_chain_terminates`.
+Occurrence identity (RFC 033): `reachable_occurrence_unique`,
+`send_stamps_source`, `inject_stamps_none`.
 -/

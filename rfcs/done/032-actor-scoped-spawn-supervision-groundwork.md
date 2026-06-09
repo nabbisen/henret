@@ -1,7 +1,7 @@
 ---
 title: Actor-Scoped Spawn and Supervision Groundwork
 rfc: RFC-HENRET-032
-status: Proposed
+status: Implemented (v0.6.0)
 project: Henret
 package: henret
 namespace: Henret

@@ -11,8 +11,8 @@ inductive StepResult where
   | spawned (t : TaskId) : StepResult
   /-- `schedule` selected this task to run. -/
   | scheduled (t : TaskId) : StepResult
-  /-- `receive` dequeued this message. -/
-  | received (m : Message) : StepResult
+  /-- `receive` dequeued this envelope (RFC 033). -/
+  | received (e : Envelope) : StepResult
   /-- The operation was legal but cannot make progress now — currently
       produced only by `receive` on an empty own mailbox.  Distinct
       from `invalid`: a blocked receive is a normal actor condition

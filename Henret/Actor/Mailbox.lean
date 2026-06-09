@@ -2,7 +2,7 @@ import Henret.Core.Id
 
 namespace Henret
 
-/-- A message. The payload is a natural for model purposes; the
+/-- A message value. The payload is a natural for model purposes; the
 semantics never inspects it, so generalising the payload type is a
 mechanical change. -/
 structure Message where
@@ -10,9 +10,29 @@ structure Message where
   payload : Nat
 deriving Repr, DecidableEq, Inhabited
 
-/-- FIFO mailbox. -/
+/-- Unique occurrence identity for one delivered message.
+Allocated from `RuntimeState.nextMsgId` at send/inject time.
+Monotone; proves global uniqueness across all mailboxes (RFC 033). -/
+abbrev MessageId := Nat
+
+/-- A delivered envelope: a `Message` together with its unique
+occurrence id and the actor that sent it (or `none` for external
+injection). Placed in mailboxes at send/inject; dequeued at receive.
+The envelope is immutable in transit — no operation rewrites a queued
+envelope (RFC 033). -/
+structure Envelope where
+  /-- Globally unique id allocated at delivery time. -/
+  occurrence : MessageId
+  /-- `some a` = sent by a task owned by actor `a` (via `send`).
+      `none`   = delivered by the environment (via `inject`). -/
+  source     : Option ActorId
+  /-- The message body. -/
+  body       : Message
+deriving Repr, DecidableEq, Inhabited
+
+/-- FIFO mailbox holding envelopes. -/
 structure Mailbox where
-  messages : List Message
+  messages : List Envelope
 deriving Repr, DecidableEq, Inhabited
 
 namespace Mailbox
@@ -20,28 +40,28 @@ namespace Mailbox
 /-- The empty mailbox. -/
 def empty : Mailbox := ⟨[]⟩
 
-/-- Enqueue at the tail (FIFO). -/
-def enqueue (mb : Mailbox) (m : Message) : Mailbox :=
-  ⟨mb.messages ++ [m]⟩
+/-- Enqueue one envelope at the tail (FIFO). -/
+def enqueue (mb : Mailbox) (e : Envelope) : Mailbox :=
+  ⟨mb.messages ++ [e]⟩
 
-/-- Dequeue the head, if any. -/
-def dequeue (mb : Mailbox) : Option (Message × Mailbox) :=
+/-- Dequeue the head envelope, if any. -/
+def dequeue (mb : Mailbox) : Option (Envelope × Mailbox) :=
   match mb.messages with
   | []      => none
-  | m :: ms => some (m, ⟨ms⟩)
+  | e :: es => some (e, ⟨es⟩)
 
-@[simp] theorem enqueue_messages (mb : Mailbox) (m : Message) :
-    (mb.enqueue m).messages = mb.messages ++ [m] := rfl
+@[simp] theorem enqueue_messages (mb : Mailbox) (e : Envelope) :
+    (mb.enqueue e).messages = mb.messages ++ [e] := rfl
 
-/-- A successful dequeue removes exactly one message — the head —
+/-- A successful dequeue removes exactly one envelope — the head —
 and leaves the rest untouched, in order. -/
 theorem dequeue_spec (mb : Mailbox) :
     match mb.dequeue with
     | none => mb.messages = []
-    | some (m, mb') => mb.messages = m :: mb'.messages := by
+    | some (e, mb') => mb.messages = e :: mb'.messages := by
   cases h : mb.messages with
   | nil => simp [dequeue, h]
-  | cons m ms => simp [dequeue, h]
+  | cons e es => simp [dequeue, h]
 
 end Mailbox
 
@@ -60,13 +80,16 @@ end Henret
 /-!
 # Henret.Actor.Mailbox
 
-Messages and mailboxes (RFC 004, RFC 006).
+Messages, envelopes, and mailboxes (RFC 004, RFC 006, RFC 033).
 
-A mailbox is a FIFO list of messages. `send` appends at the tail;
-`receive` removes exactly the head. A mailbox is a FIFO list of message
-*values*. The model proves per-operation value effects: one successful
-send/inject appends one value, and one successful receive removes the
-head value from the receiver's own mailbox (`Henret.Proofs.Messaging`).
-Global message occurrence uniqueness is not modeled; that requires a
-fresh occurrence id or envelope identity (RFC 022, future work).
+A mailbox is a FIFO list of **envelopes** (RFC 033). Each envelope
+wraps a `Message` body with:
+- `occurrence : MessageId` — globally unique id allocated at delivery;
+  proves `reachable_occurrence_unique`.
+- `source : Option ActorId` — the owning actor of the sending task
+  (`some a` from `send`), or `none` for external injection.
+
+`send` appends at the tail; `receive` removes exactly the head.
+The model proves per-operation envelope effects and global occurrence
+uniqueness (`Henret.Proofs.Occurrence`).
 -/

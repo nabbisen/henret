@@ -35,6 +35,9 @@ DOC_FILES = PROOF_DOC_FILES + LIVE_DOC_FILES
 
 # Not theorem references: ops/syntax, fields discussed in prose, files, vocab.
 IGNORE = {
+    # RFC 033 WellFormed field names (not standalone theorems)
+    "occ_fresh", "occ_nodup", "occ_disjoint",
+    "nextMsgId", "occurrence",
     # operation syntax and grammar tokens
     "send t b m", "receive t", "inject a m", "spawn a", "yield t",
     "complete t", "cancel t", "sleep t deadline", "tick now", "wake t",

@@ -2,23 +2,20 @@ import Henret.Proofs.StepProjections
 
 namespace Henret
 
-/-! ## Task-scoped send (RFC 024) -/
+/-! ## Task-scoped send (RFC 024, updated for RFC 033) -/
 
-/-- A scoped send appends exactly `m` to the target mailbox (identity
-preserved, FIFO order preserved). Guards: `t` is the running task in
-`running` state with an owning actor; `b`'s mailbox exists. -/
-theorem send_appends {s : RuntimeState} {t : TaskId} {b : ActorId}
-    {o : ActorId} {mb : Mailbox}
+/-- A scoped send appends exactly one envelope — stamped with the current
+occurrence id and the sender's actor — to the target mailbox. -/
+theorem send_appends {s : RuntimeState} {t : TaskId} {b o : ActorId} {mb : Mailbox}
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some o) (hmb : s.mailboxes b = some mb)
     (m : Message) :
     ((step s (.send t b m)).1).mailboxes b =
-      some ⟨mb.messages ++ [m]⟩ := by
+      some ⟨mb.messages ++ [⟨s.nextMsgId, s.taskOwner t, m⟩]⟩ := by
   cases hw : s.mailboxWaiters b <;>
     simp [step, hrt, hts, how, hmb, hw, upd, Mailbox.enqueue]
 
-/-- Send does not touch any mailbox other than the target's,
-regardless of guard outcomes. -/
+/-- Send does not touch any mailbox other than the target's. -/
 theorem send_preserves_other {s : RuntimeState} {t : TaskId}
     {b c : ActorId} (h : c ≠ b) (m : Message) :
     ((step s (.send t b m)).1).mailboxes c = s.mailboxes c := by
@@ -35,14 +32,13 @@ theorem send_preserves_other {s : RuntimeState} {t : TaskId}
     all_goals rfl
   · rfl
 
-/-- A send by a task that is not running is invalid and a no-op. -/
+/-- A send by a non-running task is invalid and a no-op. -/
 theorem send_not_running_invalid {s : RuntimeState} {t : TaskId}
     {b : ActorId} (h : s.running ≠ some t) (m : Message) :
     step s (.send t b m) = (s, .invalid) := by
   simp [step, h]
 
-/-- A send by a task with no owning actor is invalid: only actor
-tasks send. -/
+/-- A send by an unowned task is invalid. -/
 theorem send_unowned_invalid {s : RuntimeState} {t : TaskId}
     {b : ActorId} (how : s.taskOwner t = none) (m : Message) :
     (step s (.send t b m)).2 = .invalid := by
@@ -53,30 +49,30 @@ theorem send_unowned_invalid {s : RuntimeState} {t : TaskId}
     all_goals rfl
   · rfl
 
-/-! ## Actor-local receive (RFC 024) -/
+/-! ## Actor-local receive (RFC 024, updated for RFC 033) -/
 
-/-- A successful scoped receive consumes exactly one message — the
-head of the receiving task's **own** actor's mailbox. -/
+/-- A successful scoped receive consumes exactly the head **envelope** of
+the receiving task's own actor's mailbox (RFC 033). -/
 theorem receive_consumes_one {s : RuntimeState} {t : TaskId}
-    {a : ActorId} {m : Message} {ms : List Message}
+    {a : ActorId} {env : Envelope} {es : List Envelope}
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some a)
-    (hmb : s.mailboxes a = some ⟨m :: ms⟩) :
+    (hmb : s.mailboxes a = some ⟨env :: es⟩) :
     step s (.receive t) =
-      ({ s with mailboxes := upd s.mailboxes a (some ⟨ms⟩) },
-        .received m) := by
+      ({ s with mailboxes := upd s.mailboxes a (some ⟨es⟩) },
+        .received env) := by
   simp [step, hrt, hts, how, hmb, Mailbox.dequeue]
 
 /-- Corollary: the mailbox length decreases by exactly one. -/
 theorem receive_length {s : RuntimeState} {t : TaskId} {a : ActorId}
-    {m : Message} {ms : List Message}
+    {env : Envelope} {es : List Envelope}
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some a)
-    (hmb : s.mailboxes a = some ⟨m :: ms⟩) :
+    (hmb : s.mailboxes a = some ⟨env :: es⟩) :
     ∃ mb' : Mailbox,
       ((step s (.receive t)).1).mailboxes a = some mb' ∧
-      mb'.messages.length + 1 = (m :: ms).length := by
-  refine ⟨⟨ms⟩, ?_, by simp⟩
+      mb'.messages.length + 1 = (env :: es).length := by
+  refine ⟨⟨es⟩, ?_, by simp⟩
   rw [receive_consumes_one hrt hts how hmb]
   simp [upd]
 
@@ -99,9 +95,7 @@ theorem receive_preserves_other {s : RuntimeState} {t : TaskId}
     all_goals rfl
   · rfl
 
-/-- Receive from an empty (own) mailbox parks the task: the result is
-`.blocked` and the state transitions — the task enters `.waiting`
-(RFC 031). -/
+/-- Receive from an empty own mailbox parks the task (RFC 031). -/
 theorem receive_empty_parks {s : RuntimeState} {t : TaskId}
     {a : ActorId}
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
@@ -115,12 +109,7 @@ theorem receive_empty_parks {s : RuntimeState} {t : TaskId}
        .blocked) := by
   simp [step, hrt, hts, how, hmb, Mailbox.dequeue]
 
-/-- **Result-driven parking theorem** (RFC 031 headline): from an
-observed `.blocked` result alone, reconstruct everything — the guards
-that must have held (running task, `.running` state, owned, empty own
-mailbox) and the post-state (task `.waiting`, running slot cleared,
-task enqueued in its actor's waiter list).  This makes `.blocked` as
-auditable as `.received` is via `receive_only_own`. -/
+/-- Result-driven parking theorem (RFC 031 headline). -/
 theorem receive_blocked_parks {s : RuntimeState} {t : TaskId}
     (h : (step s (.receive t)).2 = .blocked) :
     ∃ a,
@@ -149,11 +138,10 @@ theorem receive_blocked_parks {s : RuntimeState} {t : TaskId}
             cases hd : mb.dequeue with
             | some p => simp [step, hrt, hts, how, hmb, hd] at h
             | none =>
-              -- dequeue = none forces mb = ⟨[]⟩ = Mailbox.empty
               have hempty : mb = Mailbox.empty := by
                 cases hms : mb.messages with
                 | nil => cases mb; simp_all [Mailbox.empty]
-                | cons m ms =>
+                | cons e es =>
                   exact absurd hd (by simp [Mailbox.dequeue, hms])
               subst hempty
               refine ⟨a, hrt, rfl, rfl, hmb, ?_, ?_, ?_, ?_, ?_⟩
@@ -172,8 +160,7 @@ theorem receive_blocked_parks {s : RuntimeState} {t : TaskId}
       | cancelled => simp [step, hrt, hts] at h
   · simp [step, hrt] at h
 
-/-- A receive by an unowned task is invalid: only actor tasks
-receive. -/
+/-- An unowned task's receive is invalid. -/
 theorem receive_unowned_invalid {s : RuntimeState} {t : TaskId}
     (how : s.taskOwner t = none) :
     (step s (.receive t)).2 = .invalid := by
@@ -184,16 +171,15 @@ theorem receive_unowned_invalid {s : RuntimeState} {t : TaskId}
     all_goals rfl
   · rfl
 
-/-- **Actor-local receive discipline** (RFC 024 headline): any
-successful receive dequeues the head of the receiving task's own
-actor's mailbox — the actor is derived from ownership — and leaves
-every other mailbox untouched. -/
-theorem receive_only_own {s : RuntimeState} {t : TaskId} {m : Message}
-    (h : (step s (.receive t)).2 = .received m) :
+/-- **Actor-local receive discipline** (RFC 024 headline, updated for RFC 033):
+any successful receive dequeues the head **envelope** of the receiving task's
+own actor's mailbox and leaves every other mailbox untouched. -/
+theorem receive_only_own {s : RuntimeState} {t : TaskId} {env : Envelope}
+    (h : (step s (.receive t)).2 = .received env) :
     ∃ a mb mb',
       s.taskOwner t = some a ∧
       s.mailboxes a = some mb ∧
-      mb.dequeue = some (m, mb') ∧
+      mb.dequeue = some (env, mb') ∧
       ((step s (.receive t)).1).mailboxes a = some mb' ∧
       ∀ b, b ≠ a → ((step s (.receive t)).1).mailboxes b = s.mailboxes b := by
   by_cases hrt : s.running = some t
@@ -211,11 +197,10 @@ theorem receive_only_own {s : RuntimeState} {t : TaskId} {m : Message}
             cases hd : mb.dequeue with
             | none => simp [step, hrt, hts, how, hmb, hd] at h
             | some p =>
-              obtain ⟨m', mb'⟩ := p
-              have hm : m' = m := by
-                simp [step, hrt, hts, how, hmb, hd] at h
-                exact h
-              subst hm
+              obtain ⟨env', mb'⟩ := p
+              have henv : env' = env := by
+                simp [step, hrt, hts, how, hmb, hd] at h; exact h
+              subst henv
               refine ⟨a, mb, mb', rfl, hmb, hd, ?_, ?_⟩
               · simp [step, hrt, hts, how, hmb, hd, upd]
               · intro b hb
@@ -224,13 +209,14 @@ theorem receive_only_own {s : RuntimeState} {t : TaskId} {m : Message}
         simp [step, hrt, hts] at h
   · simp [step, hrt] at h
 
-/-! ## Environment injection (RFC 024) -/
+/-! ## Environment injection (RFC 024, updated for RFC 033) -/
 
-/-- Injection appends exactly `m` to the target mailbox. -/
+/-- Injection appends exactly one envelope (stamped with current occurrence
+id and `source = none`) to the target mailbox. -/
 theorem inject_appends {s : RuntimeState} {a : ActorId} {mb : Mailbox}
     (h : s.mailboxes a = some mb) (m : Message) :
     ((step s (.inject a m)).1).mailboxes a =
-      some ⟨mb.messages ++ [m]⟩ := by
+      some ⟨mb.messages ++ [⟨s.nextMsgId, none, m⟩]⟩ := by
   cases hw : s.mailboxWaiters a <;>
     simp [step, h, hw, upd, Mailbox.enqueue]
 
@@ -244,7 +230,6 @@ theorem inject_preserves_other {s : RuntimeState} {a b : ActorId}
     | nil => simp [hw, upd, h]
     | cons w ws => simp [hw, upd, h]
   · rfl
-
 
 /-! ## Mailbox monotonicity: messaging never removes a mailbox -/
 
@@ -268,8 +253,12 @@ theorem send_mailbox_isSome {s : RuntimeState} {t : TaskId}
             by_cases hcb : c = b
             · subst hcb
               cases hw : s.mailboxWaiters c with
-              | nil => exact ⟨mbb.enqueue m, by simp [step, hrt, hts, how, hmb, hw, upd]⟩
-              | cons w ws => exact ⟨mbb.enqueue m, by simp [step, hrt, hts, how, hmb, hw, upd]⟩
+              | nil =>
+                exact ⟨mbb.enqueue ⟨s.nextMsgId, s.taskOwner t, m⟩,
+                        by simp [step, hrt, hts, how, hmb, hw, upd]⟩
+              | cons w ws =>
+                exact ⟨mbb.enqueue ⟨s.nextMsgId, s.taskOwner t, m⟩,
+                        by simp [step, hrt, hts, how, hmb, hw, upd]⟩
             · cases hw : s.mailboxWaiters b <;>
                 exact ⟨mb, by simpa [step, hrt, hts, how, hmb, hw, upd, hcb] using h⟩
       | new | ready | yielded | sleeping | completed | cancelled | waiting =>
@@ -286,8 +275,12 @@ theorem inject_mailbox_isSome {s : RuntimeState} {a c : ActorId}
     by_cases hca : c = a
     · subst hca
       cases hw : s.mailboxWaiters c with
-      | nil => exact ⟨mba.enqueue m, by simp [step, hmb, hw, upd]⟩
-      | cons w ws => exact ⟨mba.enqueue m, by simp [step, hmb, hw, upd]⟩
+      | nil =>
+        exact ⟨mba.enqueue ⟨s.nextMsgId, none, m⟩,
+                by simp [step, hmb, hw, upd]⟩
+      | cons w ws =>
+        exact ⟨mba.enqueue ⟨s.nextMsgId, none, m⟩,
+                by simp [step, hmb, hw, upd]⟩
     · cases hw : s.mailboxWaiters a <;>
         exact ⟨mb, by simpa [step, hmb, hw, upd, hca] using h⟩
 
@@ -323,31 +316,21 @@ end Henret
 /-!
 # Henret.Proofs.Messaging
 
-Message-ownership theorems (RFC 006, scoped by RFC 024).
+Message-ownership theorems (RFC 006, RFC 024, RFC 033).
 
-* `send_appends` — a running, owned task's send appends exactly the
-  sent message at the target's tail; identity preserved.
-* `receive_only_own` — **actor-local receive discipline**: a successful
-  receive dequeues from the receiving task's own actor's mailbox (the
-  actor derived from `taskOwner`, never named by the caller) and
-  touches no other mailbox.
-* `receive_consumes_one` / `receive_length` — a successful receive
-  removes exactly the head; the remainder is unchanged and in order.
-* `send_not_running_invalid`, `send_unowned_invalid`,
-  `receive_unowned_invalid`, `receive_empty_invalid` — the guards are
-  theorems: only the running task sends, only actor-owned tasks
-  message, empty receive is a defined no-op.
-* `inject_appends` / `inject_preserves_other` — environment injection
-  is the task-free delivery path, with the same per-operation
-  exactness.
-* `Henret.Proofs.StepProjections` — all three messaging operations
-  touch only `mailboxes`; every other field is untouched (proved per
-  projection as `@[simp]` lemmas).
+Each delivered **envelope** carries `occurrence : MessageId` (globally
+unique, allocated from `nextMsgId`) and `source : Option ActorId`
+(`some a` for `send`, `none` for `inject`).
 
-SCOPE NOTE (RFC 022): `Message` is a *value* (`id`, `payload`);
-occurrence identity is not modeled. Two distinct send/inject
-operations may legitimately deliver equal `Message` values to one or
-more mailboxes; the theorems above are per-operation, not a global
-"each message value exists once" claim. Fresh `MessageId` allocation
-with a mailbox-ownership invariant is possible future work.
+Key theorems:
+* `send_appends` — sends append one stamped envelope at the target's tail.
+* `inject_appends` — inject appends one `source = none` envelope.
+* `receive_only_own` — successful receive dequeues the head **envelope**
+  of the receiving task's own actor's mailbox (actor-local discipline).
+* `receive_consumes_one` — removes exactly the head; remainder unchanged.
+* `receive_empty_parks` / `receive_blocked_parks` — empty receive parks.
+* `inject_preserves_other` / `send_preserves_other` — cross-mailbox isolation.
+* Mailbox isSome monotonicity: send/inject/receive never remove a mailbox.
+
+Occurrence uniqueness theorems live in `Henret.Proofs.Occurrence` (RFC 033).
 -/

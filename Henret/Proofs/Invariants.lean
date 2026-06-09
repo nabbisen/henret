@@ -148,10 +148,25 @@ structure WellFormed (s : RuntimeState) : Prop where
   /-- A recorded parent is a real (spawned) task (RFC 032). -/
   parent_spawned :
     ∀ t p, s.taskParent t = some p → ∃ st, s.taskState p = some st
+  /-- Every envelope in any mailbox was allocated before the current
+      `nextMsgId` counter — the analogue of `fresh_none` for messages (RFC 033). -/
+  occ_fresh :
+    ∀ a mb env, s.mailboxes a = some mb → env ∈ mb.messages →
+      env.occurrence < s.nextMsgId
+  /-- Within each mailbox, all occurrence ids are distinct (RFC 033). -/
+  occ_nodup :
+    ∀ a mb, s.mailboxes a = some mb →
+      (mb.messages.map Envelope.occurrence).Nodup
+  /-- Across different mailboxes, all occurrence ids are distinct (RFC 033). -/
+  occ_disjoint :
+    ∀ a b mba mbb, a ≠ b →
+      s.mailboxes a = some mba → s.mailboxes b = some mbb →
+      ∀ ea ∈ mba.messages, ∀ eb ∈ mbb.messages,
+        ea.occurrence ≠ eb.occurrence
 
-/-- The initial state is well-formed. -/
+/-- The initial state is well-formed (19 fields). -/
 theorem wf_init : WellFormed RuntimeState.init := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [RuntimeState.init]
 
 /-! ## Ownership uniqueness corollaries (RFC 004 acceptance) -/

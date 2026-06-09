@@ -81,7 +81,7 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 - `nodup_of_sublist`, `nodup_append_singleton`, `nodup_append`,
   `nodup_task_inj`, `mem_map_insertSorted`, `insertSorted_task_nodup` —
   core-only list/timer helpers.
-- `WellFormed` — the reachability invariant (sixteen fields as of RFC 032):
+- `WellFormed` — the reachability invariant (nineteen fields as of RFC 033):
   ready-queue soundness *and* completeness, running-slot consistency,
   timer discipline (uniqueness, sleep-coherence, sortedness), fresh-id
   discipline, ownership existence, owner-mailbox existence; wait-queue
@@ -175,3 +175,41 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 | `reachable_parent_lt` | `Henret/Proofs/Parenthood.lean` | Every parent has smaller id |
 | `parent_chain_terminates` | `Henret/Proofs/Parenthood.lean` | Chains terminate (acyclicity) |
 | `preserves_wf_spawnChild` | `Henret/Proofs/Preservation/Lifecycle.lean` | 16-field WF preservation |
+
+### RFC 033 — Message envelope and occurrence identity
+
+`WellFormed` extended to **nineteen fields** (+3 over RFC 032's sixteen):
+`occ_fresh`, `occ_nodup`, `occ_disjoint`.
+
+**`Henret/Actor/Mailbox.lean`** — model changes:
+- `MessageId := Nat` — occurrence id type alias.
+- `Envelope` — new structure: `occurrence : MessageId`, `source : Option ActorId`, `body : Message`.
+- `Mailbox.messages : List Envelope` (was `List Message`).
+- `Mailbox.enqueue : Mailbox → Envelope → Mailbox` (was `→ Message →`).
+- `Mailbox.dequeue : Mailbox → Option (Envelope × Mailbox)` (was `Message ×`).
+
+**`Henret/Scheduler/Model.lean`** — model changes:
+- `RuntimeState.nextMsgId : MessageId` (new field, init = 0).
+- `send t b m` stamps `env := ⟨s.nextMsgId, s.taskOwner t, m⟩`, bumps `nextMsgId`.
+- `inject a m` stamps `env := ⟨s.nextMsgId, none, m⟩`, bumps `nextMsgId`.
+- `receive t` dequeues `Envelope`; `StepResult.received` carries `Envelope`.
+
+**`Henret/Proofs/Invariants.lean`** — three new `WellFormed` fields (17–19):
+- `occ_fresh` — every envelope's `occurrence < nextMsgId`.
+- `occ_nodup` — within each mailbox, all occurrence ids are distinct.
+- `occ_disjoint` — across different mailboxes, all occurrence ids are distinct.
+
+**`Henret/Proofs/Occurrence.lean`** — headline theorems:
+
+| Theorem | Notes |
+|---|---|
+| `reachable_occurrence_unique` | **Global uniqueness**: equal occurrence ids in any reachable mailboxes imply same envelope in same mailbox |
+| `send_stamps_source` | Envelope appended by `send t b m` has `source = s.taskOwner t` |
+| `inject_stamps_none` | Envelope appended by `inject a m` has `source = none` |
+
+**Updated preservation proofs** — all three preservation files extended to 19 fields:
+- `Henret/Proofs/Preservation/Lifecycle.lean` — 7 refine blocks × 3 occ bullets.
+- `Henret/Proofs/Preservation/Time.lean` — 3 refine blocks × 3 occ bullets.
+- `Henret/Proofs/Preservation/Messaging.lean` — 6 refine blocks × 3 occ bullets.
+
+**`Henret/Refinement/Contract.lean`** and **`ReferenceBackend.lean`** — updated to `Envelope` (was `Message`).

@@ -1,7 +1,7 @@
 ---
 title: Message Envelope and Occurrence Identity
 rfc: RFC-HENRET-033
-status: Proposed
+status: Implemented (v0.7.0)
 project: Henret
 package: henret
 namespace: Henret
