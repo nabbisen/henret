@@ -256,3 +256,13 @@ zero-assumption core.
 | 139 | Whole-program fairness is NOT unconditional: an op sequence that stops scheduling starves runnable tasks | PROVEN | `unfairOps_not_bounded_fair_0`, `unfair_task1_never_scheduled` |
 | 140 | A fair op sequence schedules each runnable task | PROVEN | `fair_task0_scheduled`, `fair_task1_scheduled` |
 | 141 | No unconditional liveness is added to `reachable_wf`; safety and liveness layers stay separate | DOCUMENTED | `docs/progress-policy.md`; `WellFormed` unchanged |
+
+## v0.14.1 claims (bounded model explorer, RFC 048)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 142 | The explorer enumerates all op sequences up to a bounded depth | TESTED | `genPrograms`, `henret-explore` (25,260 programs at default depth 3) |
+| 143 | Well-formedness, occurrence uniqueness, and single-worker bridge tracking hold over the entire bounded sample | TESTED (confirms proven invariants) | `confirms ... propWellFormed/propOccurrenceUnique/propBridge` |
+| 144 | The explorer finds and minimizes a deliberately false property to its shortest counterexample | TESTED | `findAndShrink ... propReadyAlwaysEmpty` → `[spawn 0]` |
+| 145 | The explorer is empirical model-search support, not a proof; checkers are bounded necessary conditions only | DOCUMENTED | `docs/model-explorer.md`; `HenretExplore` outside default import |
+| 146 | The explorer does not affect the verified model or its axiom budget | PROVEN (by construction) | separate Lake library; `import Henret` unchanged |

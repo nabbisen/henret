@@ -25,3 +25,13 @@ lean_exe «henret-conformance» where
     See docs/native-backend-boundary.md. -/
 lean_lib HenretNative where
   globs := #[.submodules `Henret.Native]
+
+/-- Optional bounded model explorer (RFC 048).
+    Build:  lake build HenretExplore
+    A development/testing tool — outside the default `import Henret` path.
+    See docs/model-explorer.md. -/
+lean_lib HenretExplore where
+  globs := #[.submodules `Henret.Explore]
+
+lean_exe «henret-explore» where
+  root := `Explore

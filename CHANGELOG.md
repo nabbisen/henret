@@ -1,5 +1,45 @@
 # Changelog
 
+## v0.14.1 — Bounded Model Explorer and Shrinker (RFC 048)
+
+A development/testing tool that enumerates small `RuntimeOp` sequences,
+checks executable property predicates over a bounded world, and shrinks
+counterexamples by deletion. New module `Henret/Explore/` (`Gen`,
+`Check`, `Shrink`) in the separate `HenretExplore` Lake library, plus a
+`henret-explore` executable.
+
+### Outside the verified model
+
+The explorer lives **outside** the default `import Henret` path and adds
+**no theorems** — it does not affect the verified model or its axiom
+budget. The checkers are bounded *necessary* conditions, documented as
+testing-only: they are deliberately not connected to soundness theorems
+(which would be false, since `WellFormed` quantifies over infinite
+domains). Their role is to confirm the proven invariants over a sample
+and catch regressions.
+
+### What it does
+
+- `genOps`/`genPrograms` enumerate operation sequences over a tiny
+  `SmallWorld` (default: 2 tasks, 2 actors, 1 message, 2 time points).
+- `propWellFormed`, `propOccurrenceUnique`, `propBridge` confirm the
+  proven invariants; `propReadyAlwaysEmpty` is a deliberately false
+  property for the shrinker demo.
+- `explore`/`confirms` search; `shrinkProgram`/`findAndShrink` minimize
+  counterexamples by deletion to a fixed point.
+
+### Executable
+
+`lake exe henret-explore` confirms all three proven invariants over
+25,260 programs (depth 3) and shrinks the false property to its minimal
+counterexample `[spawn 0]`.
+
+### Docs
+
+`docs/model-explorer.md` documents the tool and its empirical scope.
+
+---
+
 ## v0.14.0 — Fairness and Conditional Liveness Layer (RFC 046)
 
 An **optional** policy layer for conditional progress reasoning. Henret's

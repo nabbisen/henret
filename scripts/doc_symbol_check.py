@@ -86,6 +86,12 @@ IGNORE = {
     "fairOps", "unfairOps", "fair_task0_scheduled", "fair_task1_scheduled",
     "unfair_task1_runnable", "unfair_task1_never_scheduled",
     "unfairOps_not_bounded_fair_0",
+    # RFC 048 bounded model explorer (HenretExplore lib, outside default import)
+    "SmallWorld", "genOps", "genPrograms", "genProgramsExact",
+    "checkWellFormedBool", "checkOccUniqueBool", "checkBridgeBool",
+    "occurrenceIds", "propWellFormed", "propOccurrenceUnique", "propBridge",
+    "propReadyAlwaysEmpty", "explore", "confirms", "shrinkPass",
+    "shrinkProgram", "findAndShrink", "Property",
     # RFC 035/036 Bridge sub-namespace types/internals — not standalone theorems
     "bridgeState_init", "bridgeState_push0", "bridgeState_pop0", "bridgeState_filter0",
     "bridgeState_readyQ_unchanged", "applyQOp", "applyQOps", "applyQOps_append",

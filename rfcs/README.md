@@ -59,7 +59,7 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 | [045](done/045-execution-trace-ledger.md) | Execution Trace Ledger | Implemented (v0.13.0) | — |
 | [046](done/046-fairness-liveness-policy-layer.md) | Fairness and Conditional Liveness Layer | Implemented (v0.14.0) | — |
 | [047](done/047-golden-trace-conformance-suite.md) | Golden Trace Conformance Suite | Implemented (v0.13.1) | — |
-| [048](proposed/048-bounded-model-explorer.md) | Bounded Model Explorer and Shrinker | — | — |
+| [048](done/048-bounded-model-explorer.md) | Bounded Model Explorer and Shrinker | Implemented (v0.14.1) | — |
 | [049](proposed/049-supervision-restart-policies.md) | Supervision Restart Policies | — | — |
 | [050](proposed/050-observability-and-pedagogical-visualization.md) | Observability and Pedagogical Visualization | — | — |
 | [051](proposed/051-package-documentation-release-maturity.md) | Package, Documentation, and Release Maturity | — | — |

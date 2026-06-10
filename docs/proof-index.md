@@ -469,3 +469,15 @@ An **optional** policy layer for conditional progress reasoning. Nothing is adde
 **Fair/unfair witnesses** (`Examples.lean`, all `by decide`): `fair_task0_scheduled`, `fair_task1_scheduled`, `unfair_task1_runnable`, `unfair_task1_never_scheduled`.
 
 Honesty: the model's `readyQ` is FIFO so head-progress is unconditional, but whole-program fairness depends on the scheduler issuing `schedule` ops — starvation is representable. See `docs/progress-policy.md`.
+
+---
+
+### RFC 048 — Bounded Model Explorer and Shrinker
+
+A development/testing tool (no new theorems). Enumerates small `RuntimeOp` sequences, checks executable property predicates over a bounded world, and shrinks counterexamples by deletion. Lives in the separate `HenretExplore` Lake library, **outside** the default `import Henret` path — does not affect the verified model or its axiom budget.
+
+**Modules** (`Henret/Explore/`): `Gen.lean` (`SmallWorld`, `genOps`, `genPrograms`), `Check.lean` (bounded checkers + properties), `Shrink.lean` (`explore`, `confirms`, `shrinkProgram`, `findAndShrink`). Executable: `lake exe henret-explore`.
+
+**Properties**: `propWellFormed`, `propOccurrenceUnique`, `propBridge` (confirm the proven invariants over the bounded sample), and `propReadyAlwaysEmpty` (deliberately false, for the shrinker demo).
+
+The checkers are **bounded necessary conditions, testing-only** — deliberately not connected to soundness theorems (which would be false given the infinite-domain quantification in `WellFormed`). They confirm proven invariants over a sample and catch regressions; they never substitute for the proofs. See `docs/model-explorer.md`.
