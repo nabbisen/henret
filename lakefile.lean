@@ -14,6 +14,10 @@ lean_lib Henret
 lean_exe «henret-demo» where
   root := `Main
 
+@[default_target]
+lean_exe «henret-conformance» where
+  root := `Conformance
+
 /-- Optional native-boundary layer (RFC 010).
     Build:  lake build HenretNative
     Import: import Henret.Native.DequeModel (or .Assumptions)

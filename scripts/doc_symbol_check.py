@@ -69,6 +69,11 @@ IGNORE = {
     "invalid", "spawned", "spawnChild", "scheduled", "yielded", "completed",
     "cancelled", "slept", "timerWoke", "directWoke", "sent", "injected",
     "received", "parked", "waiterWoke", "noEffect", "runTrace",
+    # RFC 047 golden trace conformance
+    "GoldenScenario", "observe", "checkScenario", "scenarioReport",
+    "TraceRefines", "firstMismatch", "goldenScenarios", "allPass",
+    "suiteReport", "conformance_suite_passes", "renderEvent", "renderTrace",
+    "renderScenario", "renderSuite",
     # RFC 035/036 Bridge sub-namespace types/internals — not standalone theorems
     "bridgeState_init", "bridgeState_push0", "bridgeState_pop0", "bridgeState_filter0",
     "bridgeState_readyQ_unchanged", "applyQOp", "applyQOps", "applyQOps_append",

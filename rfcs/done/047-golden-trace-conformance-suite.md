@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+Implemented (v0.13.1).
 
 ## Summary
 

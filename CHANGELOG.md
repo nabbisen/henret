@@ -1,5 +1,55 @@
 # Changelog
 
+## v0.13.1 — Golden Trace Conformance Suite (RFC 047)
+
+A behavioral conformance suite built on the RFC 045 trace ledger.
+External runtimes compare their observed `TraceEvent` traces against
+Henret's canonical golden traces to certify conformance. New module
+`Henret/Conformance/` (`Scenario`, `Golden`, `Export`) with aggregator
+`Henret/Conformance.lean` and a `henret-conformance` executable.
+
+### Scenario infrastructure
+
+`GoldenScenario` pairs a named operation sequence with the canonical
+`TraceEvent` trace Henret produces. `observe`/`checkScenario` run and
+check; `firstMismatch` reports the first differing event; `TraceRefines`
+is the refinement relation (exact equality in v1, per the RFC).
+
+### Ten golden scenarios
+
+`spawn_schedule_complete`, `yield_requeues`, `sleep_tick_wakes`,
+`empty_receive_parks`, `send_wakes_waiter_mesa`,
+`inject_wakes_waiter_mesa`, `cancel_ready_task`, `cancel_waiting_task`,
+`spawn_child_parent_lt`, `occurrence_unique_two_mailboxes`.
+
+### Kernel-checked regression gate
+
+```lean
+theorem conformance_suite_passes : allPass = true := by decide
+```
+
+Verified by `decide` (not `native_decide`, so no extra axioms). Any
+change to `step` or `traceEvents` that alters observable behavior breaks
+this proof — golden traces cannot silently drift from the semantics.
+
+### Executable
+
+`lake exe henret-conformance` prints a per-scenario PASS/FAIL report and
+exits non-zero on any failure.
+
+### Docs
+
+`docs/conformance-suite.md` documents the suite, the refinement relation,
+and the adapter contract for external runtimes (which need only expose
+the observable event stream, not internal queues).
+
+### Axiom budget: unchanged
+
+`conformance_suite_passes` depends only on `propext` and `Quot.sound`.
+No project axioms.
+
+---
+
 ## v0.13.0 — Execution Trace Ledger (RFC 045)
 
 Makes execution traces first-class. Each operation now emits, alongside

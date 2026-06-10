@@ -430,3 +430,21 @@ Makes execution traces first-class. `stepTrace`/`runTraceLedger` emit a list of 
 | `event_waiterWoke_send_sound` | `waiterWoke a w` from `send` ⇒ `w` head of `a`'s regular/timed waiter list |
 
 See `docs/trace-ledger.md`.
+
+---
+
+### RFC 047 — Golden Trace Conformance Suite
+
+A behavioral conformance suite built on the RFC 045 trace ledger. External runtimes compare their observed `TraceEvent` traces against Henret's canonical golden traces. New module `Henret/Conformance/` (`Scenario.lean`, `Golden.lean`, `Export.lean`) + aggregator `Henret/Conformance.lean`, and a `henret-conformance` executable.
+
+**Scenario infrastructure** (`Scenario.lean`): `GoldenScenario` structure, `observe`/`checkScenario`/`scenarioReport`, `TraceRefines` (exact equality, v1), `firstMismatch` (reports the first differing event).
+
+**Ten golden scenarios** (`Golden.lean`): `spawn_schedule_complete`, `yield_requeues`, `sleep_tick_wakes`, `empty_receive_parks`, `send_wakes_waiter_mesa`, `inject_wakes_waiter_mesa`, `cancel_ready_task`, `cancel_waiting_task`, `spawn_child_parent_lt`, `occurrence_unique_two_mailboxes`.
+
+**Regression gate**:
+
+| Theorem | Statement |
+|---|---|
+| `conformance_suite_passes` | `allPass = true` — every golden scenario's observed trace equals its checked-in expected trace. Kernel-checked by `decide` (no `native_decide`, no extra axioms). |
+
+Any change to `step` or `traceEvents` that alters observable behavior breaks this proof. See `docs/conformance-suite.md` for the adapter contract.

@@ -55,6 +55,8 @@ ALLOWLIST = {
     "Henret.Trace.event_parked_sound":        (set(), STD),
     "Henret.Trace.event_timerWoke_sound":     (set(), STD),
     "Henret.Trace.event_spawnChild_sound":    (set(), STD),
+    # RFC 047 golden trace conformance
+    "Henret.Conformance.conformance_suite_passes": (set(), STD),
     # Pure native layer: still standard only.
     # "Henret.Native.qRun_tracks":             (set(), STD),
     # "Henret.Native.driveStackB_complete":    (set(), STD),

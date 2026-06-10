@@ -236,3 +236,13 @@ zero-assumption core.
 | 129 | A `scheduled t` event certifies nothing was running and `t` was the runnable `readyQ` head | PROVEN | `event_scheduled_sound` |
 | 130 | A `waiterWoke` event from `send` certifies the woken task is the head of the actor's waiter list | PROVEN | `event_waiterWoke_send_sound` |
 | 131 | Trace events are a model-level observation layer; not yet frozen as public API | DOCUMENTED | `docs/trace-ledger.md` (deferred to RFC 052) |
+
+## v0.13.1 claims (golden trace conformance, RFC 047)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 132 | Ten golden scenarios encode Henret's canonical observable behavior (lifecycle, yield, sleep/tick, park, send/inject Mesa wake, cancel, spawnChild, occurrence uniqueness) | PROVEN | `goldenScenarios`, `conformance_suite_passes` |
+| 133 | Every golden scenario's observed trace equals its checked-in expected trace (kernel-checked, no native_decide) | PROVEN | `conformance_suite_passes` (`by decide`) |
+| 134 | The conformance suite is executable and reports the first mismatching event on failure | TESTED | `lake exe henret-conformance`, `firstMismatch`, `scenarioReport` |
+| 135 | Trace refinement is exact equality for single-worker conformance; relaxed matching deferred until a multi-worker adapter exists | DOCUMENTED | `TraceRefines`, `docs/conformance-suite.md` |
+| 136 | External runtimes need only expose the observable event stream, not internal queues | DOCUMENTED | `docs/conformance-suite.md` adapter contract |

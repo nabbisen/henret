@@ -3,6 +3,7 @@ import Henret.Proofs
 import Henret.Refinement
 import Henret.Bridge
 import Henret.Trace
+import Henret.Conformance
 
 /-!
 # Henret
