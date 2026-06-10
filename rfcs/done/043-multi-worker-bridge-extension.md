@@ -1,6 +1,6 @@
 # RFC 043 — Multi-Worker Bridge Model Extension
 
-**Status.** Proposed  
+**Status.** Implemented (v0.12.0)  
 **Target version.** v0.12.0 or later  
 **Priority.** After RFC 036 only  
 **Track.** Bridge/refinement layer  

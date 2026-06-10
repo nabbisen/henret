@@ -1,6 +1,7 @@
 import Henret.Bridge.Grammar
 import Henret.Bridge.State
 import Henret.Bridge.Preservation
+import Henret.Bridge.MultiState
 /-!
 # Henret.Bridge  (RFC 035 skeleton → RFC 036 complete single-worker bridge)
 

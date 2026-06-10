@@ -44,6 +44,9 @@ ALLOWLIST = {
     "Henret.send_stamps_source":                (set(), STD),
     "Henret.inject_stamps_none":                (set(), STD),
     "Henret.parent_chain_terminates":           (set(), STD_C),
+    # RFC 043 multi-worker bridge
+    "Henret.Bridge.reachable_multi_bridge":            (set(), STD_C),
+    "Henret.Bridge.single_bridge_implies_multi_bridge": (set(), STD),
     # Pure native layer: still standard only.
     # "Henret.Native.qRun_tracks":             (set(), STD),
     # "Henret.Native.driveStackB_complete":    (set(), STD),

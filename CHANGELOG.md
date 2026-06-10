@@ -1,5 +1,60 @@
 # Changelog
 
+## v0.12.0 — Multi-Worker Bridge Model Extension (RFC 043)
+
+Generalises the bridge from a single-worker queue projection to a
+**membership-based** multi-worker projection suitable for comparison with
+`lean-runtime`'s work-stealing scheduler. New file
+`Henret/Bridge/MultiState.lean`.
+
+### `MultiBridgeState` (Option B — membership)
+
+Relates henret's `readyQ` to the *union* of all worker queues by
+membership, not order:
+
+- `sound` — every queued task is ready;
+- `complete` — every ready task is queued on some worker;
+- `worker_nodup` — each worker queue is duplicate-free;
+- `global_unique` — a task is queued on at most one worker.
+
+Order is deliberately not preserved: a work-stealing scheduler does not
+maintain a single global ready order, so a membership relation is the
+right invariant — it survives `Steal` where list-equality would not.
+
+### Multi-worker `Steal` semantics
+
+`applyMQOp`'s `Steal src dst` actually moves the head of `src`'s queue to
+`dst`'s tail (the single-worker `applyQOp` left `Steal` a no-op).
+`Wake`/`Inject` target worker 0 (wake-to-worker-0 policy, deterministic
+and compatible with the single-worker projection).
+
+### Theorems
+
+- `single_bridge_implies_multi_bridge` — the single-worker `BridgeState`
+  is a strict special case (given `readyQ.Nodup`).
+- `multi_bridge_push`, `multi_bridge_filter`, `multi_bridge_steal` —
+  per-op membership preservation. `multi_bridge_steal` is the headline:
+  work stealing moves a task between workers without changing the ready
+  set.
+- `reachable_multi_bridge` — every reachable state has a `WorkerQueues`
+  witness satisfying `MultiBridgeState`, via the single-worker trace
+  theorem and `reachable_wf.readyQ_nodup`.
+
+### Design constraint honoured
+
+No worker-placement field added to `RuntimeState`. Worker assignment
+stays a bridge/refinement concern; the kernel remains actor/task
+semantic, per RFC 043's design decision.
+
+### Axiom budget: unchanged
+
+`single_bridge_implies_multi_bridge` uses only `propext`;
+`reachable_multi_bridge` adds `Classical.choice` and `Quot.sound`
+(via `reachable_wf`). No project axioms. Verified by
+`scripts/axiom_audit.py`.
+
+---
+
 ## v0.11.1 — Selective Receive (RFC 041)
 
 Adds `receiveByOccurrence (t : TaskId) (occ : MessageId)` and

@@ -207,3 +207,16 @@ zero-assumption core.
 | 110 | `dequeueFirst` removes exactly one envelope while preserving all others in order | PROVEN | `listDequeueFirst_sublist`, `listDequeueFirst_matches`, `listDequeueFirst_mem`, `listDequeueFirst_none` |
 | 111 | Blocking is mailbox-level, not selector-level (Option A): any delivery to the actor wakes a parked selective-receive task | DOCUMENTED | Mesa semantics; `receiveByOccurrence_parks_on_miss` shows parking in `mailboxWaiters` |
 | 112 | `bridge_step_single_worker` covers all 16 `RuntimeOp`s including `receiveByOccurrence` and `receiveFrom` | PROVEN | `bridge_step_single_worker` (both emit `[]`, readyQ unchanged) |
+
+## v0.12.0 claims (multi-worker bridge, RFC 043)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 113 | `MultiBridgeState` relates henret `readyQ` to the union of worker queues by membership (soundness + completeness + global uniqueness + per-worker nodup) | PROVEN | `MultiBridgeState` (structure) |
+| 114 | The single-worker `BridgeState` is a strict special case of `MultiBridgeState` (given `readyQ.Nodup`) | PROVEN | `single_bridge_implies_multi_bridge` |
+| 115 | `Push w t` of a fresh task preserves the multi-worker membership relation | PROVEN | `multi_bridge_push` |
+| 116 | `Filter w t` preserves the relation, mirroring `readyQ.filter (· ≠ t)` | PROVEN | `multi_bridge_filter` |
+| 117 | Work stealing (`Steal src dst`, src ≠ dst) preserves membership: the stolen task moves between workers without leaving the ready set | PROVEN | `multi_bridge_steal` |
+| 118 | Every reachable state has a worker-queue witness satisfying `MultiBridgeState` | PROVEN | `reachable_multi_bridge` |
+| 119 | Multi-worker bridge preserves membership, not order (work stealing does not preserve a global ready order) | DOCUMENTED | `docs/bridge-architecture.md`; relation is set-based by construction |
+| 120 | No worker-placement field added to `RuntimeState`; worker assignment is bridge-level only | PROVEN | `RuntimeState` unchanged; `MultiBridgeState` over `WorkerQueues` |

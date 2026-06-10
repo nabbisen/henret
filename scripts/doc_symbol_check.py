@@ -47,6 +47,16 @@ IGNORE = {
     # RFC 040 new toQOps lemmas
     "toQOps_send_valid_timed_waiter", "toQOps_inject_valid_timed_waiter",
     "receiveUntil",
+    # RFC 041 Mailbox selective-dequeue helpers (Mailbox.* namespace)
+    "dequeueFirst", "dequeueFirstByOccurrence", "dequeueFirstFrom",
+    "dequeueFirst_matches", "dequeueFirst_sublist", "dequeueFirst_none",
+    "dequeue_spec", "listDequeueFirst", "listDequeueFirst_matches",
+    "listDequeueFirst_mem", "listDequeueFirst_sublist", "listDequeueFirst_none",
+    "receiveByOccurrence", "receiveFrom",
+    # RFC 043 multi-worker bridge
+    "applyMQOp", "applyMQOps", "MultiBridgeState",
+    "multi_bridge_push", "multi_bridge_filter", "multi_bridge_steal",
+    "single_bridge_implies_multi_bridge", "reachable_multi_bridge",
     # RFC 035/036 Bridge sub-namespace types/internals — not standalone theorems
     "bridgeState_init", "bridgeState_push0", "bridgeState_pop0", "bridgeState_filter0",
     "bridgeState_readyQ_unchanged", "applyQOp", "applyQOps", "applyQOps_append",

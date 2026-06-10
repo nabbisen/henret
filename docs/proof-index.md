@@ -372,3 +372,32 @@ extension is deferred to RFC 043. See `docs/bridge-architecture.md`.
 | `receiveFrom_parks_on_miss` | No match → parks `t` in `mailboxWaiters a`, result `.blocked` |
 | `receiveByOccurrence_preserves_nonmatching_order` | `rest.messages.Sublist mb.messages` — order preserved |
 | `receiveFrom_preserves_nonmatching_order` | `rest.messages.Sublist mb.messages` — order preserved |
+
+---
+
+### RFC 043 — Multi-Worker Bridge Model Extension
+
+Generalises the single-worker `BridgeState` (list-equality on worker 0) to a **membership-based** multi-worker relation suitable for comparison with work-stealing scheduler semantics. No worker-placement field is added to `RuntimeState` — worker assignment stays a bridge/refinement concern (`Henret/Bridge/MultiState.lean`).
+
+**`MultiBridgeState` (Option B — membership, not order):**
+
+| Field | Statement |
+|---|---|
+| `sound` | Every queued task is ready in henret (`t ∈ wqs w → t ∈ s.readyQ`) |
+| `complete` | Every ready task is queued somewhere (`t ∈ s.readyQ → ∃ w, t ∈ wqs w`) |
+| `worker_nodup` | Each worker queue is duplicate-free |
+| `global_unique` | A task sits in at most one worker queue |
+
+**Multi-worker queue application** (`applyMQOp`): unlike the single-worker `applyQOp`, `Steal src dst` has real semantics — it moves the head of `src`'s queue to `dst`'s tail (the model-level analogue of stealing from the top end). `Wake`/`Inject` target worker 0 (wake-to-worker-0 policy).
+
+**Theorems:**
+
+| Theorem | Statement |
+|---|---|
+| `single_bridge_implies_multi_bridge` | `BridgeState s wqs → s.readyQ.Nodup → MultiBridgeState s wqs` — single-worker bridge is a strict special case |
+| `multi_bridge_push` | `Push w t` (fresh `t`) preserves the membership relation |
+| `multi_bridge_filter` | `Filter w t` preserves the relation, mirroring `readyQ.filter (· ≠ t)` |
+| `multi_bridge_steal` | `Steal src dst` (src ≠ dst) preserves membership — the stolen task moves between workers without leaving the ready set |
+| `reachable_multi_bridge` | Every reachable state has a `WorkerQueues` witness satisfying `MultiBridgeState` (via `single_bridge_implies_multi_bridge` + `reachable_wf.readyQ_nodup`) |
+
+**Scope note**: this is a model-level membership bridge. Order is deliberately not preserved (work stealing does not preserve a single global ready order). It does not prove C race-freedom, fairness, or liveness — those remain out of scope. See `docs/bridge-architecture.md`.
