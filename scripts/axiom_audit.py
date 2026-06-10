@@ -57,6 +57,11 @@ ALLOWLIST = {
     "Henret.Trace.event_spawnChild_sound":    (set(), STD),
     # RFC 047 golden trace conformance
     "Henret.Conformance.conformance_suite_passes": (set(), STD),
+    # RFC 046 fairness / conditional liveness
+    "Henret.Progress.ready_eventually_scheduled_under_bounded_fairness": (set(), STD),
+    "Henret.Progress.schedule_schedules_head":  (set(), STD),
+    "Henret.Progress.head_scheduled_within_one": (set(), STD),
+    "Henret.Progress.unfairOps_not_bounded_fair_0": (set(), STD),
     # Pure native layer: still standard only.
     # "Henret.Native.qRun_tracks":             (set(), STD),
     # "Henret.Native.driveStackB_complete":    (set(), STD),

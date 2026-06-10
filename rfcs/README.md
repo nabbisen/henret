@@ -57,7 +57,7 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 | [043](done/043-multi-worker-bridge-extension.md) | Multi-Worker Bridge Model Extension | Implemented (v0.12.0) | — |
 | [044](done/044-runtime-integration-contract.md) | Runtime Integration Contract for External Consumers | Implemented (v0.12.1) | — |
 | [045](done/045-execution-trace-ledger.md) | Execution Trace Ledger | Implemented (v0.13.0) | — |
-| [046](proposed/046-fairness-liveness-policy-layer.md) | Fairness and Conditional Liveness Layer | — | — |
+| [046](done/046-fairness-liveness-policy-layer.md) | Fairness and Conditional Liveness Layer | Implemented (v0.14.0) | — |
 | [047](done/047-golden-trace-conformance-suite.md) | Golden Trace Conformance Suite | Implemented (v0.13.1) | — |
 | [048](proposed/048-bounded-model-explorer.md) | Bounded Model Explorer and Shrinker | — | — |
 | [049](proposed/049-supervision-restart-policies.md) | Supervision Restart Policies | — | — |

@@ -246,3 +246,13 @@ zero-assumption core.
 | 134 | The conformance suite is executable and reports the first mismatching event on failure | TESTED | `lake exe henret-conformance`, `firstMismatch`, `scenarioReport` |
 | 135 | Trace refinement is exact equality for single-worker conformance; relaxed matching deferred until a multi-worker adapter exists | DOCUMENTED | `TraceRefines`, `docs/conformance-suite.md` |
 | 136 | External runtimes need only expose the observable event stream, not internal queues | DOCUMENTED | `docs/conformance-suite.md` adapter contract |
+
+## v0.14.0 claims (fairness / conditional liveness, RFC 046)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 137 | The FIFO head of `readyQ` is the next task scheduled (unconditional, local progress) | PROVEN | `schedule_schedules_head`, `head_scheduled_within_one` |
+| 138 | Under an explicit bounded-fairness assumption, a runnable task is scheduled within the window | PROVEN (conditional) | `ready_eventually_scheduled_under_bounded_fairness` |
+| 139 | Whole-program fairness is NOT unconditional: an op sequence that stops scheduling starves runnable tasks | PROVEN | `unfairOps_not_bounded_fair_0`, `unfair_task1_never_scheduled` |
+| 140 | A fair op sequence schedules each runnable task | PROVEN | `fair_task0_scheduled`, `fair_task1_scheduled` |
+| 141 | No unconditional liveness is added to `reachable_wf`; safety and liveness layers stay separate | DOCUMENTED | `docs/progress-policy.md`; `WellFormed` unchanged |

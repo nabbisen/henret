@@ -448,3 +448,24 @@ A behavioral conformance suite built on the RFC 045 trace ledger. External runti
 | `conformance_suite_passes` | `allPass = true` — every golden scenario's observed trace equals its checked-in expected trace. Kernel-checked by `decide` (no `native_decide`, no extra axioms). |
 
 Any change to `step` or `traceEvents` that alters observable behavior breaks this proof. See `docs/conformance-suite.md` for the adapter contract.
+
+---
+
+### RFC 046 — Fairness and Conditional Liveness Layer
+
+An **optional** policy layer for conditional progress reasoning. Nothing is added to `WellFormed`; the safety model and liveness layer stay separate. New module `Henret/Progress/` (`Policy.lean`, `Examples.lean`) + aggregator `Henret/Progress.lean`.
+
+**Trace-step predicates** (`Policy.lean`): `stateAt` (state after `i` ops), `runnableAtStep` (task queued in `readyQ`), `scheduledAtStep` (op `i` schedules the task) — both decidable.
+
+**The explicit assumption**: `BoundedReadyFair k s ops` — every task runnable at some step is scheduled within `k` further steps. A property of the op sequence, not of `WellFormed`.
+
+| Theorem | Statement |
+|---|---|
+| `ready_eventually_scheduled_under_bounded_fairness` | conditional progress: under `BoundedReadyFair k`, a runnable task is scheduled within `k` steps |
+| `schedule_schedules_head` | **unconditional, local**: the FIFO head of `readyQ` is the next task scheduled |
+| `head_scheduled_within_one` | the head is scheduled within one step (no fairness assumption) |
+| `unfairOps_not_bounded_fair_0` | a representable starvation: an op sequence that stops scheduling fails `BoundedReadyFair 0` |
+
+**Fair/unfair witnesses** (`Examples.lean`, all `by decide`): `fair_task0_scheduled`, `fair_task1_scheduled`, `unfair_task1_runnable`, `unfair_task1_never_scheduled`.
+
+Honesty: the model's `readyQ` is FIFO so head-progress is unconditional, but whole-program fairness depends on the scheduler issuing `schedule` ops — starvation is representable. See `docs/progress-policy.md`.

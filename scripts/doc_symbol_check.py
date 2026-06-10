@@ -74,6 +74,18 @@ IGNORE = {
     "TraceRefines", "firstMismatch", "goldenScenarios", "allPass",
     "suiteReport", "conformance_suite_passes", "renderEvent", "renderTrace",
     "renderScenario", "renderSuite",
+    # RFC 047 golden scenario names
+    "spawn_schedule_complete", "yield_requeues", "sleep_tick_wakes",
+    "empty_receive_parks", "send_wakes_waiter_mesa", "inject_wakes_waiter_mesa",
+    "cancel_ready_task", "cancel_waiting_task", "spawn_child_parent_lt",
+    "occurrence_unique_two_mailboxes",
+    # RFC 046 fairness / conditional liveness
+    "stateAt", "runnableAtStep", "scheduledAtStep", "BoundedReadyFair",
+    "ready_eventually_scheduled_under_bounded_fairness",
+    "schedule_schedules_head", "head_scheduled_within_one",
+    "fairOps", "unfairOps", "fair_task0_scheduled", "fair_task1_scheduled",
+    "unfair_task1_runnable", "unfair_task1_never_scheduled",
+    "unfairOps_not_bounded_fair_0",
     # RFC 035/036 Bridge sub-namespace types/internals — not standalone theorems
     "bridgeState_init", "bridgeState_push0", "bridgeState_pop0", "bridgeState_filter0",
     "bridgeState_readyQ_unchanged", "applyQOp", "applyQOps", "applyQOps_append",

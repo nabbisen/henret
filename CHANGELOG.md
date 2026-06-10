@@ -1,5 +1,58 @@
 # Changelog
 
+## v0.14.0 — Fairness and Conditional Liveness Layer (RFC 046)
+
+An **optional** policy layer for conditional progress reasoning. Henret's
+core stays a safety model — nothing here is added to `WellFormed`, and no
+unconditional liveness is claimed. New module `Henret/Progress/`
+(`Policy`, `Examples`) with aggregator `Henret/Progress.lean`.
+
+### The honesty story
+
+The model's `readyQ` is **FIFO** (`schedule` takes the head; `yield`,
+`spawn`, and wakeups append to the tail), so one progress fact is
+genuinely unconditional and local:
+
+```lean
+theorem schedule_schedules_head : ... → (step s .schedule).2 = .scheduled t
+```
+
+But whole-program fairness is **not** unconditional. An op sequence that
+stops issuing `schedule` starves runnable tasks — and this is
+representable:
+
+```lean
+theorem unfairOps_not_bounded_fair_0 :
+  ¬ BoundedReadyFair 0 RuntimeState.init unfairOps
+```
+
+### Conditional progress
+
+`BoundedReadyFair k s ops` is the explicit scheduling assumption (a
+property of the op sequence, not of `WellFormed`). Under it,
+`ready_eventually_scheduled_under_bounded_fairness` gives bounded
+progress. The theorem is deliberately close to tautological — its value
+is making the assumption explicit and reusable.
+
+### Fair / unfair witnesses
+
+Kernel-checked (`by decide`): `fair_task0_scheduled`,
+`fair_task1_scheduled` (a fair schedule), and `unfair_task1_runnable`,
+`unfair_task1_never_scheduled` (a starving schedule).
+
+### Docs
+
+`docs/progress-policy.md` documents the layer and its honesty ledger:
+unconditional local head-progress, conditional whole-task progress, and
+representable starvation.
+
+### Axiom budget: unchanged
+
+All progress theorems depend only on `propext` and `Quot.sound` (the
+`decide`-based ones use no `native_decide`). No project axioms.
+
+---
+
 ## v0.13.1 — Golden Trace Conformance Suite (RFC 047)
 
 A behavioral conformance suite built on the RFC 045 trace ledger.
@@ -42,11 +95,6 @@ exits non-zero on any failure.
 `docs/conformance-suite.md` documents the suite, the refinement relation,
 and the adapter contract for external runtimes (which need only expose
 the observable event stream, not internal queues).
-
-### Axiom budget: unchanged
-
-`conformance_suite_passes` depends only on `propext` and `Quot.sound`.
-No project axioms.
 
 ---
 
