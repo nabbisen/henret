@@ -1,5 +1,47 @@
 # Changelog
 
+## v0.12.1 — Runtime Integration Contract (RFC 044)
+
+Documentation and ecosystem-maturity release. No model or proof changes;
+the public surface is unchanged. Adds a stable boundary contract for
+downstream consumers.
+
+### New: `docs/integration-contract.md`
+
+The boundary contract for projects using Henret as a semantic reference
+model. Ten sections:
+
+1. **Project role** — Henret is a reference model, not a runtime library.
+2. **Stable imports** — stability levels per import (`Henret.Model` and
+   `Henret.Proofs` are fully stable; `Henret.Native.*` is trusted;
+   examples are unstable).
+3. **Operation mapping** — external runtime events → all 16 `RuntimeOp`s.
+4. **Mesa semantics contract** — wake-one, no atomic handoff, re-run
+   receive; selective receive parks at mailbox level.
+5. **Occurrence identity contract** — fresh ids, global uniqueness,
+   `send`/`inject` source stamping.
+6. **Supervision contract** — acyclic parenthood, cascade cancel
+   (`cancelTree`) stable since v0.10.0; restart policies not yet modeled.
+7. **Bridge contract** — single-worker (exact) and multi-worker
+   (membership) levels; headline theorems; no native-concurrency claim.
+8. **Theorem contract** — the public theorem table; warning not to depend
+   on internal `preserves_wf_*` / `step_*` / `toQOps_*` helpers.
+9. **Trust boundary** — kernel-proven / trusted / tested / out-of-scope.
+10. **Versioning policy** — what counts as breaking vs non-breaking.
+
+### New: `examples/10_integration_contract.lean`
+
+A worked consumer trace: maps a small actor scenario to Henret ops, runs
+it, and discharges `reachable_wf` and `reachable_occurrence_unique` on
+the result — using only the public theorem surface.
+
+### README
+
+Adds a "Using Henret in your own project?" pointer to the integration
+contract in the learning path.
+
+---
+
 ## v0.12.0 — Multi-Worker Bridge Model Extension (RFC 043)
 
 Generalises the bridge from a single-worker queue projection to a

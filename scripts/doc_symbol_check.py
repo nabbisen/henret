@@ -57,6 +57,8 @@ IGNORE = {
     "applyMQOp", "applyMQOps", "MultiBridgeState",
     "multi_bridge_push", "multi_bridge_filter", "multi_bridge_steal",
     "single_bridge_implies_multi_bridge", "reachable_multi_bridge",
+    # MultiBridgeState / WellFormed field names referenced in prose
+    "global_unique", "worker_nodup", "reachable_wf.readyQ_nodup",
     # RFC 035/036 Bridge sub-namespace types/internals — not standalone theorems
     "bridgeState_init", "bridgeState_push0", "bridgeState_pop0", "bridgeState_filter0",
     "bridgeState_readyQ_unchanged", "applyQOp", "applyQOps", "applyQOps_append",

@@ -161,6 +161,13 @@ is merely tested or explicitly out of scope.
 5. [`docs/patterns/refinement-contract.md`](docs/patterns/refinement-contract.md)
    — how to copy the backend-contract pattern for your own component.
 
+**Using Henret in your own project?** Start with
+[`docs/integration-contract.md`](docs/integration-contract.md) — the stable
+boundary contract (stable imports, public theorem surface, operation
+mapping, Mesa-semantics requirements, trust boundary, and versioning
+policy). See `examples/10_integration_contract.lean` for a worked
+consumer trace.
+
 ## Design notes
 
 - **One mutation primitive.** Every per-id map change goes through

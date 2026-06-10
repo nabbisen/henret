@@ -1,6 +1,6 @@
 # RFC 044 — Runtime Integration Contract for External Consumers
 
-**Status.** Proposed  
+**Status.** Implemented (v0.12.1)  
 **Target version.** v0.12.0 or earlier if an external project needs Henret  
 **Priority.** High for downstream use  
 **Track.** Product/API maturity, ecosystem integration  
