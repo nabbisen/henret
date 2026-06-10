@@ -52,7 +52,7 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 | RFC | Title | Target | Priority |
 |---|---|---|---|
 | [040](done/040-receive-timeout-multi-wait.md) | Receive Timeout and Multi-Wait Semantics | Implemented (v0.11.0) | — |
-| [041](proposed/041-selective-receive.md) | Selective Receive | v0.11.x | Medium-low |
+| [041](done/041-selective-receive.md) | Selective Receive | Implemented (v0.11.1) | — |
 
 | [043](proposed/043-multi-worker-bridge-extension.md) | Multi-Worker Bridge Model Extension | v0.12.0 | After 036 |
 | [044](proposed/044-runtime-integration-contract.md) | Runtime Integration Contract for External Consumers | v0.12.0 | High (external) |

@@ -143,6 +143,14 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;>
       (try split) <;> (try split) <;> simp_all
+  | receiveByOccurrence t occ =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;>
+      (try split) <;> (try split) <;> simp_all
+  | receiveFrom t src =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;>
+      (try split) <;> (try split) <;> simp_all
 
 /-- Every operation preserves timer-queue sortedness. -/
 theorem step_preserves_sorted {s : RuntimeState}
@@ -199,6 +207,14 @@ theorem step_preserves_sorted {s : RuntimeState}
     simp only [step]
     exact Timer.sorted_filter _ h
   | receiveUntil t deadline =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;>
+      (try split) <;> (try split) <;> simp_all [Timer.insertSorted_sorted]
+  | receiveByOccurrence t occ =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;>
+      (try split) <;> (try split) <;> simp_all [Timer.insertSorted_sorted]
+  | receiveFrom t src =>
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;>
       (try split) <;> (try split) <;> simp_all [Timer.insertSorted_sorted]

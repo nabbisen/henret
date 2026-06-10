@@ -79,6 +79,22 @@ inductive RuntimeOp where
       a message arrived (non-empty mailbox = message won; empty = timed out).
       Task-local return-value modeling deferred to RFC 045. (RFC 040) -/
   | receiveUntil (t : TaskId) (deadline : Nat) : RuntimeOp
+  /-- Selective receive by occurrence id (RFC 041).
+
+      The running task `t` consumes the first envelope in its owning actor's
+      mailbox whose `occurrence` equals `occ`, preserving the relative order
+      of every other envelope. If no match is present the task parks in the
+      ordinary `mailboxWaiters` list (Mesa-style, Option A): any future
+      delivery wakes it and it re-runs the selective receive. Blocking is
+      mailbox-level, not selector-level. -/
+  | receiveByOccurrence (t : TaskId) (occ : MessageId) : RuntimeOp
+  /-- Selective receive by source actor (RFC 041).
+
+      The running task `t` consumes the first envelope in its owning actor's
+      mailbox whose `source` equals `some src`, preserving the relative order
+      of every other envelope. Parks in `mailboxWaiters` if no match
+      (Option A). -/
+  | receiveFrom (t : TaskId) (src : ActorId) : RuntimeOp
 deriving Repr, DecidableEq
 
 end Henret

@@ -1410,4 +1410,447 @@ theorem preserves_wf_receiveUntil {s : RuntimeState} (h : WellFormed s)
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
 
+-- ─── selective receive: WellFormed preservation (RFC 041) ─────────────────
+
+theorem preserves_wf_receiveByOccurrence {s : RuntimeState} (h : WellFormed s)
+    {t : TaskId} {occ : MessageId} :
+    WellFormed ((step s (.receiveByOccurrence t occ)).1) := by
+  by_cases hrt : s.running = some t
+  · cases hts : s.taskState t with
+    | none => simpa [step, hrt, hts] using h
+    | some st => cases st with
+      | running => cases how : s.taskOwner t with
+        | none => simpa [step, hrt, hts, how] using h
+        | some a => cases hmb : s.mailboxes a with
+          | none => simpa [step, hrt, hts, how, hmb] using h
+          | some mb => cases hd : mb.dequeueFirst (·.occurrence = occ) with
+            | some p =>
+              obtain ⟨env, rest⟩ := p
+              -- receive dequeues head envelope; nextMsgId unchanged
+              have hstep_d : (step s (.receiveByOccurrence t occ)).1 =
+                  { s with mailboxes := upd s.mailboxes a (some rest) } := by
+                simp [step, hrt, hts, how, hmb, hd]
+              -- Extract head/tail relationship
+              -- selective dequeue: rest is a sublist of mb, so every rest envelope was in mb
+              have hsubmem : ∀ {x : Envelope}, x ∈ rest.messages → x ∈ mb.messages :=
+                fun {x} hx => (Mailbox.dequeueFirst_sublist _ mb hd).mem hx
+              have hsubnodup : (rest.messages.map Envelope.occurrence).Nodup → True := fun _ => trivial
+              rw [hstep_d]
+              refine ⟨h.readyQ_nodup, fun u hm => h.readyQ_queued u hm, h.running_runs,
+                h.timers_nodup, h.timers_sleep, h.fresh_none, h.timers_sorted,
+                h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
+                h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+                h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer, h.timed_is_waiter,
+                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive⟩
+              · intro u cc hown
+                obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
+                by_cases hcc : cc = a
+                · exact ⟨rest, by simp [upd, hcc]⟩
+                · exact ⟨mbc, by simp [upd, if_neg hcc, hmbc]⟩
+              · intro u p hp; exact h.parent_lt u p
+                  (by simpa [step, hrt, hts, how, hmb, hd] using hp)
+              · intro u p hp
+                obtain ⟨st, hst⟩ := h.parent_spawned u p
+                  (by simpa [step, hrt, hts, how, hmb, hd] using hp)
+                exact ⟨st, by simpa [step, hrt, hts, how, hmb, hd] using hst⟩
+              · -- occ_fresh: nextMsgId unchanged, rest ⊆ mb (RFC 033)
+                intro ac mc env2 hmbc henv2
+                by_cases hac : ac = a
+                · rw [hac] at hmbc; simp only [upd_self] at hmbc
+                  have hv := Option.some.inj hmbc; subst hv
+                  exact h.occ_fresh ac mb env2 (hac ▸ hmb) (hsubmem henv2)
+                · simp only [upd, if_neg hac] at hmbc; exact h.occ_fresh ac mc env2 hmbc henv2
+              · -- occ_nodup: rest ⊆ mb (RFC 033)
+                intro ac mc hmbc
+                by_cases hac : ac = a
+                · rw [hac] at hmbc; simp only [upd_self] at hmbc
+                  have hv := Option.some.inj hmbc; subst hv
+                  have hnd := h.occ_nodup ac mb (hac ▸ hmb)
+                  exact (List.Sublist.map Envelope.occurrence
+                    (Mailbox.dequeueFirst_sublist _ mb hd)).nodup hnd
+                · simp only [upd, if_neg hac] at hmbc; exact h.occ_nodup ac mc hmbc
+              · -- occ_disjoint: rest ⊆ mb (RFC 033)
+                intro ac bc mba mbb hab hmba hmbb ea hea eb heb
+                by_cases hac : ac = a <;> by_cases hbc : bc = a
+                · exact absurd (hac.trans hbc.symm) hab
+                · rw [hac] at hmba; simp only [upd_self] at hmba
+                  have hv := Option.some.inj hmba; subst hv
+                  simp only [upd, if_neg hbc] at hmbb
+                  exact h.occ_disjoint ac bc mb mbb hab (hac ▸ hmb) hmbb
+                    ea (hsubmem hea) eb heb
+                · rw [hbc] at hmbb; simp only [upd_self] at hmbb
+                  have hv := Option.some.inj hmbb; subst hv
+                  simp only [upd, if_neg hac] at hmba
+                  exact h.occ_disjoint ac bc mba mb hab hmba (hbc ▸ hmb)
+                    ea hea eb (hsubmem heb)
+                · simp only [upd, if_neg hac] at hmba; simp only [upd, if_neg hbc] at hmbb
+                  exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
+              · -- owner_spawned (RFC 038): taskOwner unchanged; taskState = s.taskState
+                intro u a' how'
+                exact h.owner_spawned u a' how'
+              · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState = s.taskState
+                intro u p hp
+                exact h.parent_child_spawned u p hp
+            | none =>
+              have ht_not_waiter : t ∉ s.mailboxWaiters a := fun hmem =>
+                absurd (h.waiters_waiting a t hmem) (by simp [hts])
+              have hstep_p : (step s (.receiveByOccurrence t occ)).1 =
+                  { s with taskState := upd s.taskState t (some .waiting), running := none,
+                            mailboxWaiters := fun ac => if ac = a then s.mailboxWaiters a ++ [t]
+                                                        else s.mailboxWaiters ac } := by
+                simp [step, hrt, hts, how, hmb, hd]
+              rw [hstep_p]
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              · exact h.readyQ_nodup
+              · intro u hm
+                by_cases hut : u = t
+                · simp [hut] at hm ⊢; have := h.readyQ_queued t hm
+                  simp [hts, Option.any, TaskState.isRunnable] at this
+                · simp [upd_ne _ _ hut]; exact h.readyQ_queued u hm
+              · intro u hru; exact absurd hru (by simp)
+              · exact h.timers_nodup
+              · intro e he; have hts_e := h.timers_sleep e he
+                by_cases hne : e.task = t
+                · exact absurd (hne ▸ hts_e) (by simp [hts])
+                · simp only [upd_ne _ _ hne]; exact hts_e
+              · intro u hu
+                by_cases hut : u = t
+                · simp [hut] at hu ⊢; exact absurd hts (by simp [h.fresh_none t hu])
+                · simp [upd_ne _ _ hut]; exact h.fresh_none u hu
+              · exact h.timers_sorted
+              · intro u st hts''
+                by_cases hut : u = t
+                · simp only [upd_self] at hts''; exact ⟨a, by rw [hut]; exact how⟩
+                · simp only [upd_ne _ _ hut] at hts''; exact h.spawned_has_owner u st hts''
+              · intro u cc hown
+                obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
+                exact ⟨mbc, hmbc⟩
+              · intro u st hts'' hrun
+                by_cases hut : u = t
+                · simp only [hut, upd_self] at hts''
+                  have hst := Option.some.inj hts''.symm; subst hst
+                  simp [TaskState.isRunnable] at hrun
+                · simp [upd_ne _ _ hut] at hts''; exact h.runnable_queued u st hts'' hrun
+              · intro ac u hm
+                by_cases hac : ac = a
+                · simp only [if_pos hac] at hm ⊢
+                  rcases List.mem_append.mp hm with hm | hm
+                  · have hts_u := h.waiters_waiting a u hm
+                    have hut : u ≠ t := fun he => absurd (he ▸ hts_u) (by simp [hts])
+                    simp [upd_ne _ _ hut]; exact hts_u
+                  · simp only [List.mem_singleton] at hm; simp [hm, upd_self]
+                · simp only [if_neg hac] at hm ⊢
+                  have hts_u := h.waiters_waiting ac u hm
+                  have hut : u ≠ t := fun he => absurd (he ▸ hts_u) (by simp [hts])
+                  simp [upd_ne _ _ hut]; exact hts_u
+              · intro ac u hm
+                by_cases hac : ac = a
+                · simp only [if_pos hac] at hm ⊢
+                  rcases List.mem_append.mp hm with hm | hm
+                  · exact hac ▸ h.waiters_owned a u hm
+                  · simp only [List.mem_singleton] at hm; exact hac ▸ (hm ▸ how)
+                · simp only [if_neg hac] at hm ⊢; exact h.waiters_owned ac u hm
+              · intro u hts''
+                by_cases hut : u = t
+                · simp [upd_self, hut] at hts''
+                  exact ⟨a, by rw [hut]; exact how, by simp [if_pos rfl, hut]⟩
+                · simp [upd_ne _ _ hut] at hts''
+                  obtain ⟨a', ha', hmem⟩ := h.waiting_queued u hts''
+                  refine ⟨a', ha', ?_⟩
+                  by_cases hac : a' = a
+                  · simp only [if_pos hac]; exact List.mem_append_left _ (by rwa [hac] at hmem)
+                  · simp only [if_neg hac]; exact hmem
+              · intro ac
+                by_cases hac : ac = a
+                · simp only [if_pos hac]
+                  exact nodup_append (h.waiters_nodup a) (by simp)
+                    (fun u hmem hts_mem => by simp at hts_mem; exact ht_not_waiter (hts_mem ▸ hmem))
+                · simp only [if_neg hac]; exact h.waiters_nodup ac
+              · -- parent_lt
+                exact fun u p hp => h.parent_lt u p (by simpa [step, hrt, hts, how, hmb, hd] using hp)
+              · -- parent_spawned: receive parks t → .waiting; still some _
+                intro u p hp
+                obtain ⟨st, hst⟩ := h.parent_spawned u p
+                  (by simpa [step, hrt, hts, how, hmb, hd] using hp)
+                by_cases hpt : p = t
+                · exact ⟨.waiting, by simp [step, hrt, hts, how, hmb, hd, upd_self, hpt]⟩
+                · exact ⟨st, by simp [step, hrt, hts, how, hmb, hd, upd, if_neg hpt]; exact hst⟩
+              · -- occ_fresh: mailboxes unchanged, nextMsgId unchanged
+                intro a' mb' env hmb' henv; exact h.occ_fresh a' mb' env hmb' henv
+              · -- occ_nodup: mailboxes unchanged
+                intro a' mb' hmb'; exact h.occ_nodup a' mb' hmb'
+              · -- occ_disjoint: mailboxes unchanged
+                intro a' b' mba mbb hab hmba hmbb ea hea eb heb
+                exact h.occ_disjoint a' b' mba mbb hab hmba hmbb ea hea eb heb
+              · -- owner_spawned (RFC 038): taskOwner unchanged; taskState changes at t
+                intro u a' how'
+                obtain ⟨st, hst⟩ := h.owner_spawned u a' how'
+                by_cases hut : u = t
+                · subst hut; exact ⟨.waiting, by simp [upd_self]⟩
+                · exact ⟨st, by simp [upd_ne _ _ hut]; exact hst⟩
+              · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState changes at t
+                intro u p hp
+                obtain ⟨st, hst⟩ := h.parent_child_spawned u p hp
+                by_cases hut : u = t
+                · subst hut; exact ⟨.waiting, by simp [upd_self]⟩
+                · exact ⟨st, by simp [upd_ne _ _ hut]; exact hst⟩
+              · -- timed_has_deadline: t goes to .waiting (not .waitingTimed); others unchanged
+                intro u hu
+                by_cases hut : u = t
+                · simp [hut, upd_self] at hu
+                · simp [upd_ne _ _ hut] at hu
+                  exact h.timed_has_deadline u hu
+              · -- deadline_is_timed: t goes .waiting (no deadline), others unchanged
+                intro u dv hd
+                -- After rw [hstep_p], hd : { ... }.waitDeadline u = some dv = s.waitDeadline u
+                -- (waitDeadline is unchanged). goal: upd s.taskState t .waiting u = .waitingTimed
+                have hut : u ≠ t := fun he => by
+                  have h1 := h.deadline_is_timed u dv hd
+                  rw [he] at h1; rw [h1] at hts; simp at hts
+                simp only [upd_ne _ _ hut]; exact h.deadline_is_timed u dv hd
+              · -- timed_has_timer: timers unchanged
+                intro u hu
+                by_cases hut : u = t
+                · simp [hut, upd_self] at hu
+                · simp [upd_ne _ _ hut] at hu; exact h.timed_has_timer u hu
+              · -- timed_is_waiter: timedMailboxWaiters unchanged
+                intro u hu
+                by_cases hut : u = t
+                · simp [hut, upd_self] at hu
+                · simp [upd_ne _ _ hut] at hu; exact h.timed_is_waiter u hu
+              · -- timed_waiters_valid: timedMailboxWaiters unchanged
+                intro a' u hm
+                have hut : u ≠ t := fun he => absurd (h.timed_waiters_valid a' u hm) (by simp [he, hts])
+                simp [upd_ne _ _ hut]; exact h.timed_waiters_valid a' u hm
+              · -- timed_waiters_nodup: timedMailboxWaiters unchanged
+                intro a'; exact h.timed_waiters_nodup a'
+              · -- timed_waiters_exclusive: timedMailboxWaiters unchanged
+                intro a' b' u hab' hma hmb'
+                exact h.timed_waiters_exclusive a' b' u hab' hma hmb'
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+        simpa [step, hrt, hts] using h
+  · simpa [step, hrt] using h
+
+
+theorem preserves_wf_receiveFrom {s : RuntimeState} (h : WellFormed s)
+    {t : TaskId} {src : ActorId} :
+    WellFormed ((step s (.receiveFrom t src)).1) := by
+  by_cases hrt : s.running = some t
+  · cases hts : s.taskState t with
+    | none => simpa [step, hrt, hts] using h
+    | some st => cases st with
+      | running => cases how : s.taskOwner t with
+        | none => simpa [step, hrt, hts, how] using h
+        | some a => cases hmb : s.mailboxes a with
+          | none => simpa [step, hrt, hts, how, hmb] using h
+          | some mb => cases hd : mb.dequeueFirst (·.source = some src) with
+            | some p =>
+              obtain ⟨env, rest⟩ := p
+              -- receive dequeues head envelope; nextMsgId unchanged
+              have hstep_d : (step s (.receiveFrom t src)).1 =
+                  { s with mailboxes := upd s.mailboxes a (some rest) } := by
+                simp [step, hrt, hts, how, hmb, hd]
+              -- Extract head/tail relationship
+              -- selective dequeue: rest is a sublist of mb, so every rest envelope was in mb
+              have hsubmem : ∀ {x : Envelope}, x ∈ rest.messages → x ∈ mb.messages :=
+                fun {x} hx => (Mailbox.dequeueFirst_sublist _ mb hd).mem hx
+              have hsubnodup : (rest.messages.map Envelope.occurrence).Nodup → True := fun _ => trivial
+              rw [hstep_d]
+              refine ⟨h.readyQ_nodup, fun u hm => h.readyQ_queued u hm, h.running_runs,
+                h.timers_nodup, h.timers_sleep, h.fresh_none, h.timers_sorted,
+                h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
+                h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+                h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer, h.timed_is_waiter,
+                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive⟩
+              · intro u cc hown
+                obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
+                by_cases hcc : cc = a
+                · exact ⟨rest, by simp [upd, hcc]⟩
+                · exact ⟨mbc, by simp [upd, if_neg hcc, hmbc]⟩
+              · intro u p hp; exact h.parent_lt u p
+                  (by simpa [step, hrt, hts, how, hmb, hd] using hp)
+              · intro u p hp
+                obtain ⟨st, hst⟩ := h.parent_spawned u p
+                  (by simpa [step, hrt, hts, how, hmb, hd] using hp)
+                exact ⟨st, by simpa [step, hrt, hts, how, hmb, hd] using hst⟩
+              · -- occ_fresh: nextMsgId unchanged, rest ⊆ mb (RFC 033)
+                intro ac mc env2 hmbc henv2
+                by_cases hac : ac = a
+                · rw [hac] at hmbc; simp only [upd_self] at hmbc
+                  have hv := Option.some.inj hmbc; subst hv
+                  exact h.occ_fresh ac mb env2 (hac ▸ hmb) (hsubmem henv2)
+                · simp only [upd, if_neg hac] at hmbc; exact h.occ_fresh ac mc env2 hmbc henv2
+              · -- occ_nodup: rest ⊆ mb (RFC 033)
+                intro ac mc hmbc
+                by_cases hac : ac = a
+                · rw [hac] at hmbc; simp only [upd_self] at hmbc
+                  have hv := Option.some.inj hmbc; subst hv
+                  have hnd := h.occ_nodup ac mb (hac ▸ hmb)
+                  exact (List.Sublist.map Envelope.occurrence
+                    (Mailbox.dequeueFirst_sublist _ mb hd)).nodup hnd
+                · simp only [upd, if_neg hac] at hmbc; exact h.occ_nodup ac mc hmbc
+              · -- occ_disjoint: rest ⊆ mb (RFC 033)
+                intro ac bc mba mbb hab hmba hmbb ea hea eb heb
+                by_cases hac : ac = a <;> by_cases hbc : bc = a
+                · exact absurd (hac.trans hbc.symm) hab
+                · rw [hac] at hmba; simp only [upd_self] at hmba
+                  have hv := Option.some.inj hmba; subst hv
+                  simp only [upd, if_neg hbc] at hmbb
+                  exact h.occ_disjoint ac bc mb mbb hab (hac ▸ hmb) hmbb
+                    ea (hsubmem hea) eb heb
+                · rw [hbc] at hmbb; simp only [upd_self] at hmbb
+                  have hv := Option.some.inj hmbb; subst hv
+                  simp only [upd, if_neg hac] at hmba
+                  exact h.occ_disjoint ac bc mba mb hab hmba (hbc ▸ hmb)
+                    ea hea eb (hsubmem heb)
+                · simp only [upd, if_neg hac] at hmba; simp only [upd, if_neg hbc] at hmbb
+                  exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
+              · -- owner_spawned (RFC 038): taskOwner unchanged; taskState = s.taskState
+                intro u a' how'
+                exact h.owner_spawned u a' how'
+              · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState = s.taskState
+                intro u p hp
+                exact h.parent_child_spawned u p hp
+            | none =>
+              have ht_not_waiter : t ∉ s.mailboxWaiters a := fun hmem =>
+                absurd (h.waiters_waiting a t hmem) (by simp [hts])
+              have hstep_p : (step s (.receiveFrom t src)).1 =
+                  { s with taskState := upd s.taskState t (some .waiting), running := none,
+                            mailboxWaiters := fun ac => if ac = a then s.mailboxWaiters a ++ [t]
+                                                        else s.mailboxWaiters ac } := by
+                simp [step, hrt, hts, how, hmb, hd]
+              rw [hstep_p]
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              · exact h.readyQ_nodup
+              · intro u hm
+                by_cases hut : u = t
+                · simp [hut] at hm ⊢; have := h.readyQ_queued t hm
+                  simp [hts, Option.any, TaskState.isRunnable] at this
+                · simp [upd_ne _ _ hut]; exact h.readyQ_queued u hm
+              · intro u hru; exact absurd hru (by simp)
+              · exact h.timers_nodup
+              · intro e he; have hts_e := h.timers_sleep e he
+                by_cases hne : e.task = t
+                · exact absurd (hne ▸ hts_e) (by simp [hts])
+                · simp only [upd_ne _ _ hne]; exact hts_e
+              · intro u hu
+                by_cases hut : u = t
+                · simp [hut] at hu ⊢; exact absurd hts (by simp [h.fresh_none t hu])
+                · simp [upd_ne _ _ hut]; exact h.fresh_none u hu
+              · exact h.timers_sorted
+              · intro u st hts''
+                by_cases hut : u = t
+                · simp only [upd_self] at hts''; exact ⟨a, by rw [hut]; exact how⟩
+                · simp only [upd_ne _ _ hut] at hts''; exact h.spawned_has_owner u st hts''
+              · intro u cc hown
+                obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
+                exact ⟨mbc, hmbc⟩
+              · intro u st hts'' hrun
+                by_cases hut : u = t
+                · simp only [hut, upd_self] at hts''
+                  have hst := Option.some.inj hts''.symm; subst hst
+                  simp [TaskState.isRunnable] at hrun
+                · simp [upd_ne _ _ hut] at hts''; exact h.runnable_queued u st hts'' hrun
+              · intro ac u hm
+                by_cases hac : ac = a
+                · simp only [if_pos hac] at hm ⊢
+                  rcases List.mem_append.mp hm with hm | hm
+                  · have hts_u := h.waiters_waiting a u hm
+                    have hut : u ≠ t := fun he => absurd (he ▸ hts_u) (by simp [hts])
+                    simp [upd_ne _ _ hut]; exact hts_u
+                  · simp only [List.mem_singleton] at hm; simp [hm, upd_self]
+                · simp only [if_neg hac] at hm ⊢
+                  have hts_u := h.waiters_waiting ac u hm
+                  have hut : u ≠ t := fun he => absurd (he ▸ hts_u) (by simp [hts])
+                  simp [upd_ne _ _ hut]; exact hts_u
+              · intro ac u hm
+                by_cases hac : ac = a
+                · simp only [if_pos hac] at hm ⊢
+                  rcases List.mem_append.mp hm with hm | hm
+                  · exact hac ▸ h.waiters_owned a u hm
+                  · simp only [List.mem_singleton] at hm; exact hac ▸ (hm ▸ how)
+                · simp only [if_neg hac] at hm ⊢; exact h.waiters_owned ac u hm
+              · intro u hts''
+                by_cases hut : u = t
+                · simp [upd_self, hut] at hts''
+                  exact ⟨a, by rw [hut]; exact how, by simp [if_pos rfl, hut]⟩
+                · simp [upd_ne _ _ hut] at hts''
+                  obtain ⟨a', ha', hmem⟩ := h.waiting_queued u hts''
+                  refine ⟨a', ha', ?_⟩
+                  by_cases hac : a' = a
+                  · simp only [if_pos hac]; exact List.mem_append_left _ (by rwa [hac] at hmem)
+                  · simp only [if_neg hac]; exact hmem
+              · intro ac
+                by_cases hac : ac = a
+                · simp only [if_pos hac]
+                  exact nodup_append (h.waiters_nodup a) (by simp)
+                    (fun u hmem hts_mem => by simp at hts_mem; exact ht_not_waiter (hts_mem ▸ hmem))
+                · simp only [if_neg hac]; exact h.waiters_nodup ac
+              · -- parent_lt
+                exact fun u p hp => h.parent_lt u p (by simpa [step, hrt, hts, how, hmb, hd] using hp)
+              · -- parent_spawned: receive parks t → .waiting; still some _
+                intro u p hp
+                obtain ⟨st, hst⟩ := h.parent_spawned u p
+                  (by simpa [step, hrt, hts, how, hmb, hd] using hp)
+                by_cases hpt : p = t
+                · exact ⟨.waiting, by simp [step, hrt, hts, how, hmb, hd, upd_self, hpt]⟩
+                · exact ⟨st, by simp [step, hrt, hts, how, hmb, hd, upd, if_neg hpt]; exact hst⟩
+              · -- occ_fresh: mailboxes unchanged, nextMsgId unchanged
+                intro a' mb' env hmb' henv; exact h.occ_fresh a' mb' env hmb' henv
+              · -- occ_nodup: mailboxes unchanged
+                intro a' mb' hmb'; exact h.occ_nodup a' mb' hmb'
+              · -- occ_disjoint: mailboxes unchanged
+                intro a' b' mba mbb hab hmba hmbb ea hea eb heb
+                exact h.occ_disjoint a' b' mba mbb hab hmba hmbb ea hea eb heb
+              · -- owner_spawned (RFC 038): taskOwner unchanged; taskState changes at t
+                intro u a' how'
+                obtain ⟨st, hst⟩ := h.owner_spawned u a' how'
+                by_cases hut : u = t
+                · subst hut; exact ⟨.waiting, by simp [upd_self]⟩
+                · exact ⟨st, by simp [upd_ne _ _ hut]; exact hst⟩
+              · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState changes at t
+                intro u p hp
+                obtain ⟨st, hst⟩ := h.parent_child_spawned u p hp
+                by_cases hut : u = t
+                · subst hut; exact ⟨.waiting, by simp [upd_self]⟩
+                · exact ⟨st, by simp [upd_ne _ _ hut]; exact hst⟩
+              · -- timed_has_deadline: t goes to .waiting (not .waitingTimed); others unchanged
+                intro u hu
+                by_cases hut : u = t
+                · simp [hut, upd_self] at hu
+                · simp [upd_ne _ _ hut] at hu
+                  exact h.timed_has_deadline u hu
+              · -- deadline_is_timed: t goes .waiting (no deadline), others unchanged
+                intro u dv hd
+                -- After rw [hstep_p], hd : { ... }.waitDeadline u = some dv = s.waitDeadline u
+                -- (waitDeadline is unchanged). goal: upd s.taskState t .waiting u = .waitingTimed
+                have hut : u ≠ t := fun he => by
+                  have h1 := h.deadline_is_timed u dv hd
+                  rw [he] at h1; rw [h1] at hts; simp at hts
+                simp only [upd_ne _ _ hut]; exact h.deadline_is_timed u dv hd
+              · -- timed_has_timer: timers unchanged
+                intro u hu
+                by_cases hut : u = t
+                · simp [hut, upd_self] at hu
+                · simp [upd_ne _ _ hut] at hu; exact h.timed_has_timer u hu
+              · -- timed_is_waiter: timedMailboxWaiters unchanged
+                intro u hu
+                by_cases hut : u = t
+                · simp [hut, upd_self] at hu
+                · simp [upd_ne _ _ hut] at hu; exact h.timed_is_waiter u hu
+              · -- timed_waiters_valid: timedMailboxWaiters unchanged
+                intro a' u hm
+                have hut : u ≠ t := fun he => absurd (h.timed_waiters_valid a' u hm) (by simp [he, hts])
+                simp [upd_ne _ _ hut]; exact h.timed_waiters_valid a' u hm
+              · -- timed_waiters_nodup: timedMailboxWaiters unchanged
+                intro a'; exact h.timed_waiters_nodup a'
+              · -- timed_waiters_exclusive: timedMailboxWaiters unchanged
+                intro a' b' u hab' hma hmb'
+                exact h.timed_waiters_exclusive a' b' u hab' hma hmb'
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+        simpa [step, hrt, hts] using h
+  · simpa [step, hrt] using h
+
+
+
 end Henret

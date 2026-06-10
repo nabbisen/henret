@@ -190,6 +190,50 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
         | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
           exact ⟨st, by simp [step, hrt, hts, h]⟩
     · exact ⟨st, by simp [step, hrt, h]⟩
+  | receiveByOccurrence t' sel =>
+    by_cases hrt : s.running = some t'
+    · cases hts : s.taskState t' with
+      | none => exact ⟨st, by simp [step, hrt, hts, h]⟩
+      | some stt =>
+        cases stt with
+        | running =>
+          cases how : s.taskOwner t' with
+          | none => exact ⟨st, by simp [step, hrt, hts, how, h]⟩
+          | some a =>
+            cases hmb : s.mailboxes a with
+            | none => exact ⟨st, by simp [step, hrt, hts, how, hmb, h]⟩
+            | some mb =>
+              cases hd : mb.dequeueFirst (·.occurrence = sel) with
+              | some p => exact ⟨st, by simp [step, hrt, hts, how, hmb, hd, h]⟩
+              | none =>
+                by_cases hut : u = t'
+                · subst hut; exact ⟨.waiting, by simp [step, hrt, hts, how, hmb, hd, upd]⟩
+                · exact ⟨st, by simp [step, hrt, hts, how, hmb, hd, upd, hut]; exact h⟩
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+          exact ⟨st, by simp [step, hrt, hts, h]⟩
+    · exact ⟨st, by simp [step, hrt, h]⟩
+  | receiveFrom t' sel =>
+    by_cases hrt : s.running = some t'
+    · cases hts : s.taskState t' with
+      | none => exact ⟨st, by simp [step, hrt, hts, h]⟩
+      | some stt =>
+        cases stt with
+        | running =>
+          cases how : s.taskOwner t' with
+          | none => exact ⟨st, by simp [step, hrt, hts, how, h]⟩
+          | some a =>
+            cases hmb : s.mailboxes a with
+            | none => exact ⟨st, by simp [step, hrt, hts, how, hmb, h]⟩
+            | some mb =>
+              cases hd : mb.dequeueFirst (·.source = some sel) with
+              | some p => exact ⟨st, by simp [step, hrt, hts, how, hmb, hd, h]⟩
+              | none =>
+                by_cases hut : u = t'
+                · subst hut; exact ⟨.waiting, by simp [step, hrt, hts, how, hmb, hd, upd]⟩
+                · exact ⟨st, by simp [step, hrt, hts, how, hmb, hd, upd, hut]; exact h⟩
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+          exact ⟨st, by simp [step, hrt, hts, h]⟩
+    · exact ⟨st, by simp [step, hrt, h]⟩
   | inject a m =>
     cases hmb : s.mailboxes a with
     | none => exact ⟨st, by simp [step, hmb, h]⟩
@@ -406,6 +450,54 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
             | none => simp [step, hrt, hts, how, hmb]; exact h
             | some mb =>
               cases hd : mb.dequeue with
+              | some p => simp [step, hrt, hts, how, hmb, hd]; exact h
+              | none =>
+                by_cases hut : u = t
+                · subst hut
+                  have heq := hts.symm.trans h; simp at heq; subst heq
+                  simp [TaskState.isTerminal] at hterm
+                · simp [step, hrt, hts, how, hmb, hd, upd, hut]; exact h
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+          simp [step, hrt, hts]; exact h
+    · simp [step, hrt]; exact h
+  | receiveByOccurrence t sel =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]; exact h
+      | some st' =>
+        cases st' with
+        | running =>
+          cases how : s.taskOwner t with
+          | none => simp [step, hrt, hts, how]; exact h
+          | some a =>
+            cases hmb : s.mailboxes a with
+            | none => simp [step, hrt, hts, how, hmb]; exact h
+            | some mb =>
+              cases hd : mb.dequeueFirst (·.occurrence = sel) with
+              | some p => simp [step, hrt, hts, how, hmb, hd]; exact h
+              | none =>
+                by_cases hut : u = t
+                · subst hut
+                  have heq := hts.symm.trans h; simp at heq; subst heq
+                  simp [TaskState.isTerminal] at hterm
+                · simp [step, hrt, hts, how, hmb, hd, upd, hut]; exact h
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+          simp [step, hrt, hts]; exact h
+    · simp [step, hrt]; exact h
+  | receiveFrom t sel =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]; exact h
+      | some st' =>
+        cases st' with
+        | running =>
+          cases how : s.taskOwner t with
+          | none => simp [step, hrt, hts, how]; exact h
+          | some a =>
+            cases hmb : s.mailboxes a with
+            | none => simp [step, hrt, hts, how, hmb]; exact h
+            | some mb =>
+              cases hd : mb.dequeueFirst (·.source = some sel) with
               | some p => simp [step, hrt, hts, how, hmb, hd]; exact h
               | none =>
                 by_cases hut : u = t
@@ -639,6 +731,44 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
             | none => simp [step, hrt, hts, how, hmb]
             | some mb =>
               cases hd : mb.dequeue with
+              | none => simp [step, hrt, hts, how, hmb, hd] at h
+              | some p => simp [step, hrt, hts, how, hmb, hd] at h
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+          simp [step, hrt, hts]
+    · simp [step, hrt]
+  | receiveByOccurrence t sel =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]
+      | some st =>
+        cases st with
+        | running =>
+          cases how : s.taskOwner t with
+          | none => simp [step, hrt, hts, how]
+          | some a =>
+            cases hmb : s.mailboxes a with
+            | none => simp [step, hrt, hts, how, hmb]
+            | some mb =>
+              cases hd : mb.dequeueFirst (·.occurrence = sel) with
+              | none => simp [step, hrt, hts, how, hmb, hd] at h
+              | some p => simp [step, hrt, hts, how, hmb, hd] at h
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+          simp [step, hrt, hts]
+    · simp [step, hrt]
+  | receiveFrom t sel =>
+    by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | none => simp [step, hrt, hts]
+      | some st =>
+        cases st with
+        | running =>
+          cases how : s.taskOwner t with
+          | none => simp [step, hrt, hts, how]
+          | some a =>
+            cases hmb : s.mailboxes a with
+            | none => simp [step, hrt, hts, how, hmb]
+            | some mb =>
+              cases hd : mb.dequeueFirst (·.source = some sel) with
               | none => simp [step, hrt, hts, how, hmb, hd] at h
               | some p => simp [step, hrt, hts, how, hmb, hd] at h
         | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>

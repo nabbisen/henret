@@ -337,3 +337,38 @@ extension is deferred to RFC 043. See `docs/bridge-architecture.md`.
 | `WellFormed.timed_waiters_valid` | `Henret/Proofs/Invariants.lean` | Field 26 |
 | `WellFormed.timed_waiters_nodup` | `Henret/Proofs/Invariants.lean` | Field 27 |
 | `WellFormed.timed_waiters_exclusive` | `Henret/Proofs/Invariants.lean` | Field 28 — cross-actor uniqueness |
+
+---
+
+### RFC 041 — Selective Receive
+
+`RuntimeOp` extended to **16 constructors** — `receiveByOccurrence (t : TaskId) (occ : MessageId)` and `receiveFrom (t : TaskId) (src : ActorId)` added.
+
+**Design: Option A (Mesa-style blocking)**. When no matching envelope is present, the task parks in the ordinary `mailboxWaiters` list. This is mailbox-level (not selector-level) blocking: any future delivery wakes the task, which then re-runs the selective receive. Spurious wakeups are possible and explicitly documented.
+
+**Foundation: `listDequeueFirst`** (`Henret/Actor/Mailbox.lean`) — structural-recursion function that removes the first list element satisfying a decidable predicate, preserving relative order. Avoids index-bounds reasoning; all properties are proved by structural induction.
+
+**Properties of `listDequeueFirst` / `dequeueFirst`:**
+
+| Lemma | Statement |
+|---|---|
+| `listDequeueFirst_matches` | Result satisfies the predicate |
+| `listDequeueFirst_mem` | Result is a member of the original list |
+| `listDequeueFirst_sublist` | Remainder is a `Sublist` of the original — order preserved |
+| `listDequeueFirst_none` | On failure, no element satisfies the predicate |
+| `dequeueFirst_matches` | Top-level: result matches |
+| `dequeueFirst_sublist` | Top-level: remainder sublist |
+| `dequeueFirst_none` | Top-level: no match |
+
+**Preservation**: `preserves_wf_receiveByOccurrence`, `preserves_wf_receiveFrom` — both use the `dequeueFirst_sublist`-based sublist membership proof instead of `dequeue_spec`'s head-removal. All 28 `WellFormed` fields preserved.
+
+**Behavioral theorems** (`Henret/Proofs/Messaging.lean`, section `SelectiveReceive`):
+
+| Theorem | Statement |
+|---|---|
+| `receiveByOccurrence_removes_matching` | Returned envelope has `occurrence = occ` |
+| `receiveFrom_source_matches` | Returned envelope has `source = some src` |
+| `receiveByOccurrence_parks_on_miss` | No match → parks `t` in `mailboxWaiters a`, result `.blocked` |
+| `receiveFrom_parks_on_miss` | No match → parks `t` in `mailboxWaiters a`, result `.blocked` |
+| `receiveByOccurrence_preserves_nonmatching_order` | `rest.messages.Sublist mb.messages` — order preserved |
+| `receiveFrom_preserves_nonmatching_order` | `rest.messages.Sublist mb.messages` — order preserved |

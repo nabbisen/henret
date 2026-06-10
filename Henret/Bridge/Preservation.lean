@@ -529,10 +529,21 @@ theorem bridge_step_single_worker (s : RuntimeState) (op : RuntimeOp) (wqs : Wor
   | .receiveUntil t d =>
     rw [show toQOps s (.receiveUntil t d) = [] from by simp [toQOps], applyQOps_nil]
     apply bridge_stable hbs
-    -- readyQ is never modified by receiveUntil (no waiter woken)
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;>
       (try split) <;> (try split) <;> (try split) <;> simp
+  | .receiveByOccurrence t occ =>
+    rw [show toQOps s (.receiveByOccurrence t occ) = [] from by simp [toQOps], applyQOps_nil]
+    apply bridge_stable hbs
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;>
+      (try split) <;> (try split) <;> simp
+  | .receiveFrom t src =>
+    rw [show toQOps s (.receiveFrom t src) = [] from by simp [toQOps], applyQOps_nil]
+    apply bridge_stable hbs
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;>
+      (try split) <;> (try split) <;> simp
 
 /-! ## applyQOps append lemma -/
 

@@ -374,6 +374,56 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
         | none => (s, .invalid)
       | _ => (s, .invalid)
     else (s, .invalid)
+  | .receiveByOccurrence t occ =>
+    if s.running = some t then
+      match s.taskState t with
+      | some .running =>
+        match s.taskOwner t with
+        | some a =>
+          match s.mailboxes a with
+          | some mb =>
+            match mb.dequeueFirst (·.occurrence = occ) with
+            | some (env, mb') =>
+              -- Matching envelope found: remove it, preserve other order (RFC 041).
+              ({ s with mailboxes := upd s.mailboxes a (some mb') }, .received env)
+            | none =>
+              -- No match: park in ordinary mailboxWaiters (Option A, Mesa-style).
+              ({ s with
+                   taskState      := upd s.taskState t (some .waiting)
+                   running        := none
+                   mailboxWaiters := fun ac =>
+                     if ac = a then s.mailboxWaiters a ++ [t]
+                     else s.mailboxWaiters ac },
+               .blocked)
+          | none => (s, .invalid)
+        | none => (s, .invalid)
+      | _ => (s, .invalid)
+    else (s, .invalid)
+  | .receiveFrom t src =>
+    if s.running = some t then
+      match s.taskState t with
+      | some .running =>
+        match s.taskOwner t with
+        | some a =>
+          match s.mailboxes a with
+          | some mb =>
+            match mb.dequeueFirst (·.source = some src) with
+            | some (env, mb') =>
+              -- Matching envelope found: remove it, preserve other order (RFC 041).
+              ({ s with mailboxes := upd s.mailboxes a (some mb') }, .received env)
+            | none =>
+              -- No match: park in ordinary mailboxWaiters (Option A, Mesa-style).
+              ({ s with
+                   taskState      := upd s.taskState t (some .waiting)
+                   running        := none
+                   mailboxWaiters := fun ac =>
+                     if ac = a then s.mailboxWaiters a ++ [t]
+                     else s.mailboxWaiters ac },
+               .blocked)
+          | none => (s, .invalid)
+        | none => (s, .invalid)
+      | _ => (s, .invalid)
+    else (s, .invalid)
 
 /-- Run a list of operations, ignoring results (RFC 005). Invalid
 operations are no-ops by construction of `step`. -/

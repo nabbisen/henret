@@ -195,3 +195,15 @@ zero-assumption core.
 | 103 | `send`/`inject` fall through to timed waiters when `mailboxWaiters` is empty | PROVEN | `preserves_wf_send`, `preserves_wf_inject` (timed-waiter branches) |
 | 104 | `BridgeState` preserved by `receiveUntil` (emits `[]`; no readyQ effect) | PROVEN | `bridge_step_single_worker` (receiveUntil case) |
 | 105 | `bridge_step_single_worker` now covers all 14 RuntimeOps including `receiveUntil` | PROVEN | `Henret.Bridge.bridge_step_single_worker` |
+
+## v0.11.1 claims (selective receive, RFC 041)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 106 | `receiveByOccurrence t occ` with a matching envelope: removes exactly that envelope, returns `.received env` where `env.occurrence = occ`; relative order of nonmatching envelopes preserved | PROVEN | `receiveByOccurrence_removes_matching`, `receiveByOccurrence_preserves_nonmatching_order` |
+| 107 | `receiveFrom t src` with a matching envelope: removes exactly that envelope, returns `.received env` where `env.source = some src`; relative order of nonmatching envelopes preserved | PROVEN | `receiveFrom_source_matches`, `receiveFrom_preserves_nonmatching_order` |
+| 108 | `receiveByOccurrence`/`receiveFrom` with no matching envelope: parks `t` in `mailboxWaiters a`, returns `.blocked` (Option A / Mesa semantics) | PROVEN | `receiveByOccurrence_parks_on_miss`, `receiveFrom_parks_on_miss` |
+| 109 | All 28 `WellFormed` fields preserved by `receiveByOccurrence` and `receiveFrom` | PROVEN | `preserves_wf_receiveByOccurrence`, `preserves_wf_receiveFrom` |
+| 110 | `dequeueFirst` removes exactly one envelope while preserving all others in order | PROVEN | `listDequeueFirst_sublist`, `listDequeueFirst_matches`, `listDequeueFirst_mem`, `listDequeueFirst_none` |
+| 111 | Blocking is mailbox-level, not selector-level (Option A): any delivery to the actor wakes a parked selective-receive task | DOCUMENTED | Mesa semantics; `receiveByOccurrence_parks_on_miss` shows parking in `mailboxWaiters` |
+| 112 | `bridge_step_single_worker` covers all 16 `RuntimeOp`s including `receiveByOccurrence` and `receiveFrom` | PROVEN | `bridge_step_single_worker` (both emit `[]`, readyQ unchanged) |

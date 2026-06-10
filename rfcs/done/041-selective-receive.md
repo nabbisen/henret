@@ -1,6 +1,6 @@
 # RFC 041 — Selective Receive
 
-**Status.** Proposed  
+**Status.** Implemented (v0.11.1)  
 **Target version.** v0.11.x or later  
 **Priority.** Medium-low  
 **Track.** Advanced actor semantics  

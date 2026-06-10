@@ -63,6 +63,163 @@ theorem dequeue_spec (mb : Mailbox) :
   | nil => simp [dequeue, h]
   | cons e es => simp [dequeue, h]
 
+/-! ## Selective dequeue (RFC 041)
+
+Built-in selectors over envelope fields. Each removes the **first**
+envelope matching a finite, decidable predicate and preserves the
+relative order of every other envelope. No arbitrary Lean predicates
+enter the operation grammar — selectors are first-order. -/
+
+/-- Remove the first list element satisfying a decidable predicate,
+returning it together with the remaining list (order preserved).
+Structural recursion keeps the proofs index-free. -/
+def listDequeueFirst (p : Envelope → Bool) :
+    List Envelope → Option (Envelope × List Envelope)
+  | []      => none
+  | e :: es =>
+    if p e then some (e, es)
+    else match listDequeueFirst p es with
+         | none          => none
+         | some (e', es') => some (e', e :: es')
+
+/-- A generic selective dequeue: remove the first matching envelope. -/
+def dequeueFirst (p : Envelope → Bool) (mb : Mailbox) :
+    Option (Envelope × Mailbox) :=
+  match listDequeueFirst p mb.messages with
+  | none          => none
+  | some (e, es)  => some (e, ⟨es⟩)
+
+/-- Remove the first envelope with the given occurrence id. -/
+def dequeueFirstByOccurrence (occ : MessageId) (mb : Mailbox) :
+    Option (Envelope × Mailbox) :=
+  mb.dequeueFirst (·.occurrence = occ)
+
+/-- Remove the first envelope sent by the given source actor. -/
+def dequeueFirstFrom (src : ActorId) (mb : Mailbox) :
+    Option (Envelope × Mailbox) :=
+  mb.dequeueFirst (·.source = some src)
+
+/-- A successful selective dequeue returns a matching envelope. -/
+theorem listDequeueFirst_matches (p : Envelope → Bool) :
+    ∀ {l : List Envelope} {e : Envelope} {l' : List Envelope},
+      listDequeueFirst p l = some (e, l') → p e = true := by
+  intro l
+  induction l with
+  | nil => intro e l' h; simp [listDequeueFirst] at h
+  | cons x xs ih =>
+    intro e l' h
+    simp only [listDequeueFirst] at h
+    by_cases hp : p x
+    · rw [if_pos hp] at h
+      obtain ⟨rfl, _⟩ := Option.some.inj h; exact hp
+    · rw [if_neg (by simpa using hp)] at h
+      cases hr : listDequeueFirst p xs with
+      | none => rw [hr] at h; simp at h
+      | some pair =>
+        obtain ⟨e', es'⟩ := pair
+        rw [hr] at h
+        obtain ⟨rfl, _⟩ := Option.some.inj h
+        exact ih hr
+
+/-- A successful selective dequeue's result is a member of the original list. -/
+theorem listDequeueFirst_mem (p : Envelope → Bool) :
+    ∀ {l : List Envelope} {e : Envelope} {l' : List Envelope},
+      listDequeueFirst p l = some (e, l') → e ∈ l := by
+  intro l
+  induction l with
+  | nil => intro e l' h; simp [listDequeueFirst] at h
+  | cons x xs ih =>
+    intro e l' h
+    simp only [listDequeueFirst] at h
+    by_cases hp : p x
+    · rw [if_pos hp] at h
+      obtain ⟨rfl, _⟩ := Option.some.inj h; exact List.mem_cons_self x xs
+    · rw [if_neg (by simpa using hp)] at h
+      cases hr : listDequeueFirst p xs with
+      | none => rw [hr] at h; simp at h
+      | some pair =>
+        obtain ⟨e', es'⟩ := pair
+        rw [hr] at h
+        obtain ⟨rfl, _⟩ := Option.some.inj h
+        exact List.mem_cons_of_mem x (ih hr)
+
+/-- The remaining list after a selective dequeue is a sublist of the
+original — selective dequeue removes only, never reorders or adds. -/
+theorem listDequeueFirst_sublist (p : Envelope → Bool) :
+    ∀ {l : List Envelope} {e : Envelope} {l' : List Envelope},
+      listDequeueFirst p l = some (e, l') → l'.Sublist l := by
+  intro l
+  induction l with
+  | nil => intro e l' h; simp [listDequeueFirst] at h
+  | cons x xs ih =>
+    intro e l' h
+    simp only [listDequeueFirst] at h
+    by_cases hp : p x
+    · rw [if_pos hp] at h
+      obtain ⟨_, rfl⟩ := Option.some.inj h
+      exact List.sublist_cons_self x xs
+    · rw [if_neg (by simpa using hp)] at h
+      cases hr : listDequeueFirst p xs with
+      | none => rw [hr] at h; simp at h
+      | some pair =>
+        obtain ⟨e', es'⟩ := pair
+        rw [hr] at h
+        obtain ⟨_, rfl⟩ := Option.some.inj h
+        exact (ih hr).cons₂ x
+
+/-- A failed selective dequeue means no element matches. -/
+theorem listDequeueFirst_none (p : Envelope → Bool) :
+    ∀ {l : List Envelope}, listDequeueFirst p l = none → ∀ e ∈ l, p e = false := by
+  intro l
+  induction l with
+  | nil => intro _ e he; simp at he
+  | cons x xs ih =>
+    intro h e he
+    simp only [listDequeueFirst] at h
+    by_cases hp : p x
+    · rw [if_pos hp] at h; simp at h
+    · rw [if_neg (by simpa using hp)] at h
+      cases hr : listDequeueFirst p xs with
+      | none =>
+        rcases List.mem_cons.mp he with rfl | hmem
+        · simpa using hp
+        · exact ih hr e hmem
+      | some pair => obtain ⟨e', es'⟩ := pair; rw [hr] at h; simp at h
+
+/-- `dequeueFirst` returns a matching envelope. -/
+theorem dequeueFirst_matches (p : Envelope → Bool) (mb : Mailbox)
+    {e : Envelope} {mb' : Mailbox}
+    (h : mb.dequeueFirst p = some (e, mb')) : p e = true := by
+  unfold dequeueFirst at h
+  cases hr : listDequeueFirst p mb.messages with
+  | none => rw [hr] at h; simp at h
+  | some pair =>
+    obtain ⟨e', es'⟩ := pair; rw [hr] at h
+    obtain ⟨rfl, _⟩ := Option.some.inj h
+    exact listDequeueFirst_matches p hr
+
+/-- `dequeueFirst` leaves a sublist of the original mailbox. -/
+theorem dequeueFirst_sublist (p : Envelope → Bool) (mb : Mailbox)
+    {e : Envelope} {mb' : Mailbox}
+    (h : mb.dequeueFirst p = some (e, mb')) : mb'.messages.Sublist mb.messages := by
+  unfold dequeueFirst at h
+  cases hr : listDequeueFirst p mb.messages with
+  | none => rw [hr] at h; simp at h
+  | some pair =>
+    obtain ⟨e', es'⟩ := pair; rw [hr] at h
+    simp only [Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨_, hmb⟩ := h
+    rw [← hmb]; exact listDequeueFirst_sublist p hr
+
+/-- A failed `dequeueFirst` means the mailbox is unchanged and no
+envelope matches. -/
+theorem dequeueFirst_none (p : Envelope → Bool) (mb : Mailbox)
+    (h : mb.dequeueFirst p = none) : ∀ e ∈ mb.messages, p e = false := by
+  unfold dequeueFirst at h
+  cases hr : listDequeueFirst p mb.messages with
+  | none => exact listDequeueFirst_none p hr
+  | some pair => obtain ⟨e', es'⟩ := pair; rw [hr] at h; simp at h
+
 end Mailbox
 
 /-- Per-actor mailbox map. `none` means the actor does not exist. -/

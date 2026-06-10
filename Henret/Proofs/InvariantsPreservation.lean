@@ -25,6 +25,8 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
   | send t b m => exact preserves_wf_send h
   | receive t  => exact preserves_wf_receive h
   | receiveUntil t d => exact preserves_wf_receiveUntil h
+  | receiveByOccurrence t occ => exact preserves_wf_receiveByOccurrence h
+  | receiveFrom t src => exact preserves_wf_receiveFrom h
   | inject a m => exact preserves_wf_inject h
   | sleep t d  => exact preserves_wf_sleep h
   | tick t     => exact preserves_wf_tick h

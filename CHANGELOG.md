@@ -1,6 +1,51 @@
 # Changelog
 
-## v0.11.0 — Receive Timeout / Multi-Wait Semantics (RFC 040)
+## v0.11.1 — Selective Receive (RFC 041)
+
+Adds `receiveByOccurrence (t : TaskId) (occ : MessageId)` and
+`receiveFrom (t : TaskId) (src : ActorId)` as ops 15–16. Both use
+**Option A (Mesa-style) blocking**: when no matching envelope is present
+the task parks in the ordinary `mailboxWaiters` list. Any future
+delivery wakes it; the task re-runs the selective receive. Blocking is
+mailbox-level, not selector-level. Spurious wakeups are possible and
+explicitly documented.
+
+### Mailbox foundation: `listDequeueFirst`
+
+New structural-recursion primitive in `Henret/Actor/Mailbox.lean`.
+Removes the first list element satisfying a decidable predicate while
+preserving the relative order of every other element. Properties:
+`..._matches`, `..._mem`, `..._sublist`, `..._none` — all proved by
+structural induction, avoiding index arithmetic entirely.
+
+### Preservation
+
+`preserves_wf_receiveByOccurrence` and `preserves_wf_receiveFrom` —
+all 28 `WellFormed` fields. The occurrence-uniqueness bullets
+(`occ_fresh`, `occ_nodup`, `occ_disjoint`) use `dequeueFirst_sublist`'s
+`Sublist` relation instead of `dequeue_spec`'s head-removal `hcons`.
+
+### Behavioral theorems (section `SelectiveReceive`)
+
+- `receiveByOccurrence_removes_matching` — returned envelope has `occurrence = occ`
+- `receiveFrom_source_matches` — returned envelope has `source = some src`
+- `receiveByOccurrence_parks_on_miss` / `receiveFrom_parks_on_miss` — parks on no-match
+- `receiveByOccurrence_preserves_nonmatching_order` / `receiveFrom_preserves_nonmatching_order` — `Sublist` order preservation
+
+### Bridge and wiring
+
+`toQOps` emits `[]` for both ops (no readyQ effect); `bridge_step_single_worker`
+now covers all **16 `RuntimeOp`s**. `step_preserves_parent`,
+`step_taskParent_stable`, `Timers`, `Ownership` all updated.
+
+### Axiom budget: unchanged
+
+No new axioms. All new proofs depend only on `propext`, `Quot.sound`,
+and `Classical.choice`. Verified by `scripts/axiom_audit.py`.
+
+---
+
+
 
 Adds `receiveUntil (t : TaskId) (deadline : Nat)` as the 14th `RuntimeOp`,
 completing the actor-system's timed-receive semantics. A task can park on an

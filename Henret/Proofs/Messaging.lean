@@ -353,3 +353,95 @@ Key theorems:
 
 Occurrence uniqueness theorems live in `Henret.Proofs.Occurrence` (RFC 033).
 -/
+
+/-! ## Selective receive: behavioral theorems (RFC 041) -/
+
+namespace Henret
+
+section SelectiveReceive
+
+/-- A successful `receiveByOccurrence` returns the envelope matching the
+requested occurrence id. -/
+theorem receiveByOccurrence_removes_matching
+    {s : RuntimeState} {t : TaskId} {occ : MessageId} {env : Envelope}
+    {a : ActorId} {mb : Mailbox}
+    (hrt  : s.running = some t)
+    (hts  : s.taskState t = some .running)
+    (how  : s.taskOwner t = some a)
+    (hmb  : s.mailboxes a = some mb)
+    {rest : Mailbox}
+    (hd   : mb.dequeueFirst (·.occurrence = occ) = some (env, rest)) :
+    env.occurrence = occ := by
+  have h := Mailbox.dequeueFirst_matches _ mb hd
+  simp at h; exact h
+
+/-- A successful `receiveFrom` returns an envelope whose source matches
+the selector. -/
+theorem receiveFrom_source_matches
+    {s : RuntimeState} {t : TaskId} {src : ActorId} {env : Envelope}
+    {a : ActorId} {mb : Mailbox}
+    (hrt  : s.running = some t)
+    (hts  : s.taskState t = some .running)
+    (how  : s.taskOwner t = some a)
+    (hmb  : s.mailboxes a = some mb)
+    {rest : Mailbox}
+    (hd   : mb.dequeueFirst (·.source = some src) = some (env, rest)) :
+    env.source = some src := by
+  have h := Mailbox.dequeueFirst_matches _ mb hd
+  simp at h; exact h
+
+/-- When no matching envelope is present, `receiveByOccurrence` parks
+the task in the ordinary `mailboxWaiters` list (Option A). -/
+theorem receiveByOccurrence_parks_on_miss
+    {s : RuntimeState} {t : TaskId} {occ : MessageId}
+    {a : ActorId} {mb : Mailbox}
+    (hrt : s.running = some t)
+    (hts : s.taskState t = some .running)
+    (how : s.taskOwner t = some a)
+    (hmb : s.mailboxes a = some mb)
+    (hmiss : mb.dequeueFirst (·.occurrence = occ) = none) :
+    (step s (.receiveByOccurrence t occ)).2 = .blocked ∧
+    (step s (.receiveByOccurrence t occ)).1.taskState t = some .waiting ∧
+    t ∈ (step s (.receiveByOccurrence t occ)).1.mailboxWaiters a := by
+  simp [step, hrt, hts, how, hmb, hmiss, upd_self]
+
+/-- When no matching envelope is present, `receiveFrom` parks the task
+in the ordinary `mailboxWaiters` list (Option A). -/
+theorem receiveFrom_parks_on_miss
+    {s : RuntimeState} {t : TaskId} {src : ActorId}
+    {a : ActorId} {mb : Mailbox}
+    (hrt : s.running = some t)
+    (hts : s.taskState t = some .running)
+    (how : s.taskOwner t = some a)
+    (hmb : s.mailboxes a = some mb)
+    (hmiss : mb.dequeueFirst (·.source = some src) = none) :
+    (step s (.receiveFrom t src)).2 = .blocked ∧
+    (step s (.receiveFrom t src)).1.taskState t = some .waiting ∧
+    t ∈ (step s (.receiveFrom t src)).1.mailboxWaiters a := by
+  simp [step, hrt, hts, how, hmb, hmiss, upd_self]
+
+/-- Nonmatching envelopes remain in their original relative order after a
+successful `receiveByOccurrence`. Follows directly from `dequeueFirst_sublist`. -/
+theorem receiveByOccurrence_preserves_nonmatching_order
+    {s : RuntimeState} {t : TaskId} {occ : MessageId}
+    {a : ActorId} {mb : Mailbox}
+    (hmb : s.mailboxes a = some mb)
+    {env : Envelope} {rest : Mailbox}
+    (hd : mb.dequeueFirst (·.occurrence = occ) = some (env, rest)) :
+    rest.messages.Sublist mb.messages :=
+  Mailbox.dequeueFirst_sublist _ mb hd
+
+/-- Nonmatching envelopes remain in their original relative order after a
+successful `receiveFrom`. Follows directly from `dequeueFirst_sublist`. -/
+theorem receiveFrom_preserves_nonmatching_order
+    {s : RuntimeState} {t : TaskId} {src : ActorId}
+    {a : ActorId} {mb : Mailbox}
+    (hmb : s.mailboxes a = some mb)
+    {env : Envelope} {rest : Mailbox}
+    (hd : mb.dequeueFirst (·.source = some src) = some (env, rest)) :
+    rest.messages.Sublist mb.messages :=
+  Mailbox.dequeueFirst_sublist _ mb hd
+
+end SelectiveReceive
+
+end Henret
