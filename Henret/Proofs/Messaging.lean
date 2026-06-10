@@ -12,8 +12,11 @@ theorem send_appends {s : RuntimeState} {t : TaskId} {b o : ActorId} {mb : Mailb
     (m : Message) :
     ((step s (.send t b m)).1).mailboxes b =
       some ⟨mb.messages ++ [⟨s.nextMsgId, s.taskOwner t, m⟩]⟩ := by
-  cases hw : s.mailboxWaiters b <;>
-    simp [step, hrt, hts, how, hmb, hw, upd, Mailbox.enqueue]
+  cases hw : s.mailboxWaiters b with
+  | cons w ws => simp [step, hrt, hts, how, hmb, hw, upd, Mailbox.enqueue]
+  | nil =>
+    cases htw : s.timedMailboxWaiters b <;>
+      simp [step, hrt, hts, how, hmb, hw, htw, upd, Mailbox.enqueue]
 
 /-- Send does not touch any mailbox other than the target's. -/
 theorem send_preserves_other {s : RuntimeState} {t : TaskId}
@@ -25,8 +28,9 @@ theorem send_preserves_other {s : RuntimeState} {t : TaskId}
     · split
       · split
         · cases hw : s.mailboxWaiters b with
-          | nil => simp [upd, h]
           | cons w ws => simp [hw, upd, h]
+          | nil =>
+            cases htw : s.timedMailboxWaiters b <;> simp [hw, htw, upd, h]
         · rfl
       · rfl
     all_goals rfl
@@ -156,6 +160,7 @@ theorem receive_blocked_parks {s : RuntimeState} {t : TaskId}
       | yielded => simp [step, hrt, hts] at h
       | sleeping => simp [step, hrt, hts] at h
       | waiting => simp [step, hrt, hts] at h
+      | waitingTimed => simp [step, hrt, hts] at h
       | completed => simp [step, hrt, hts] at h
       | cancelled => simp [step, hrt, hts] at h
   · simp [step, hrt] at h
@@ -205,7 +210,7 @@ theorem receive_only_own {s : RuntimeState} {t : TaskId} {env : Envelope}
               · simp [step, hrt, hts, how, hmb, hd, upd]
               · intro b hb
                 exact receive_preserves_other how hb
-      | new | ready | yielded | sleeping | completed | cancelled | waiting =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
         simp [step, hrt, hts] at h
   · simp [step, hrt] at h
 
@@ -217,8 +222,11 @@ theorem inject_appends {s : RuntimeState} {a : ActorId} {mb : Mailbox}
     (h : s.mailboxes a = some mb) (m : Message) :
     ((step s (.inject a m)).1).mailboxes a =
       some ⟨mb.messages ++ [⟨s.nextMsgId, none, m⟩]⟩ := by
-  cases hw : s.mailboxWaiters a <;>
-    simp [step, h, hw, upd, Mailbox.enqueue]
+  cases hw : s.mailboxWaiters a with
+  | cons w ws => simp [step, h, hw, upd, Mailbox.enqueue]
+  | nil =>
+    cases htw : s.timedMailboxWaiters a <;>
+      simp [step, h, hw, htw, upd, Mailbox.enqueue]
 
 /-- Injection does not touch any other actor's mailbox. -/
 theorem inject_preserves_other {s : RuntimeState} {a b : ActorId}
@@ -227,8 +235,9 @@ theorem inject_preserves_other {s : RuntimeState} {a b : ActorId}
   simp only [step]
   split
   · cases hw : s.mailboxWaiters a with
-    | nil => simp [hw, upd, h]
     | cons w ws => simp [hw, upd, h]
+    | nil =>
+      cases htw : s.timedMailboxWaiters a <;> simp [hw, htw, upd, h]
   · rfl
 
 /-! ## Mailbox monotonicity: messaging never removes a mailbox -/
@@ -253,15 +262,20 @@ theorem send_mailbox_isSome {s : RuntimeState} {t : TaskId}
             by_cases hcb : c = b
             · subst hcb
               cases hw : s.mailboxWaiters c with
-              | nil =>
-                exact ⟨mbb.enqueue ⟨s.nextMsgId, s.taskOwner t, m⟩,
-                        by simp [step, hrt, hts, how, hmb, hw, upd]⟩
               | cons w ws =>
                 exact ⟨mbb.enqueue ⟨s.nextMsgId, s.taskOwner t, m⟩,
                         by simp [step, hrt, hts, how, hmb, hw, upd]⟩
-            · cases hw : s.mailboxWaiters b <;>
+              | nil =>
+                cases htw : s.timedMailboxWaiters c <;>
+                  exact ⟨mbb.enqueue ⟨s.nextMsgId, s.taskOwner t, m⟩,
+                          by simp [step, hrt, hts, how, hmb, hw, htw, upd]⟩
+            · cases hw : s.mailboxWaiters b with
+              | cons w ws =>
                 exact ⟨mb, by simpa [step, hrt, hts, how, hmb, hw, upd, hcb] using h⟩
-      | new | ready | yielded | sleeping | completed | cancelled | waiting =>
+              | nil =>
+                cases htw : s.timedMailboxWaiters b <;>
+                  exact ⟨mb, by simpa [step, hrt, hts, how, hmb, hw, htw, upd, hcb] using h⟩
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
         exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
   · exact ⟨mb, by simp [step, hrt]; exact h⟩
 
@@ -275,14 +289,19 @@ theorem inject_mailbox_isSome {s : RuntimeState} {a c : ActorId}
     by_cases hca : c = a
     · subst hca
       cases hw : s.mailboxWaiters c with
-      | nil =>
-        exact ⟨mba.enqueue ⟨s.nextMsgId, none, m⟩,
-                by simp [step, hmb, hw, upd]⟩
       | cons w ws =>
         exact ⟨mba.enqueue ⟨s.nextMsgId, none, m⟩,
                 by simp [step, hmb, hw, upd]⟩
-    · cases hw : s.mailboxWaiters a <;>
+      | nil =>
+        cases htw : s.timedMailboxWaiters c <;>
+          exact ⟨mba.enqueue ⟨s.nextMsgId, none, m⟩,
+                  by simp [step, hmb, hw, htw, upd]⟩
+    · cases hw : s.mailboxWaiters a with
+      | cons w ws =>
         exact ⟨mb, by simpa [step, hmb, hw, upd, hca] using h⟩
+      | nil =>
+        cases htw : s.timedMailboxWaiters a <;>
+          exact ⟨mb, by simpa [step, hmb, hw, htw, upd, hca] using h⟩
 
 /-- Receive never removes a mailbox. -/
 theorem receive_mailbox_isSome {s : RuntimeState} {t : TaskId}
@@ -307,7 +326,7 @@ theorem receive_mailbox_isSome {s : RuntimeState} {t : TaskId}
               · subst hca
                 exact ⟨p.2, by simp [step, hrt, hts, how, hmb, hd, upd]⟩
               · exact ⟨mb, by simpa [step, hrt, hts, how, hmb, hd, upd, hca] using h⟩
-      | new | ready | yielded | sleeping | completed | cancelled | waiting =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
         exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
   · exact ⟨mb, by simp [step, hrt]; exact h⟩
 

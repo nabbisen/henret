@@ -111,8 +111,9 @@ structure WellFormed (s : RuntimeState) : Prop where
   running_runs  : ∀ t, s.running = some t → s.taskState t = some .running
   /-- A task has at most one pending timer. -/
   timers_nodup  : (s.timers.map TimerEntry.task).Nodup
-  /-- Every timer entry's task is `sleeping`. -/
+  /-- Every timer entry's task is `sleeping` or `waitingTimed` (RFC 040: generalized). -/
   timers_sleep  : ∀ e ∈ s.timers, s.taskState e.task = some .sleeping
+                                 ∨ s.taskState e.task = some .waitingTimed
   /-- Ids at or above the fresh counter are unspawned. -/
   fresh_none    : ∀ t, s.nextId ≤ t → s.taskState t = none
   /-- The timer queue is sorted by deadline (RFC 019). -/
@@ -170,10 +171,31 @@ structure WellFormed (s : RuntimeState) : Prop where
       has a `taskState` (RFC 038). -/
   parent_child_spawned :
     ∀ t p, s.taskParent t = some p → ∃ st, s.taskState t = some st
+  /-- Every `waitingTimed` task has a registered deadline (RFC 040). -/
+  timed_has_deadline :
+    ∀ t, s.taskState t = some .waitingTimed → ∃ d, s.waitDeadline t = some d
+  /-- Converse: a task with a deadline is in the `waitingTimed` state (RFC 040). -/
+  deadline_is_timed :
+    ∀ t d, s.waitDeadline t = some d → s.taskState t = some .waitingTimed
+  /-- Every `waitingTimed` task has a corresponding timer entry (RFC 040). -/
+  timed_has_timer :
+    ∀ t, s.taskState t = some .waitingTimed → ∃ e ∈ s.timers, e.task = t
+  /-- Every `waitingTimed` task is in some actor's `timedMailboxWaiters` list (RFC 040). -/
+  timed_is_waiter :
+    ∀ t, s.taskState t = some .waitingTimed → ∃ a, t ∈ s.timedMailboxWaiters a
+  /-- Every task in a `timedMailboxWaiters` list is in the `waitingTimed` state (RFC 040). -/
+  timed_waiters_valid :
+    ∀ a t, t ∈ s.timedMailboxWaiters a → s.taskState t = some .waitingTimed
+  /-- Timed-waiter lists are duplicate-free (RFC 040). -/
+  timed_waiters_nodup :
+    ∀ a, (s.timedMailboxWaiters a).Nodup
+  /-- A task appears in at most one timed-waiter list (RFC 040). -/
+  timed_waiters_exclusive :
+    ∀ a b t, a ≠ b → t ∈ s.timedMailboxWaiters a → t ∉ s.timedMailboxWaiters b
 
-/-- The initial state is well-formed (21 fields). -/
+/-- The initial state is well-formed (28 fields). -/
 theorem wf_init : WellFormed RuntimeState.init := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [RuntimeState.init]
 
 /-! ## Ownership uniqueness corollaries (RFC 004 acceptance) -/
@@ -192,10 +214,8 @@ theorem WellFormed.ready_no_timer {s : RuntimeState} (h : WellFormed s)
     e.task ≠ t := by
   intro heq
   have h1 := h.readyQ_queued t hm
-  have h2 := h.timers_sleep e he
-  rw [heq] at h2
-  rw [h2] at h1
-  simp [Option.any, TaskState.isRunnable] at h1
+  rcases h.timers_sleep e he with h2 | h2 <;>
+    (rw [heq] at h2; rw [h2] at h1; simp [Option.any, TaskState.isRunnable] at h1)
 
 /-- The running task has no pending timer. -/
 theorem WellFormed.running_no_timer {s : RuntimeState} (h : WellFormed s)
@@ -203,8 +223,6 @@ theorem WellFormed.running_no_timer {s : RuntimeState} (h : WellFormed s)
     e.task ≠ t := by
   intro heq
   have h1 := h.running_runs t hr
-  have h2 := h.timers_sleep e he
-  rw [heq, h1] at h2
-  cases h2
+  rcases h.timers_sleep e he with h2 | h2 <;> rw [heq, h1] at h2 <;> cases h2
 
 end Henret

@@ -39,6 +39,12 @@ proof style throughout this file.
 @[simp] theorem ct_mailboxWaiters (s : RuntimeState) (tc : List TaskId) (a : ActorId) :
     (applyCancelTree s tc).mailboxWaiters a = (s.mailboxWaiters a).filter (· ∉ tc) := rfl
 
+@[simp] theorem ct_timedMailboxWaiters (s : RuntimeState) (tc : List TaskId) (a : ActorId) :
+    (applyCancelTree s tc).timedMailboxWaiters a = (s.timedMailboxWaiters a).filter (· ∉ tc) := rfl
+
+@[simp] theorem ct_waitDeadline (s : RuntimeState) (tc : List TaskId) (t : TaskId) :
+    (applyCancelTree s tc).waitDeadline t = if t ∈ tc then none else s.waitDeadline t := rfl
+
 @[simp] theorem ct_now         (s : RuntimeState) (tc : List TaskId) : (applyCancelTree s tc).now        = s.now        := rfl
 @[simp] theorem ct_nextId      (s : RuntimeState) (tc : List TaskId) : (applyCancelTree s tc).nextId     = s.nextId     := rfl
 @[simp] theorem ct_nextMsgId   (s : RuntimeState) (tc : List TaskId) : (applyCancelTree s tc).nextMsgId  = s.nextMsgId  := rfl
@@ -140,11 +146,11 @@ theorem cancelTree_removes_from_waiters {s : RuntimeState} {root t : TaskId}
 
 /-! ## WellFormed preservation -/
 
-/-- `cancelTree` preserves all 21 `WellFormed` fields. -/
+/-- `cancelTree` preserves all 27 `WellFormed` fields. -/
 theorem preserves_wf_cancelTree {s : RuntimeState} (h : WellFormed s) (root : TaskId) :
     WellFormed ((step s (.cancelTree root)).1) := by
   simp only [cancelTree_step_eq]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- 1. readyQ_nodup
     exact List.Nodup.sublist (List.filter_sublist _) h.readyQ_nodup
   · -- 2. readyQ_queued: t ∈ filtered readyQ → t ∉ tc → taskState unchanged → runnable
@@ -289,5 +295,96 @@ theorem preserves_wf_cancelTree {s : RuntimeState} (h : WellFormed s) (root : Ta
       | true  => exact ⟨st, by simp [hterm]⟩
       | false => exact ⟨.cancelled, by simp [hterm]⟩
     · exact ⟨st, by simp only [ct_taskState, if_neg hu, hst]⟩
+
+  · -- 22. timed_has_deadline
+    intro u hu
+    -- if u ∈ tc then taskState u ≠ .waitingTimed (it's .cancelled or unchanged terminal)
+    have hun : u ∉ descendantsOf s root := by
+      intro hm
+      simp only [ct_taskState, hm] at hu
+      -- hu : (if u ∈ tc then match s.taskState u with ... else s.taskState u) = some .waitingTimed
+      -- with hm : u ∈ tc this becomes the match branch
+      cases hst : s.taskState u with
+      | none => simp [hst, hm] at hu
+      | some st =>
+        simp only [hst, hm, ite_true] at hu
+        by_cases hterm : st.isTerminal
+        · simp only [hterm, if_true] at hu
+          have hsteq := Option.some.inj hu
+          rw [hsteq] at hterm; exact absurd hterm (by decide)
+        · have hf : st.isTerminal = false := Bool.eq_false_iff.mpr hterm
+          simp [hf] at hu
+    simp only [ct_taskState, if_neg hun] at hu
+    simp only [ct_waitDeadline, if_neg hun]
+    exact h.timed_has_deadline u hu
+  · -- 23. deadline_is_timed
+    intro u d hd
+    simp only [ct_waitDeadline] at hd
+    by_cases hm : u ∈ descendantsOf s root
+    · simp [hm] at hd
+    · simp only [if_neg hm] at hd
+      simp only [ct_taskState, if_neg hm]
+      exact h.deadline_is_timed u d hd
+  · -- 24. timed_has_timer
+    intro u hu
+    have hun : u ∉ descendantsOf s root := by
+      intro hm
+      simp only [ct_taskState, hm] at hu
+      -- hu : (if u ∈ tc then match s.taskState u with ... else s.taskState u) = some .waitingTimed
+      -- with hm : u ∈ tc this becomes the match branch
+      cases hst : s.taskState u with
+      | none => simp [hst, hm] at hu
+      | some st =>
+        simp only [hst, hm, ite_true] at hu
+        by_cases hterm : st.isTerminal
+        · simp only [hterm, if_true] at hu
+          have hsteq := Option.some.inj hu
+          rw [hsteq] at hterm; exact absurd hterm (by decide)
+        · have hf : st.isTerminal = false := Bool.eq_false_iff.mpr hterm
+          simp [hf] at hu
+    simp only [ct_taskState, if_neg hun] at hu
+    obtain ⟨e, he, hek⟩ := h.timed_has_timer u hu
+    refine ⟨e, ?_, hek⟩
+    simp only [ct_timers, List.mem_filter]
+    exact ⟨he, by simp [hek, hun]⟩
+  · -- 25. timed_is_waiter
+    intro u hu
+    have hun : u ∉ descendantsOf s root := by
+      intro hm
+      simp only [ct_taskState, hm] at hu
+      -- hu : (if u ∈ tc then match s.taskState u with ... else s.taskState u) = some .waitingTimed
+      -- with hm : u ∈ tc this becomes the match branch
+      cases hst : s.taskState u with
+      | none => simp [hst, hm] at hu
+      | some st =>
+        simp only [hst, hm, ite_true] at hu
+        by_cases hterm : st.isTerminal
+        · simp only [hterm, if_true] at hu
+          have hsteq := Option.some.inj hu
+          rw [hsteq] at hterm; exact absurd hterm (by decide)
+        · have hf : st.isTerminal = false := Bool.eq_false_iff.mpr hterm
+          simp [hf] at hu
+    simp only [ct_taskState, if_neg hun] at hu
+    obtain ⟨a, ha⟩ := h.timed_is_waiter u hu
+    refine ⟨a, ?_⟩
+    simp only [ct_timedMailboxWaiters, List.mem_filter]
+    exact ⟨ha, by simp [hun]⟩
+  · -- 26. timed_waiters_valid
+    intro a u hu
+    simp only [ct_timedMailboxWaiters, List.mem_filter] at hu
+    obtain ⟨hmem, hun⟩ := hu
+    -- hun : decide (u ∉ descendantsOf s root) = true
+    have hun' : u ∉ descendantsOf s root := by simpa using hun
+    simp only [ct_taskState, if_neg hun']
+    exact h.timed_waiters_valid a u hmem
+  · -- 27. timed_waiters_nodup
+    intro a
+    simp only [ct_timedMailboxWaiters]
+    exact List.Nodup.sublist (List.filter_sublist _) (h.timed_waiters_nodup a)
+  · -- 28. timed_waiters_exclusive: cancelTree filters each list by (· ∉ tc)
+    intro a b u hab hma hmb
+    simp only [ct_timedMailboxWaiters] at hma hmb
+    exact h.timed_waiters_exclusive a b u hab
+      (List.mem_filter.mp hma).1 (List.mem_filter.mp hmb).1
 
 end Henret

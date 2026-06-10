@@ -6,15 +6,16 @@ import Henret.Scheduler.Model
 Projections of `step` onto the fields that messaging operations leave
 **unconditionally unchanged**.
 
-After RFC 031, `send` and `inject` may touch `taskState` and `readyQ`
-(wake-one semantics: a head waiter is readied on delivery).  `receive`
-may touch `taskState`, `running`, and `mailboxWaiters` (parking
-semantics: empty-own-mailbox parks the task).  The lemmas below cover
-only the fields that remain invariant in **every** branch.
+After RFC 031, `send` and `inject` may touch `taskState`, `readyQ`,
+`mailboxWaiters`, and (RFC 040) `timers`/`waitDeadline`/`timedMailboxWaiters`
+when waking a head waiter. The lemmas below cover only the fields that
+remain invariant in **every** branch.
 
-Fields provably unchanged per operation (RFC 034 modularisation note):
-- `send`:    `taskOwner`, `running`, `timers`, `now`, `nextId`
-- `inject`:  `taskOwner`, `running`, `timers`, `now`, `nextId`
+Fields provably unchanged per operation (RFC 034 / RFC 040 note):
+- `send`:    `taskOwner`, `running`, `now`, `nextId`
+             (`timers` may change in the timed-waiter wake case — no longer projected)
+- `inject`:  `taskOwner`, `running`, `now`, `nextId`
+             (`timers` may change in the timed-waiter wake case — no longer projected)
 - `receive`: `taskOwner`, `readyQ`, `timers`, `now`, `nextId`
 -/
 
@@ -26,27 +27,26 @@ variable (s : RuntimeState) (t : TaskId) (b : ActorId) (m : Message)
 @[simp] theorem send_taskOwner :
     ((step s (.send t b m)).1).taskOwner = s.taskOwner := by
   simp only [step]
-  split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;> rfl
+  split <;> (try split) <;> (try split) <;> (try split) <;>
+    (try split) <;> (try split) <;> rfl
 
 @[simp] theorem send_running :
     ((step s (.send t b m)).1).running = s.running := by
   simp only [step]
-  split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;> rfl
-
-@[simp] theorem send_timers :
-    ((step s (.send t b m)).1).timers = s.timers := by
-  simp only [step]
-  split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;> rfl
+  split <;> (try split) <;> (try split) <;> (try split) <;>
+    (try split) <;> (try split) <;> rfl
 
 @[simp] theorem send_now :
     ((step s (.send t b m)).1).now = s.now := by
   simp only [step]
-  split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;> rfl
+  split <;> (try split) <;> (try split) <;> (try split) <;>
+    (try split) <;> (try split) <;> rfl
 
 @[simp] theorem send_nextId :
     ((step s (.send t b m)).1).nextId = s.nextId := by
   simp only [step]
-  split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;> rfl
+  split <;> (try split) <;> (try split) <;> (try split) <;>
+    (try split) <;> (try split) <;> rfl
 
 end SendProjections
 
@@ -85,23 +85,19 @@ variable (s : RuntimeState) (a : ActorId) (m : Message)
 
 @[simp] theorem inject_taskOwner :
     ((step s (.inject a m)).1).taskOwner = s.taskOwner := by
-  simp only [step]; split <;> (try split) <;> rfl
+  simp only [step]; split <;> (try split) <;> (try split) <;> (try split) <;> rfl
 
 @[simp] theorem inject_running :
     ((step s (.inject a m)).1).running = s.running := by
-  simp only [step]; split <;> (try split) <;> rfl
-
-@[simp] theorem inject_timers :
-    ((step s (.inject a m)).1).timers = s.timers := by
-  simp only [step]; split <;> (try split) <;> rfl
+  simp only [step]; split <;> (try split) <;> (try split) <;> (try split) <;> rfl
 
 @[simp] theorem inject_now :
     ((step s (.inject a m)).1).now = s.now := by
-  simp only [step]; split <;> (try split) <;> rfl
+  simp only [step]; split <;> (try split) <;> (try split) <;> (try split) <;> rfl
 
 @[simp] theorem inject_nextId :
     ((step s (.inject a m)).1).nextId = s.nextId := by
-  simp only [step]; split <;> (try split) <;> rfl
+  simp only [step]; split <;> (try split) <;> (try split) <;> (try split) <;> rfl
 
 end InjectProjections
 
@@ -131,10 +127,11 @@ variable (s : RuntimeState) (t : TaskId) (a : ActorId)
     ((step s op).1).taskParent u = s.taskParent u := by
   match op with
   | .spawn _ | .schedule | .yield _ | .complete _ | .cancel _
-  | .send _ _ _ | .receive _ | .inject _ _ | .sleep _ _ | .tick _ | .wake _ =>
+  | .send _ _ _ | .receive _ | .inject _ _ | .sleep _ _ | .tick _ | .wake _
+  | .receiveUntil _ _ =>
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>
-        (try split) <;> simp [upd, hfresh]
+        (try split) <;> (try split) <;> simp [upd, hfresh]
   | .cancelTree _ => rfl
   | .spawnChild t a => exact absurd rfl (h t a)
 

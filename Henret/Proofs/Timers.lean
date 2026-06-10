@@ -4,12 +4,24 @@ import Henret.Proofs.StepProjections
 
 namespace Henret
 
-/-- The tasks `tick now` wakes: expired timer tasks that are genuinely
-sleeping. The filter keeps the ready queue clean even in arbitrary
-(non-reachable) states; under `WellFormed` it is a no-op. -/
-def tickWoken (s : RuntimeState) (now : Nat) : List TaskId :=
+/-- The sleeping tasks that `tick now` wakes. Under `WellFormed` all expired
+timer tasks are sleeping; the filter keeps it clean in arbitrary states. -/
+def tickWokenSleeping (s : RuntimeState) (now : Nat) : List TaskId :=
   ((Timer.expired s.timers now).map TimerEntry.task).filter
     (fun u => s.taskState u = some .sleeping)
+
+/-- The timed-waiting tasks that `tick now` wakes (RFC 040). -/
+def tickWokenTimed (s : RuntimeState) (now : Nat) : List TaskId :=
+  ((Timer.expired s.timers now).map TimerEntry.task).filter
+    (fun u => s.taskState u = some .waitingTimed)
+
+/-- All tasks woken by a valid tick. -/
+def tickWoken (s : RuntimeState) (now : Nat) : List TaskId :=
+  tickWokenSleeping s now ++ tickWokenTimed s now
+
+-- backward compat: tickWoken used to equal wokenSleeping only
+theorem tickWoken_def (s : RuntimeState) (now : Nat) :
+    tickWoken s now = tickWokenSleeping s now ++ tickWokenTimed s now := rfl
 
 /-- A future entry survives a valid tick untouched. -/
 theorem tick_keeps_future {s : RuntimeState} {now : Nat}
@@ -19,33 +31,40 @@ theorem tick_keeps_future {s : RuntimeState} {now : Nat}
   simp only [step, if_pos hle]
   exact Timer.mem_remaining.mpr ⟨hmem, hfut⟩
 
-/-- No early wake: a task not in the woken set keeps its state across
-a valid tick. In particular a task all of whose entries are in the
-future is untouched. -/
+/-- No early wake: a task not in the woken set keeps its state. -/
 theorem tick_no_early_wake {s : RuntimeState} {now : Nat} {t : TaskId}
     (hle : s.now ≤ now) (h : t ∉ tickWoken s now) :
     ((step s (.tick now)).1).taskState t = s.taskState t := by
-  simp only [step, if_pos hle]
+  simp only [step, if_pos hle, tickWoken, tickWokenSleeping, tickWokenTimed] at h ⊢
   exact wakeMany_preserves_other h
 
-/-- Expired wake with exact identity: every sleeping task with a due
-entry is ready after a valid tick. -/
+/-- Expired sleeping task wakes after a valid tick. -/
 theorem tick_wakes_expired {s : RuntimeState} {now : Nat}
     (hle : s.now ≤ now)
     {e : TimerEntry} (hmem : e ∈ s.timers) (hdue : e.deadline ≤ now)
     (hsleep : s.taskState e.task = some .sleeping) :
     ((step s (.tick now)).1).taskState e.task = some .ready := by
   simp only [step, if_pos hle]
-  apply wakeMany_wakes _ hsleep
-  refine List.mem_filter.mpr ⟨?_, by simp [hsleep]⟩
-  exact List.mem_map_of_mem TimerEntry.task
-    (Timer.mem_expired.mpr ⟨hmem, hdue⟩)
+  apply wakeMany_wakes _ (Or.inl hsleep)
+  simp only [tickWokenSleeping, List.mem_append, List.mem_filter, decide_eq_true_eq]
+  exact Or.inl ⟨List.mem_map_of_mem TimerEntry.task (Timer.mem_expired.mpr ⟨hmem, hdue⟩), hsleep⟩
 
-/-- Woken tasks are enqueued (in timer order) by a valid tick. -/
+/-- Expired timed-waiting task wakes after a valid tick (RFC 040). -/
+theorem tick_wakes_timed_expired {s : RuntimeState} {now : Nat}
+    (hle : s.now ≤ now)
+    {e : TimerEntry} (hmem : e ∈ s.timers) (hdue : e.deadline ≤ now)
+    (htimed : s.taskState e.task = some .waitingTimed) :
+    ((step s (.tick now)).1).taskState e.task = some .ready := by
+  simp only [step, if_pos hle]
+  apply wakeMany_wakes _ (Or.inr htimed)
+  simp only [tickWokenTimed, List.mem_append, List.mem_filter, decide_eq_true_eq]
+  exact Or.inr ⟨List.mem_map_of_mem TimerEntry.task (Timer.mem_expired.mpr ⟨hmem, hdue⟩), htimed⟩
+
+/-- A valid tick enqueues all woken tasks. -/
 theorem tick_enqueues_woken (s : RuntimeState) {now : Nat}
     (hle : s.now ≤ now) :
     ((step s (.tick now)).1).readyQ = s.readyQ ++ tickWoken s now := by
-  simp only [step, if_pos hle]; rfl
+  simp only [step, if_pos hle, tickWoken, tickWokenSleeping, tickWokenTimed]
 
 /-- A valid tick advances the logical clock to exactly `now`. -/
 theorem tick_advances_clock (s : RuntimeState) {now : Nat}
@@ -53,8 +72,7 @@ theorem tick_advances_clock (s : RuntimeState) {now : Nat}
     ((step s (.tick now)).1).now = now := by
   simp only [step, if_pos hle]
 
-/-- A backwards tick is invalid and changes nothing: logical time is
-monotone (RFC 015). -/
+/-- A backwards tick is invalid and changes nothing. -/
 theorem tick_backwards_invalid (s : RuntimeState) {now : Nat}
     (hlt : now < s.now) :
     step s (.tick now) = (s, .invalid) := by
@@ -99,9 +117,17 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
     cases hts : s.taskState t with
     | none => simp [step, hts]
     | some st => by_cases hterm : st.isTerminal <;> simp [step, hts, hterm]
-  | send t b m => simp
-  | receive t => simp
-  | inject a m => simp
+  | send t b m =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;>
+      (try split) <;> simp_all
+  | receive t =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;>
+      (try split) <;> simp_all
+  | inject a m =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;> simp_all
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -113,6 +139,10 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
     | none => simp [step, hts]
     | some st => cases st <;> simp [step, hts]
   | cancelTree _ => exact Nat.le_refl _
+  | receiveUntil t deadline =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;>
+      (try split) <;> (try split) <;> simp_all
 
 /-- Every operation preserves timer-queue sortedness. -/
 theorem step_preserves_sorted {s : RuntimeState}
@@ -124,33 +154,34 @@ theorem step_preserves_sorted {s : RuntimeState}
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;> simp_all
   | schedule =>
-    simp only [step]
-    split
+    simp only [step]; split
     · split <;> exact h
     · exact h
   | yield t =>
-    simp only [step]
-    split
+    simp only [step]; split
     · split <;> exact h
     · exact h
   | complete t =>
-    simp only [step]
-    split
+    simp only [step]; split
     · split <;> exact h
     · exact h
   | cancel t =>
-    simp only [step]
-    split
+    simp only [step]; split
     · split
       · exact h
       · exact Timer.sorted_filter _ h
     · exact h
-  | send t b m => simpa using h
-  | receive t => simpa using h
-  | inject a m => simpa using h
-  | sleep t d =>
+  | send t b m =>
     simp only [step]
-    split
+    split <;> (try split) <;> (try split) <;> (try split) <;>
+      (try split) <;> (try split) <;> simp_all [Timer.sorted_filter]
+  | receive t => simpa using h
+  | inject a m =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;>
+      simp_all [Timer.sorted_filter]
+  | sleep t d =>
+    simp only [step]; split
     · split
       · exact Timer.insertSorted_sorted h
       · exact h
@@ -161,17 +192,18 @@ theorem step_preserves_sorted {s : RuntimeState}
       exact Timer.remaining_sorted h
     · simp [step, hle, h]
   | wake t =>
-    simp only [step]
-    split
+    simp only [step]; split
     · exact Timer.sorted_filter _ h
     · exact h
   | cancelTree _ =>
-    -- cancelTree filters timers; a sublist of a sorted list is sorted
     simp only [step]
     exact Timer.sorted_filter _ h
+  | receiveUntil t deadline =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;>
+      (try split) <;> (try split) <;> simp_all [Timer.insertSorted_sorted]
 
-/-- Whole-program corollary: the queue is sorted in every reachable
-state of any program starting from a sorted queue. -/
+/-- Whole-program corollary: the queue is sorted in every reachable state. -/
 theorem run_preserves_sorted {s : RuntimeState}
     (h : Timer.Sorted s.timers) :
     ∀ ops : List RuntimeOp, Timer.Sorted (run s ops).timers := by
@@ -185,13 +217,10 @@ end Henret
 /-!
 # Henret.Proofs.Timers
 
-Timer theorems (RFC 007).
+Timer theorems (RFC 007 / RFC 040).
 
-* `tick_no_early_wake` — `tick now` does not wake a task that has no
-  expired timer; future entries stay in the queue.
-* `tick_wakes_expired` — `tick now` wakes every sleeping task whose
-  deadline is due, with exact identity.
-* `step_preserves_sorted` — every operation preserves timer-queue
-  sortedness; combined with `Timer.insertSorted_sorted`, the queue is
-  sorted in every reachable state.
+* `tick_no_early_wake` — `tick now` does not wake a task not in the woken set.
+* `tick_wakes_expired` — `tick now` wakes every sleeping task whose deadline is due.
+* `tick_wakes_timed_expired` — same for `waitingTimed` tasks (RFC 040).
+* `step_preserves_sorted` — every operation preserves timer-queue sortedness.
 -/

@@ -25,6 +25,12 @@ structure RuntimeState where
   /-- FIFO wait queue per actor: tasks waiting to receive from that
       actor's mailbox (RFC 031). -/
   mailboxWaiters : ActorId → List TaskId
+  /-- FIFO timed-wait queue per actor: tasks waiting with a deadline
+      (`receiveUntil`). Kept separate from `mailboxWaiters` so the
+      `waiters_waiting` invariant is not disturbed (RFC 040). -/
+  timedMailboxWaiters : ActorId → List TaskId
+  /-- Deadline for each `.waitingTimed` task. `none` means not timed-waiting. -/
+  waitDeadline : TaskId → Option Nat
   /-- Current logical time; advanced only by `tick`, monotonically
       (RFC 015). -/
   now           : Nat
@@ -51,6 +57,8 @@ def init : RuntimeState where
   timers         := []
   mailboxes      := fun _ => none
   mailboxWaiters := fun _ => []
+  timedMailboxWaiters := fun _ => []
+  waitDeadline        := fun _ => none
   taskParent     := fun _ => none
   now            := 0
   nextId         := 0
@@ -58,12 +66,12 @@ def init : RuntimeState where
 
 end RuntimeState
 
-/-- Wake one task: `sleeping → ready`; anything else is untouched.
+/-- Wake one task: `sleeping → ready` or `waitingTimed → ready`; anything else is untouched.
 The guard makes timer wake-ups harmless against stale entries and
-keeps terminal-state monotonicity local. -/
+keeps terminal-state monotonicity local. (RFC 040: extended to waitingTimed) -/
 def wakeOne (ts : TaskMap) (t : TaskId) : TaskMap :=
   match ts t with
-  | some .sleeping => upd ts t (some .ready)
+  | some .sleeping | some .waitingTimed => upd ts t (some .ready)
   | _ => ts
 
 /-- Wake a list of tasks in order. -/
@@ -110,7 +118,9 @@ def applyCancelTree (s : RuntimeState) (toCancel : List TaskId) : RuntimeState :
     readyQ         := s.readyQ.filter (· ∉ toCancel)
     running        := if toCancel.any (fun t => s.running = some t) then none else s.running
     timers         := s.timers.filter (fun e => e.task ∉ toCancel)
-    mailboxWaiters := fun a => (s.mailboxWaiters a).filter (· ∉ toCancel) }
+    mailboxWaiters := fun a => (s.mailboxWaiters a).filter (· ∉ toCancel)
+    timedMailboxWaiters := fun a => (s.timedMailboxWaiters a).filter (· ∉ toCancel)
+    waitDeadline   := fun t => if t ∈ toCancel then none else s.waitDeadline t }
 
 /-- One transition of the model. Total and executable. -/
 def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
@@ -162,18 +172,22 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
     | some st =>
       if st.isTerminal then (s, .invalid)
       else
-        -- For waiting tasks, also remove from owner's waiter list (RFC 031)
+        -- For waiting/waitingTimed tasks, also remove from owner's waiter list (RFC 031/040)
         let ownerWaitersUpdate : ActorId → List TaskId :=
           match s.taskOwner t with
           | some a => fun ac => if ac = a then (s.mailboxWaiters a).filter (· ≠ t)
                                 else s.mailboxWaiters ac
           | none   => s.mailboxWaiters
+        let ownerTimedWaitersUpdate : ActorId → List TaskId :=
+          fun ac => (s.timedMailboxWaiters ac).filter (· ≠ t)
         ({ s with
-            taskState      := upd s.taskState t (some .cancelled)
-            readyQ         := s.readyQ.filter (fun u => u ≠ t)
-            timers         := s.timers.filter (fun e => e.task ≠ t)
-            running        := if s.running = some t then none else s.running
-            mailboxWaiters := ownerWaitersUpdate }, .ok)
+            taskState               := upd s.taskState t (some .cancelled)
+            readyQ                  := s.readyQ.filter (fun u => u ≠ t)
+            timers                  := s.timers.filter (fun e => e.task ≠ t)
+            running                 := if s.running = some t then none else s.running
+            mailboxWaiters          := ownerWaitersUpdate
+            timedMailboxWaiters     := ownerTimedWaitersUpdate
+            waitDeadline            := fun u => if u = t then none else s.waitDeadline u }, .ok)
     | none => (s, .invalid)
   | .send t b m =>
     if s.running = some t then
@@ -189,14 +203,28 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
                           mailboxes := upd s.mailboxes b (some (mb.enqueue env))
                           nextMsgId := s.nextMsgId + 1 }
             match s.mailboxWaiters b with
-            | []      => (s', .ok)
             | w :: ws =>
+              -- Regular waiter takes priority. Unconditionally clear timer/deadline
+              -- (harmless no-op for .waiting tasks which have no timer by invariant).
               ({ s' with
-                   taskState      := upd s'.taskState w (some .ready)
-                   readyQ         := s'.readyQ ++ [w]
-                   mailboxWaiters := fun ac =>
-                     if ac = b then ws else s'.mailboxWaiters ac },
+                   taskState           := upd s'.taskState w (some .ready)
+                   readyQ              := s'.readyQ ++ [w]
+                   mailboxWaiters      := fun ac => if ac = b then ws else s'.mailboxWaiters ac
+                   timers              := s'.timers.filter (fun e => e.task ≠ w)
+                   waitDeadline        := fun u => if u = w then none else s'.waitDeadline u },
                .ok)
+            | [] =>
+              match s.timedMailboxWaiters b with
+              | w :: ws =>
+                -- No regular waiter; wake head timed waiter, also remove timer + clear deadline.
+                ({ s' with
+                     taskState               := upd s'.taskState w (some .ready)
+                     readyQ                  := s'.readyQ ++ [w]
+                     timedMailboxWaiters     := fun ac => if ac = b then ws else s'.timedMailboxWaiters ac
+                     timers                  := s'.timers.filter (fun e => e.task ≠ w)
+                     waitDeadline            := fun u => if u = w then none else s'.waitDeadline u },
+                 .ok)
+              | [] => (s', .ok)
           | none => (s, .invalid)
         | none => (s, .invalid)
       | _ => (s, .invalid)
@@ -234,13 +262,26 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
                     mailboxes := upd s.mailboxes a (some (mb.enqueue env))
                     nextMsgId := s.nextMsgId + 1 }
       match s.mailboxWaiters a with
-      | []      => (s', .ok)
       | w :: ws =>
+        -- Regular waiter takes priority. Clear timer/deadline unconditionally (no-op for .waiting).
         ({ s' with
-             taskState      := upd s'.taskState w (some .ready)
-             readyQ         := s'.readyQ ++ [w]
-             mailboxWaiters := fun ac => if ac = a then ws else s'.mailboxWaiters ac },
+             taskState           := upd s'.taskState w (some .ready)
+             readyQ              := s'.readyQ ++ [w]
+             mailboxWaiters      := fun ac => if ac = a then ws else s'.mailboxWaiters ac
+             timers              := s'.timers.filter (fun e => e.task ≠ w)
+             waitDeadline        := fun u => if u = w then none else s'.waitDeadline u },
          .ok)
+      | [] =>
+        match s.timedMailboxWaiters a with
+        | w :: ws =>
+          ({ s' with
+               taskState               := upd s'.taskState w (some .ready)
+               readyQ                  := s'.readyQ ++ [w]
+               timedMailboxWaiters     := fun ac => if ac = a then ws else s'.timedMailboxWaiters ac
+               timers                  := s'.timers.filter (fun e => e.task ≠ w)
+               waitDeadline            := fun u => if u = w then none else s'.waitDeadline u },
+           .ok)
+        | [] => (s', .ok)
     | none => (s, .invalid)
   | .sleep t deadline =>
     if s.running = some t then
@@ -254,13 +295,17 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
     else (s, .invalid)
   | .tick t =>
     if s.now ≤ t then
-      let woken := ((Timer.expired s.timers t).map TimerEntry.task).filter
-        (fun u => s.taskState u = some .sleeping)
+      let expiredTasks := (Timer.expired s.timers t).map TimerEntry.task
+      let wokenSleeping := expiredTasks.filter (fun u => s.taskState u = some .sleeping)
+      let wokenTimed   := expiredTasks.filter (fun u => s.taskState u = some .waitingTimed)
+      let woken := wokenSleeping ++ wokenTimed
       ({ s with
-          taskState := wakeMany s.taskState woken
-          readyQ    := s.readyQ ++ woken
-          timers    := Timer.remaining s.timers t
-          now       := t }, .woke woken)
+          taskState           := wakeMany s.taskState woken
+          readyQ              := s.readyQ ++ woken
+          timers              := Timer.remaining s.timers t
+          timedMailboxWaiters := fun a => (s.timedMailboxWaiters a).filter (· ∉ wokenTimed)
+          waitDeadline        := fun u => if u ∈ wokenTimed then none else s.waitDeadline u
+          now                 := t }, .woke woken)
     else (s, .invalid)
   | .spawnChild t a =>
     if s.running = some t then
@@ -298,6 +343,37 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
     -- Always returns .ok (RFC 039: no-op if nothing is spawned).
     let toCancel := descendantsOf s root
     (applyCancelTree s toCancel, .ok)
+  | .receiveUntil t deadline =>
+    if s.running = some t then
+      match s.taskState t with
+      | some .running =>
+        match s.taskOwner t with
+        | some a =>
+          match s.mailboxes a with
+          | some mb =>
+            match mb.dequeue with
+            | some (env, mb') =>
+              -- Message available: immediate dequeue, no state change (RFC 040).
+              ({ s with mailboxes := upd s.mailboxes a (some mb') }, .received env)
+            | none =>
+              if deadline ≤ s.now then
+                -- Past-deadline fast path: return timedOut without parking (RFC 040).
+                (s, .timedOut)
+              else
+                -- Park with deadline: register in timedMailboxWaiters and timers.
+                ({ s with
+                     taskState           := upd s.taskState t (some .waitingTimed)
+                     running             := none
+                     timedMailboxWaiters := fun ac =>
+                       if ac = a then s.timedMailboxWaiters a ++ [t]
+                       else s.timedMailboxWaiters ac
+                     timers              := Timer.insertSorted ⟨deadline, t⟩ s.timers
+                     waitDeadline        := upd s.waitDeadline t (some deadline) },
+                 .blocked)
+          | none => (s, .invalid)
+        | none => (s, .invalid)
+      | _ => (s, .invalid)
+    else (s, .invalid)
 
 /-- Run a list of operations, ignoring results (RFC 005). Invalid
 operations are no-ops by construction of `step`. -/

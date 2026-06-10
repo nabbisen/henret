@@ -1,6 +1,60 @@
 # Changelog
 
-## v0.10.1 — Preservation Proof Automation (RFC 042)
+## v0.11.0 — Receive Timeout / Multi-Wait Semantics (RFC 040)
+
+Adds `receiveUntil (t : TaskId) (deadline : Nat)` as the 14th `RuntimeOp`,
+completing the actor-system's timed-receive semantics. A task can park on an
+empty mailbox with a hard deadline; `tick` wakes it when the timer expires.
+
+### New `TaskState`: `.waitingTimed`
+
+A sixth runnable variant. Tasks in `.waitingTimed` are registered in the
+actor-local `timedMailboxWaiters` list **and** in the timer wheel with a
+`waitDeadline` entry. Distinguished from `.waiting` (no deadline) and
+`.sleeping` (no mailbox).
+
+### `WellFormed` extended to 28 fields (+7)
+
+Six new timed invariants (fields 22–27) describe the relationship between
+`.waitingTimed` task state, `timedMailboxWaiters`, `timers`, and `waitDeadline`.
+A seventh field, **`timed_waiters_exclusive`** (field 28), closes the
+cross-actor uniqueness gap: a task appears in at most one `timedMailboxWaiters`
+list. This exclusivity was required for `timed_waiters_valid` preservation
+across `send`/`inject` timed-waiter wakeups.
+
+### New and updated proofs (all zero `sorry`, all 28 fields)
+
+- **`preserves_wf_receiveUntil`** (`Preservation/Messaging.lean`) — 28-field
+  preservation proof across three sub-cases: immediate dequeue, past-deadline
+  no-op, and park-with-deadline.
+- **`preserves_wf_send`**, **`preserves_wf_inject`** — updated for the timed-waiter
+  fallback path (when `mailboxWaiters b = []` but `timedMailboxWaiters b` is non-empty).
+- **All six other operations** (Lifecycle, Time, Supervision) — 27→28 fields;
+  `timed_waiters_exclusive` passes through cleanly for ops that don't modify
+  `timedMailboxWaiters`.
+- **`step_preserves_parent`** (`Parenthood.lean`) — `receiveUntil` added to the
+  `taskParent`-stable match arm.
+
+### Bridge layer updated
+
+- **`toQOps`** (`Bridge/Grammar.lean`): `send`/`inject` now emit `Push 0 w` for
+  the timed-waiter fallback; `tick` emits `Push 0 u` for both `.sleeping` and
+  `.waitingTimed` woken tasks.
+- New grammar lemmas: `toQOps_send_valid_timed_waiter`,
+  `toQOps_inject_valid_timed_waiter`.
+- `toQOps_tick_valid` updated to include both woken classes.
+- **`bridge_step_single_worker`** now covers all **14 `RuntimeOp`s** including
+  `receiveUntil` (emits `[]`; readyQ unchanged in all three branches).
+
+### Axiom budget: unchanged
+
+All new proofs depend only on `propext`, `Quot.sound`, and `Classical.choice`
+(the last used by `by_cases` / `obtain`; present since RFC 013). Zero project
+axioms added. Verified by `scripts/axiom_audit.py`.
+
+---
+
+
 
 Adds proof infrastructure in `StepFields.lean` that reduces the most repetitive
 WellFormed preservation bullets to one-liners.

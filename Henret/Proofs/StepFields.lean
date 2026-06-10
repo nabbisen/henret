@@ -144,3 +144,60 @@ theorem wf_occ_pass {s s' : RuntimeState} (h : WellFormed s)
                   wf_occ_disjoint_pass h hm a b mba mbb hab hmba hmbb ea hea eb heb }
 
 end Henret
+
+/-! ## Timed-wait pass-through helpers (RFC 040)
+
+These close the six new WellFormed fields (22-27) for operations that
+leave `waitDeadline`, `timers`, and `timedMailboxWaiters` unchanged.
+Each helper takes pointwise stability proofs (from `by simp [step, guards]`). -/
+
+namespace Henret
+
+/-- `timed_has_deadline` holds when `waitDeadline` and `taskState` are pointwise-stable. -/
+theorem wf_timed_has_deadline_pass {s s' : RuntimeState} (h : WellFormed s)
+    (hwd : ∀ u, s'.waitDeadline u = s.waitDeadline u)
+    (hts : ∀ u, s'.taskState u = s.taskState u)
+    (t : TaskId) (ht : s'.taskState t = some .waitingTimed) :
+    ∃ d, s'.waitDeadline t = some d := by
+  rw [hwd]; exact h.timed_has_deadline t (by rw [← hts]; exact ht)
+
+/-- `deadline_is_timed` holds when `waitDeadline` and `taskState` are pointwise-stable. -/
+theorem wf_deadline_is_timed_pass {s s' : RuntimeState} (h : WellFormed s)
+    (hwd : ∀ u, s'.waitDeadline u = s.waitDeadline u)
+    (hts : ∀ u, s'.taskState u = s.taskState u)
+    (t : TaskId) (d : Nat) (hd : s'.waitDeadline t = some d) :
+    s'.taskState t = some .waitingTimed := by
+  rw [hts]; exact h.deadline_is_timed t d (by rw [← hwd]; exact hd)
+
+/-- `timed_has_timer` holds when `timers` and `taskState` are stable. -/
+theorem wf_timed_has_timer_pass {s s' : RuntimeState} (h : WellFormed s)
+    (htm : s'.timers = s.timers)
+    (hts : ∀ u, s'.taskState u = s.taskState u)
+    (t : TaskId) (ht : s'.taskState t = some .waitingTimed) :
+    ∃ e ∈ s'.timers, e.task = t := by
+  rw [htm]
+  exact h.timed_has_timer t (by rw [← hts]; exact ht)
+
+/-- `timed_is_waiter` holds when `timedMailboxWaiters` and `taskState` are stable. -/
+theorem wf_timed_is_waiter_pass {s s' : RuntimeState} (h : WellFormed s)
+    (htw : ∀ a, s'.timedMailboxWaiters a = s.timedMailboxWaiters a)
+    (hts : ∀ u, s'.taskState u = s.taskState u)
+    (t : TaskId) (ht : s'.taskState t = some .waitingTimed) :
+    ∃ a, t ∈ s'.timedMailboxWaiters a := by
+  obtain ⟨a, ha⟩ := h.timed_is_waiter t (by rw [← hts]; exact ht)
+  exact ⟨a, by rw [htw]; exact ha⟩
+
+/-- `timed_waiters_valid` holds when `timedMailboxWaiters` and `taskState` are stable. -/
+theorem wf_timed_waiters_valid_pass {s s' : RuntimeState} (h : WellFormed s)
+    (htw : ∀ a, s'.timedMailboxWaiters a = s.timedMailboxWaiters a)
+    (hts : ∀ u, s'.taskState u = s.taskState u)
+    (a : ActorId) (t : TaskId) (ht : t ∈ s'.timedMailboxWaiters a) :
+    s'.taskState t = some .waitingTimed := by
+  rw [hts]; exact h.timed_waiters_valid a t (by rw [← htw]; exact ht)
+
+/-- `timed_waiters_nodup` holds when `timedMailboxWaiters` is stable. -/
+theorem wf_timed_waiters_nodup_pass {s s' : RuntimeState} (h : WellFormed s)
+    (htw : ∀ a, s'.timedMailboxWaiters a = s.timedMailboxWaiters a)
+    (a : ActorId) : (s'.timedMailboxWaiters a).Nodup := by
+  rw [htw]; exact h.timed_waiters_nodup a
+end Henret

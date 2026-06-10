@@ -20,6 +20,8 @@ inductive TaskState where
   | cancelled
   /-- Parked waiting for a message in its actor's mailbox (RFC 031). -/
   | waiting
+  /-- Parked waiting for a message with a deadline; timer also registered (RFC 040). -/
+  | waitingTimed
 deriving Repr, DecidableEq, Inhabited
 
 namespace TaskState

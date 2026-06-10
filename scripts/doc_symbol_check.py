@@ -40,6 +40,13 @@ IGNORE = {
     "nextMsgId", "occurrence",
     # RFC 038 WellFormed field names (not standalone theorems; use WellFormed.X form)
     "owner_spawned", "parent_child_spawned",
+    # RFC 040 WellFormed timed field names (not standalone theorems)
+    "timed_has_deadline", "deadline_is_timed", "timed_has_timer",
+    "timed_is_waiter", "timed_waiters_valid", "timed_waiters_nodup",
+    "timed_waiters_exclusive",
+    # RFC 040 new toQOps lemmas
+    "toQOps_send_valid_timed_waiter", "toQOps_inject_valid_timed_waiter",
+    "receiveUntil",
     # RFC 035/036 Bridge sub-namespace types/internals — not standalone theorems
     "bridgeState_init", "bridgeState_push0", "bridgeState_pop0", "bridgeState_filter0",
     "bridgeState_readyQ_unchanged", "applyQOp", "applyQOps", "applyQOps_append",

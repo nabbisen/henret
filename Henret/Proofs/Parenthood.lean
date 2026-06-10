@@ -95,10 +95,10 @@ theorem step_preserves_parent {s : RuntimeState} {op : RuntimeOp} {u : TaskId}
     ((step s op).1).taskParent u = s.taskParent u := by
   match op with
   | .spawn _ | .schedule | .yield _ | .complete _ | .cancel _
-  | .send _ _ _ | .receive _ | .inject _ _ | .sleep _ _ | .tick _ | .wake _ =>
+  | .send _ _ _ | .receive _ | .receiveUntil _ _ | .inject _ _ | .sleep _ _ | .tick _ | .wake _ =>
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>
-        (try split) <;> simp [upd, hu]
+        (try split) <;> (try split) <;> simp [upd, hu]
   | .spawnChild _ _ =>
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>

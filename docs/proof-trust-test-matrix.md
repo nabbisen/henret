@@ -180,3 +180,18 @@ zero-assumption core.
 | 93 | `descendantsOf s root` is duplicate-free (nodup) and bounded by `nextId` | PROVEN | `descendantsOf_nodup`, `descendantsOf_bound` |
 | 94 | `BridgeState` is preserved by `cancelTree`; `toQOps` emits `Filter 0 t` for each descendant | PROVEN | `bridge_cancelTree`, `bridge_step_single_worker` now covers 13 ops |
 | 95 | `isInSubtreeOf` is well-founded (terminates by `<` on `TaskId`; conservative `false` for non-decreasing chains) | PROVEN | Lean's well-founded recursion checker via `termination_by t` |
+
+## v0.11.0 claims (receive-timeout multi-wait, RFC 040)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 96 | `WellFormed` has 28 fields as of v0.11.0; all hold for every reachable state | PROVEN | `reachable_wf`, `wf_init` |
+| 97 | `receiveUntil t deadline` with available message: dequeues head envelope, returns `.received env`; WellFormed preserved | PROVEN | `preserves_wf_receiveUntil` (dequeue sub-case) |
+| 98 | `receiveUntil t deadline` with empty mailbox and past deadline: no-op, returns `.timedOut`; WellFormed preserved | PROVEN | `preserves_wf_receiveUntil` (past-deadline sub-case) |
+| 99 | `receiveUntil t deadline` with empty mailbox and future deadline: parks `t` to `.waitingTimed`, registers timer and deadline, appends to `timedMailboxWaiters a`; WellFormed preserved | PROVEN | `preserves_wf_receiveUntil` (park sub-case) |
+| 100 | Every `.waitingTimed` task has a `waitDeadline` entry and a timer entry | PROVEN | `WellFormed.timed_has_deadline`, `WellFormed.timed_has_timer` |
+| 101 | Every `.waitingTimed` task appears in exactly one `timedMailboxWaiters` list (exclusivity) | PROVEN | `WellFormed.timed_is_waiter`, `WellFormed.timed_waiters_exclusive` |
+| 102 | `tick t` wakes both `.sleeping` and `.waitingTimed` expired timers; both classes appended to `readyQ` | PROVEN | `preserves_wf_tick`, `bridge_tick` (updated for RFC 040) |
+| 103 | `send`/`inject` fall through to timed waiters when `mailboxWaiters` is empty | PROVEN | `preserves_wf_send`, `preserves_wf_inject` (timed-waiter branches) |
+| 104 | `BridgeState` preserved by `receiveUntil` (emits `[]`; no readyQ effect) | PROVEN | `bridge_step_single_worker` (receiveUntil case) |
+| 105 | `bridge_step_single_worker` now covers all 14 RuntimeOps including `receiveUntil` | PROVEN | `Henret.Bridge.bridge_step_single_worker` |

@@ -19,6 +19,9 @@ inductive StepResult where
       (the task would wait for a message), not a protocol violation
       (RFC 029). -/
   | blocked : StepResult
+  /-- The operation returned immediately because the deadline had already passed
+      (`receiveUntil` fast path: deadline ≤ s.now). RFC 040. -/
+  | timedOut : StepResult
   /-- `tick` woke these tasks (in timer order). -/
   | woke (ts : List TaskId) : StepResult
   /-- The operation was not valid in the current state.

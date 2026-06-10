@@ -120,8 +120,11 @@ def toQOps (s : RuntimeState) (op : RuntimeOp) : List QOp :=
           match s.taskOwner t, s.mailboxes b with
           | some _, some _ =>
             match s.mailboxWaiters b with
-            | []     => []
             | w :: _ => [.Push 0 w]
+            | []     =>
+              match s.timedMailboxWaiters b with
+              | w :: _ => [.Push 0 w]
+              | []     => []
           | _, _ => []
         | _ => []
       else []
@@ -130,10 +133,14 @@ def toQOps (s : RuntimeState) (op : RuntimeOp) : List QOp :=
       match s.mailboxes a with
       | some _ =>
         match s.mailboxWaiters a with
-        | []     => []
         | w :: _ => [.Push 0 w]
+        | []     =>
+          match s.timedMailboxWaiters a with
+          | w :: _ => [.Push 0 w]
+          | []     => []
       | none => []
   | .receive _ => []
+  | .receiveUntil _ _ => []
   | .sleep _ _ => []
   | .complete _ => []
   | .cancelTree root =>
@@ -145,9 +152,11 @@ def toQOps (s : RuntimeState) (op : RuntimeOp) : List QOp :=
       (descendantsOf s root).map (fun t => .Filter 0 t)
   | .tick t =>
       -- Use argument t, not s.now (architect review §4.3)
+      -- Wakes both .sleeping and .waitingTimed expired timers (RFC 040)
       if s.now ≤ t then
-        let woken := ((Timer.expired s.timers t).map TimerEntry.task).filter
-                       (fun u => s.taskState u = some .sleeping)
+        let expiredTasks := (Timer.expired s.timers t).map TimerEntry.task
+        let woken := expiredTasks.filter (fun u => s.taskState u = some .sleeping) ++
+                     expiredTasks.filter (fun u => s.taskState u = some .waitingTimed)
         woken.map (fun u => .Push 0 u)
       else []
 
@@ -193,7 +202,7 @@ theorem toQOps_yield_invalid (s : RuntimeState) (t : TaskId)
       | none => simp [toQOps, hrt, hts]
       | some st => cases st with
         | running => exact absurd hts (by simp [hts] at h)
-        | new | ready | yielded | sleeping | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
           simp [toQOps, hrt, hts]
     · simp [toQOps, hrt]
 
@@ -208,7 +217,7 @@ theorem toQOps_wake_invalid (s : RuntimeState) (t : TaskId)
   | none => simp [toQOps, hts]
   | some st => cases st with
     | sleeping => exact absurd hts h
-    | new | ready | running | yielded | completed | cancelled | waiting => simp [toQOps, hts]
+    | new | ready | running | yielded | completed | cancelled | waiting | waitingTimed => simp [toQOps, hts]
 
 theorem toQOps_cancel_valid (s : RuntimeState) (t : TaskId) (st : TaskState)
     (hts : s.taskState t = some st) (hnt : ¬st.isTerminal) :
@@ -235,9 +244,17 @@ theorem toQOps_send_valid_no_waiter (s : RuntimeState) (t b : TaskId) (m : Messa
     (oa : ActorId) (mb : Mailbox)
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some oa) (hmb : s.mailboxes b = some mb)
-    (hwt : s.mailboxWaiters b = []) :
+    (hwt : s.mailboxWaiters b = []) (htw : s.timedMailboxWaiters b = []) :
     toQOps s (.send t b m) = [] := by
-  simp [toQOps, hrt, hts, how, hmb, hwt]
+  simp [toQOps, hrt, hts, how, hmb, hwt, htw]
+
+theorem toQOps_send_valid_timed_waiter (s : RuntimeState) (t b w : TaskId) (m : Message)
+    (oa : ActorId) (mb : Mailbox) (ws : List TaskId)
+    (hrt : s.running = some t) (hts : s.taskState t = some .running)
+    (how : s.taskOwner t = some oa) (hmb : s.mailboxes b = some mb)
+    (hwt : s.mailboxWaiters b = []) (htw : s.timedMailboxWaiters b = w :: ws) :
+    toQOps s (.send t b m) = [.Push 0 w] := by
+  simp [toQOps, hrt, hts, how, hmb, hwt, htw]
 
 theorem toQOps_inject_valid_waiter (s : RuntimeState) (a w : ActorId) (m : Message)
     (mb : Mailbox) (ws : List TaskId)
@@ -246,9 +263,17 @@ theorem toQOps_inject_valid_waiter (s : RuntimeState) (a w : ActorId) (m : Messa
   simp [toQOps, hmb, hwt]
 
 theorem toQOps_inject_valid_no_waiter (s : RuntimeState) (a : ActorId) (m : Message)
-    (mb : Mailbox) (hwt : s.mailboxWaiters a = []) (hmb : s.mailboxes a = some mb) :
+    (mb : Mailbox) (hwt : s.mailboxWaiters a = []) (hmb : s.mailboxes a = some mb)
+    (htw : s.timedMailboxWaiters a = []) :
     toQOps s (.inject a m) = [] := by
-  simp [toQOps, hmb, hwt]
+  simp [toQOps, hmb, hwt, htw]
+
+theorem toQOps_inject_valid_timed_waiter (s : RuntimeState) (a w : ActorId) (m : Message)
+    (mb : Mailbox) (ws : List TaskId)
+    (hmb : s.mailboxes a = some mb) (hwt : s.mailboxWaiters a = [])
+    (htw : s.timedMailboxWaiters a = w :: ws) :
+    toQOps s (.inject a m) = [.Push 0 w] := by
+  simp [toQOps, hmb, hwt, htw]
 
 theorem toQOps_inject_invalid (s : RuntimeState) (a : ActorId) (m : Message)
     (hmb : s.mailboxes a = none) :
@@ -271,9 +296,11 @@ theorem toQOps_tick_invalid (s : RuntimeState) (t : Nat) (h : ¬(s.now ≤ t)) :
     toQOps s (.tick t) = [] := by simp [toQOps, h]
 
 theorem toQOps_tick_valid (s : RuntimeState) (t : Nat) (h : s.now ≤ t) :
+    let expiredTasks := (Timer.expired s.timers t).map TimerEntry.task
     toQOps s (.tick t) =
-      (((Timer.expired s.timers t).map TimerEntry.task).filter
-        (fun u => s.taskState u = some .sleeping)).map (fun u => .Push 0 u) := by
+      (expiredTasks.filter (fun u => s.taskState u = some .sleeping) ++
+       expiredTasks.filter (fun u => s.taskState u = some .waitingTimed)).map
+        (fun u => .Push 0 u) := by
   simp [toQOps, h]
 
 end Henret.Bridge

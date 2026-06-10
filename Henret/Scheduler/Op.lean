@@ -62,6 +62,23 @@ inductive RuntimeOp where
       for auditability. Always succeeds (returns `.ok`) regardless of
       whether `root` is spawned. (RFC 039) -/
   | cancelTree (root : TaskId) : RuntimeOp
+  /-- The running task `t` attempts to dequeue one message from its own actor's
+      mailbox with a deadline.
+
+      - Non-empty mailbox: dequeue immediately, return `.received env`.
+      - Empty mailbox, `deadline ≤ s.now`: return `.timedOut` (no parking).
+      - Empty mailbox, `deadline > s.now`: park as `.waitingTimed`:
+        - `taskState t := .waitingTimed`
+        - `running := none`
+        - append `t` to `timedMailboxWaiters (taskOwner t)`
+        - insert timer `⟨deadline, t⟩` into `timers`
+        - `waitDeadline t := some deadline`
+        - result `.blocked`
+
+      When scheduled after waking, the task calls `receive` to check whether
+      a message arrived (non-empty mailbox = message won; empty = timed out).
+      Task-local return-value modeling deferred to RFC 045. (RFC 040) -/
+  | receiveUntil (t : TaskId) (deadline : Nat) : RuntimeOp
 deriving Repr, DecidableEq
 
 end Henret

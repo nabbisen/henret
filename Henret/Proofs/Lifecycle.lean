@@ -3,10 +3,11 @@ import Henret.Proofs.StepProjections
 
 namespace Henret
 
-/-! ## Wake helpers preserve everything except `sleeping → ready` -/
+/-! ## Wake helpers preserve everything except `sleeping/waitingTimed → ready` (RFC 040) -/
 
 theorem wakeOne_preserves_of_ne_sleeping {ts : TaskMap} {u : TaskId}
     {st : TaskState} (h : ts u = some st) (hne : st ≠ .sleeping)
+    (hnet : st ≠ .waitingTimed)
     (t : TaskId) : wakeOne ts t u = some st := by
   by_cases hu : u = t
   · subst hu
@@ -19,13 +20,14 @@ theorem wakeOne_preserves_of_ne_sleeping {ts : TaskMap} {u : TaskId}
     | some s' => cases s' <;> simp_all [upd, hu]
 
 theorem wakeMany_preserves_of_ne_sleeping {ts : TaskMap} {u : TaskId}
-    {st : TaskState} (h : ts u = some st) (hne : st ≠ .sleeping) :
+    {st : TaskState} (h : ts u = some st) (hne : st ≠ .sleeping)
+    (hnet : st ≠ .waitingTimed) :
     ∀ l : List TaskId, wakeMany ts l u = some st := by
   intro l
   induction l generalizing ts with
   | nil => exact h
   | cons t r ih =>
-    exact ih (wakeOne_preserves_of_ne_sleeping h hne t)
+    exact ih (wakeOne_preserves_of_ne_sleeping h hne hnet t)
 
 theorem wakeOne_other {ts : TaskMap} {t u : TaskId} (h : u ≠ t) :
     wakeOne ts t u = ts u := by
@@ -47,24 +49,28 @@ theorem wakeMany_preserves_other {ts : TaskMap} {u : TaskId} :
     rw [ih h2, wakeOne_other h1]
 
 theorem wakeMany_wakes {ts : TaskMap} {t : TaskId} :
-    ∀ {l : List TaskId}, t ∈ l → ts t = some .sleeping →
+    ∀ {l : List TaskId}, t ∈ l →
+      (ts t = some .sleeping ∨ ts t = some .waitingTimed) →
       wakeMany ts l t = some .ready := by
   intro l
   induction l generalizing ts with
   | nil => intro h; cases h
   | cons u r ih =>
-    intro hmem hsleep
+    intro hmem hst
     by_cases hu : t = u
     · subst hu
       have hone : wakeOne ts t t = some .ready := by
-        unfold wakeOne; rw [hsleep]; simp [upd]
+        unfold wakeOne
+        rcases hst with hst | hst <;> rw [hst] <;> simp [upd]
       show wakeMany (wakeOne ts t) r t = some .ready
-      exact wakeMany_preserves_of_ne_sleeping hone (by simp) r
+      exact wakeMany_preserves_of_ne_sleeping hone (by simp) (by simp) r
     · cases hmem with
       | head => exact absurd rfl hu
       | tail _ hr =>
         show wakeMany (wakeOne ts u) r t = some .ready
-        exact ih hr (by rw [wakeOne_other hu]; exact hsleep)
+        rcases hst with hst | hst
+        · exact ih hr (Or.inl (by rw [wakeOne_other hu]; exact hst))
+        · exact ih hr (Or.inr (by rw [wakeOne_other hu]; exact hst))
 
 /-! ## Terminal-state monotonicity -/
 

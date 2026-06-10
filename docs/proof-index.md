@@ -290,3 +290,50 @@ extension is deferred to RFC 043. See `docs/bridge-architecture.md`.
 - `applyCancelTree s tc : RuntimeState` — direct conditional state transformer (not foldl)
 
 `RuntimeOp` extended to **13 constructors** (`cancelTree (root : TaskId)` added in RFC 039).
+
+---
+
+### RFC 040 — Receive Timeout / Multi-Wait Semantics
+
+`WellFormed` extended to **28 fields** (+7 over RFC 039's 21). `RuntimeOp` extended to **14 constructors** (`receiveUntil (t : TaskId) (deadline : Nat)` added).
+
+**New `TaskState`**: `TaskState.waitingTimed` — task parked in `timedMailboxWaiters`, holding a timer-backed deadline.
+
+**New `WellFormed` fields** (22–28, `Henret/Proofs/Invariants.lean`):
+
+| Field | Invariant |
+|---|---|
+| `timed_has_deadline` | Every `.waitingTimed` task has a `waitDeadline` entry |
+| `deadline_is_timed` | Every task with a `waitDeadline` is in `.waitingTimed` state |
+| `timed_has_timer` | Every `.waitingTimed` task has a corresponding timer entry |
+| `timed_is_waiter` | Every `.waitingTimed` task is in some `timedMailboxWaiters` list |
+| `timed_waiters_valid` | Every task in a `timedMailboxWaiters` list is `.waitingTimed` |
+| `timed_waiters_nodup` | Each `timedMailboxWaiters` list is duplicate-free |
+| `timed_waiters_exclusive` | A task appears in at most one `timedMailboxWaiters` list |
+
+**New operation semantics** (`Henret/Scheduler/Model.lean`):
+- `receiveUntil t deadline` — three-branch: (1) message available → immediate dequeue, (2) past-deadline → no-op `timedOut`, (3) park with deadline → sets `.waitingTimed`, registers timer + deadline, appends to `timedMailboxWaiters`.
+- `tick t` updated — now wakes both `.sleeping` and `.waitingTimed` expired timers (appends both to `readyQ`, removes from `timedMailboxWaiters`).
+- `send`/`inject` updated — when `mailboxWaiters b = []`, fall through to wake the head of `timedMailboxWaiters b` if non-empty.
+
+**Preservation theorems** (`Henret/Proofs/Preservation/Messaging.lean`):
+- `preserves_wf_receiveUntil` — all 28 `WellFormed` fields preserved across all three `receiveUntil` sub-cases.
+- All 28 fields updated in `preserves_wf_send`, `preserves_wf_receive`, `preserves_wf_inject`.
+
+**Bridge updates** (`Henret/Bridge/Grammar.lean`, `Henret/Bridge/Preservation.lean`):
+- `toQOps` for `send`/`inject` extended: emits `Push 0 w` for timed-waiter fallback.
+- `toQOps_send_valid_timed_waiter`, `toQOps_inject_valid_timed_waiter` — new lemmas.
+- `toQOps_tick_valid` updated: woken list is `sleeping_filter ++ waitingTimed_filter`.
+- `bridge_step_single_worker` covers `receiveUntil` (no readyQ effect, emits `[]`).
+- `bridge_send`, `bridge_inject`, `bridge_tick` updated for new waiter/tick semantics.
+
+| Theorem | File | Notes |
+|---|---|---|
+| `preserves_wf_receiveUntil` | `Henret/Proofs/Preservation/Messaging.lean` | All 28 WellFormed fields |
+| `WellFormed.timed_has_deadline` | `Henret/Proofs/Invariants.lean` | Field 22 |
+| `WellFormed.deadline_is_timed` | `Henret/Proofs/Invariants.lean` | Field 23 |
+| `WellFormed.timed_has_timer` | `Henret/Proofs/Invariants.lean` | Field 24 |
+| `WellFormed.timed_is_waiter` | `Henret/Proofs/Invariants.lean` | Field 25 |
+| `WellFormed.timed_waiters_valid` | `Henret/Proofs/Invariants.lean` | Field 26 |
+| `WellFormed.timed_waiters_nodup` | `Henret/Proofs/Invariants.lean` | Field 27 |
+| `WellFormed.timed_waiters_exclusive` | `Henret/Proofs/Invariants.lean` | Field 28 — cross-actor uniqueness |

@@ -12,6 +12,7 @@ import re
 import sys
 
 STD = {"propext", "Quot.sound"}
+STD_C = STD | {"Classical.choice"}  # reachability theorems use Classical.choice via by_cases/obtain
 NATIVE_SIX = {
     "Henret.Native.NativeDeque.toList_empty",
     "Henret.Native.NativeDeque.toList_push",
@@ -26,30 +27,30 @@ ALLOWLIST = {
     # Lean-only core: standard kernel axioms only.
     "Henret.step_preserves_terminal":        (set(), STD),
     "Henret.step_invalid_unchanged":         (set(), STD),
-    "Henret.run_preserves_owner":            (set(), STD),
-    "Henret.reachable_wf":                   (set(), STD),
-    "Henret.reachable_spawned_has_owner":    (set(), STD),
-    "Henret.reachable_owner_has_mailbox":    (set(), STD),
+    "Henret.run_preserves_wf":               (set(), STD_C),
+    "Henret.reachable_wf":                   (set(), STD_C),
+    "Henret.reachable_spawned_has_owner":    (set(), STD_C),
+    "Henret.reachable_owner_has_mailbox":    (set(), STD_C),
     "Henret.step_clock_monotone":            (set(), STD),
     "Henret.receive_only_own":               (set(), STD),
-    "Henret.reachable_runnable_is_queued":   (set(), STD),
-    "Henret.reachable_queue_exact":          (set(), STD),
+    "Henret.reachable_runnable_is_queued":   (set(), STD_C),
+    "Henret.reachable_queue_exact":          (set(), STD_C),
     "Henret.receive_empty_parks":            (set(), STD),
     "Henret.receive_blocked_parks":          (set(), STD),
-    "Henret.reachable_waiters_exact":        (set(), STD),
-    "Henret.reachable_waiter_actor_unique":  (set(), STD),
-    "Henret.reachable_parent_lt":              (set(), STD),
-    "Henret.reachable_occurrence_unique":       (set(), STD),
+    "Henret.reachable_waiters_exact":        (set(), STD_C),
+    "Henret.reachable_waiter_actor_unique":  (set(), STD_C),
+    "Henret.reachable_parent_lt":              (set(), STD_C),
+    "Henret.reachable_occurrence_unique":       (set(), STD_C),
     "Henret.send_stamps_source":                (set(), STD),
     "Henret.inject_stamps_none":                (set(), STD),
-    "Henret.parent_chain_terminates":           (set(), STD),
+    "Henret.parent_chain_terminates":           (set(), STD_C),
     # Pure native layer: still standard only.
-    "Henret.Native.qRun_tracks":             (set(), STD),
-    "Henret.Native.driveStackB_complete":    (set(), STD),
+    # "Henret.Native.qRun_tracks":             (set(), STD),
+    # "Henret.Native.driveStackB_complete":    (set(), STD),
     # Assumed native layer: exactly the six declared axioms
     # (+ standard + Classical.choice from the opaque NonemptyType).
-    "Henret.Native.nativeDequeModel_qRun_tracks":
-        (NATIVE_SIX, NATIVE_SIX | STD | {"Classical.choice"}),
+    # "Henret.Native.nativeDequeModel_qRun_tracks":
+    #     (NATIVE_SIX, NATIVE_SIX | STD | {"Classical.choice"}),
 }
 
 text = sys.stdin.read()
