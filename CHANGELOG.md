@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.15.2 — Package, Documentation, and Release Maturity (RFC 051)
+
+A consolidation release: **no new semantics, no new theorems, axiom
+budget unchanged.** Library character and release habits.
+
+### Documentation structure
+
+New `docs/README.md` landing page indexed by persona (new users /
+intermediate / maintainers). New `docs/release-policy.md` (conservative
+pre-1.0 versioning + changelog policy), `docs/release-checklist.md` (the
+gates that must pass before an archive is cut), and
+`docs/theorem-naming.md` (the `step_`/`reachable_`/`preserves_wf_`/
+`bridge_` conventions the corpus already follows).
+
+### Migration notes
+
+New `docs/migration/` with a template and `v0.14-to-v0.15.md` documenting
+the RFC 049 grammar change (`TaskState.failed`, the `fail`/`restartOne`
+operations, the `restartOf` field) — additive, with compiler-caught
+`match` breaks only.
+
+### Release gate runner
+
+`scripts/check.sh` extended to nine gates run by one command: it now
+builds the explorer library and runs the golden-trace conformance suite
+(RFC 047), and the strict axiom audit now covers the RFC 049 restart
+headlines. Building the comprehensive gate surfaced a latent
+missing-`match` case in `Henret/Examples/Basic.lean` (`showState` lacked
+`.waitingTimed`/`.failed`) that the library-only build had skipped — now
+fixed.
+
+### Package metadata
+
+`lakefile.lean` carries a description, keywords, repository-URL
+placeholder, and an explicit `version`. README hero gains license, Lean
+version, sorry-free, and axiom-budget badges.
+
+---
+
 ## v0.15.1 — Observability and Pedagogical Visualization (RFC 050)
 
 Human-readable renderers for states, traces, and actor/task relations.

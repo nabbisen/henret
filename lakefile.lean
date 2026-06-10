@@ -1,7 +1,15 @@
 import Lake
 open Lake DSL
 
-package henret
+-- Henret — executable actor/task runtime models for Lean 4.
+-- License: Apache-2.0.  Author: nabbisen.
+-- Repository: <REPO-URL-PLACEHOLDER>
+-- Keywords: lean4, formal-verification, actor-model, scheduler, semantics,
+--           refinement, concurrency, runtime-model.
+-- Toolchain: leanprover/lean4:v4.15.0 (see lean-toolchain).
+package henret where
+  -- Conservative versioning until RFC 052 (see docs/release-policy.md).
+  version := v!"0.15.2"
 
 /-- Lean-only core.  `import Henret` brings in Model + Proofs + Refinement
     (RFC 025; examples are opt-in via `Henret.Examples.Basic`).

@@ -1,5 +1,10 @@
 # Henret
 
+[![License](https://img.shields.io/github/license/nabbisen/henret)](LICENSE)
+[![Lean 4](https://img.shields.io/badge/Lean-4.15.0-blueviolet.svg)](lean-toolchain)
+![sorry-free](https://img.shields.io/badge/proofs-sorry--free-success.svg)
+![axioms](https://img.shields.io/badge/axioms-propext%20%7C%20Classical.choice%20%7C%20Quot.sound-informational.svg)
+
 **Executable actor and task runtime models for Lean 4.**
 
 Henret is a Lean 4 package for executable actor/task runtime models, scheduler
