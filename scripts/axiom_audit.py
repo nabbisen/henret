@@ -57,6 +57,12 @@ ALLOWLIST = {
     "Henret.Trace.event_spawnChild_sound":    (set(), STD),
     # RFC 047 golden trace conformance
     "Henret.Conformance.conformance_suite_passes": (set(), STD),
+    # RFC 049 supervision restart policies
+    "Henret.reachable_restart_fresh":              (set(), STD_C),
+    "Henret.reachable_restart_old_failed":         (set(), STD_C),
+    "Henret.reachable_restart_parent_consistent":  (set(), STD_C),
+    "Henret.restart_preserves_parent_acyclicity":  (set(), STD_C),
+    "Henret.restarted_task_has_owner":             (set(), STD_C),
     # RFC 046 fairness / conditional liveness
     "Henret.Progress.ready_eventually_scheduled_under_bounded_fairness": (set(), STD),
     "Henret.Progress.schedule_schedules_head":  (set(), STD),

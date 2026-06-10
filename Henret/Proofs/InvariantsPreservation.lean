@@ -33,6 +33,8 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
   | wake t     => exact preserves_wf_wake h
   | spawnChild t a => exact preserves_wf_spawnChild h a
   | cancelTree root => exact preserves_wf_cancelTree h root
+  | fail t => exact preserves_wf_fail h
+  | restartOne p c a => exact preserves_wf_restartOne h a
 
 /-- Whole-program invariant preservation. -/
 theorem run_preserves_wf {s : RuntimeState} (h : WellFormed s) :

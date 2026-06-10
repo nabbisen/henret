@@ -157,7 +157,7 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
           exact h.timed_waiters_exclusive a' b' u hab'
             (by simpa [step, if_pos hrt, hts] using hma)
             (by simpa [step, if_pos hrt, hts] using hmb')
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
 
@@ -548,7 +548,7 @@ theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
         intro a' b' u hab' hma hmb'
         exact h.timed_waiters_exclusive a' b' u hab'
           (by simpa [step, hts] using hma) (by simpa [step, hts] using hmb')
-    | new | ready | running | yielded | completed | cancelled | waiting | waitingTimed =>
+    | new | ready | running | yielded | completed | cancelled | waiting | waitingTimed | failed =>
       simpa [step, hts] using h
 
 end Henret

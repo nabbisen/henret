@@ -152,6 +152,23 @@ def toQOps (s : RuntimeState) (op : RuntimeOp) : List QOp :=
       -- filtering readyQ by (· ∉ descendantsOf s root), which matches
       -- applyCancelTree's readyQ effect. See bridge_cancelTree.
       (descendantsOf s root).map (fun t => .Filter 0 t)
+  | .fail t =>
+      -- Like cancel: a non-terminal task is removed from readyQ (RFC 049).
+      match s.taskState t with
+      | some st => if st.isTerminal then [] else [.Filter 0 t]
+      | none    => []
+  | .restartOne parent failedChild actor =>
+      -- Like spawnChild: a fresh replacement is pushed to worker 0 (RFC 049).
+      if s.running = some parent then
+        match s.taskState parent with
+        | some .running =>
+          if s.taskParent failedChild = some parent then
+            match s.taskState failedChild, s.taskState s.nextId with
+            | some .failed, none => [.Push 0 s.nextId]
+            | _, _               => []
+          else []
+        | _ => []
+      else []
   | .tick t =>
       -- Use argument t, not s.now (architect review §4.3)
       -- Wakes both .sleeping and .waitingTimed expired timers (RFC 040)
@@ -204,7 +221,7 @@ theorem toQOps_yield_invalid (s : RuntimeState) (t : TaskId)
       | none => simp [toQOps, hrt, hts]
       | some st => cases st with
         | running => exact absurd hts (by simp [hts] at h)
-        | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+        | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
           simp [toQOps, hrt, hts]
     · simp [toQOps, hrt]
 
@@ -219,7 +236,7 @@ theorem toQOps_wake_invalid (s : RuntimeState) (t : TaskId)
   | none => simp [toQOps, hts]
   | some st => cases st with
     | sleeping => exact absurd hts h
-    | new | ready | running | yielded | completed | cancelled | waiting | waitingTimed => simp [toQOps, hts]
+    | new | ready | running | yielded | completed | cancelled | waiting | waitingTimed | failed => simp [toQOps, hts]
 
 theorem toQOps_cancel_valid (s : RuntimeState) (t : TaskId) (st : TaskState)
     (hts : s.taskState t = some st) (hnt : ¬st.isTerminal) :

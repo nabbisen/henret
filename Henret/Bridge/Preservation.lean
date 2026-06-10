@@ -126,7 +126,7 @@ private theorem receive_rq (s : RuntimeState) (t : TaskId) :
             | none   => simp [step, h1, h2, h3, h4, h5]
           | none => simp [step, h1, h2, h3, h4]
         | none => simp [step, h1, h2, h3]
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simp [step, h1, h2]
     | none => simp [step, h1, h2]
   · simp [step, h1]
@@ -151,7 +151,7 @@ private theorem yield_invalid_rq (s : RuntimeState) (t : TaskId)
     · rw [if_pos hrt]; cases hts : s.taskState t with
       | some st => cases st with
         | running => simp [hts] at h
-        | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed => simp
+        | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed => simp
       | none => rfl
     · rw [if_neg hrt]
 
@@ -162,7 +162,7 @@ private theorem wake_invalid_rq (s : RuntimeState) (t : TaskId)
   cases hts : s.taskState t with
   | some st => cases st with
     | sleeping => exact absurd hts h
-    | new | ready | running | yielded | completed | cancelled | waiting | waitingTimed => simp [step, hts]
+    | new | ready | running | yielded | completed | cancelled | waiting | waitingTimed | failed => simp [step, hts]
   | none => simp [step, hts]
 
 -- cancel valid: readyQ filtered
@@ -285,7 +285,7 @@ theorem bridge_spawnChild (s : RuntimeState) (t : TaskId) (a : ActorId) (wqs : W
         | none =>
           rw [show toQOps s (.spawnChild t a) = [] by simp [toQOps, hrt, hts, how], applyQOps_nil]
           exact bridge_stable hbs (by simp [step, hrt, hts, how])
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         rw [show toQOps s (.spawnChild t a) = [] by simp [toQOps, hrt, hts], applyQOps_nil]
         exact bridge_stable hbs (by simp [step, hrt, hts])
     | none =>
@@ -331,7 +331,7 @@ theorem bridge_yield (s : RuntimeState) (t : TaskId) (wqs : WorkerQueues)
         exact { queue_eq    := by simp [hq, hbs.queue_eq]
                 other_empty := fun w hw => by
                   simp [show w ≠ 0 from hw]; exact hbs.other_empty w hw }
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         rw [toQOps_yield_invalid _ _ (Or.inr (by simp [hts])), applyQOps_nil]
         exact bridge_stable hbs (yield_invalid_rq s t (Or.inr (by simp [hts])))
     | none =>
@@ -352,7 +352,7 @@ theorem bridge_wake (s : RuntimeState) (t : TaskId) (wqs : WorkerQueues)
       exact { queue_eq    := by simp [hq, hbs.queue_eq]
               other_empty := fun w hw => by
                 simp [show w ≠ 0 from hw]; exact hbs.other_empty w hw }
-    | new | ready | running | yielded | completed | cancelled | waiting | waitingTimed =>
+    | new | ready | running | yielded | completed | cancelled | waiting | waitingTimed | failed =>
       rw [toQOps_wake_invalid _ _ (by simp [hts]), applyQOps_nil]
       exact bridge_stable hbs (wake_invalid_rq s t (by simp [hts]))
   | none =>
@@ -436,7 +436,7 @@ theorem bridge_send (s : RuntimeState) (t b : TaskId) (m : Message) (wqs : Worke
         | none =>
           rw [show toQOps s (.send t b m) = [] by simp [toQOps, hrt, hts, how], applyQOps_nil]
           exact bridge_stable hbs (by simp [step, hrt, hts, how])
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         rw [show toQOps s (.send t b m) = [] by simp [toQOps, hrt, hts], applyQOps_nil]
         exact bridge_stable hbs (by simp [step, hrt, hts])
     | none =>
@@ -506,6 +506,76 @@ theorem bridge_cancelTree (s : RuntimeState) (root : TaskId) (wqs : WorkerQueues
             rw [applyQOps_filters0_other _ _ hw]
             exact hbs.other_empty w hw }
 
+/-- **Bridge for fail** (RFC 049). Mirrors `bridge_cancel`: a non-terminal
+    task is filtered from the ready queue. -/
+theorem bridge_fail (s : RuntimeState) (t : TaskId) (wqs : WorkerQueues)
+    (hbs : BridgeState s wqs) :
+    BridgeState (step s (.fail t)).1 (applyQOps wqs (toQOps s (.fail t))) := by
+  cases hts : s.taskState t with
+  | none =>
+    rw [show toQOps s (.fail t) = [] by simp [toQOps, hts], applyQOps_nil]
+    exact bridge_stable hbs (by simp [step, hts])
+  | some st =>
+    by_cases hterm : st.isTerminal
+    · rw [show toQOps s (.fail t) = [] by simp [toQOps, hts, hterm], applyQOps_nil]
+      exact bridge_stable hbs (by simp [step, hts, hterm])
+    · rw [show toQOps s (.fail t) = [.Filter 0 t] by simp [toQOps, hts, hterm], applyQOps_filter0]
+      have hrq : (step s (.fail t)).1.readyQ = s.readyQ.filter (· ≠ t) := by
+        simp [step, hts, hterm]
+      exact { queue_eq    := by simp [hrq, hbs.queue_eq]
+              other_empty := fun w hw => by
+                simp [show w ≠ 0 from hw]; exact hbs.other_empty w hw }
+
+/-- **Bridge for restartOne** (RFC 049). Mirrors `bridge_spawnChild`: a fresh
+    replacement task is pushed to worker 0. -/
+theorem bridge_restartOne (s : RuntimeState) (t failedChild : TaskId) (a : ActorId)
+    (wqs : WorkerQueues) (hbs : BridgeState s wqs) :
+    BridgeState (step s (.restartOne t failedChild a)).1
+                (applyQOps wqs (toQOps s (.restartOne t failedChild a))) := by
+  by_cases hrt : s.running = some t
+  · cases hts : s.taskState t with
+    | some st => cases st with
+      | running =>
+        by_cases hpar : s.taskParent failedChild = some t
+        · cases hfc : s.taskState failedChild with
+          | some stf => cases stf with
+            | failed =>
+              cases hfresh : s.taskState s.nextId with
+              | none =>
+                rw [show toQOps s (.restartOne t failedChild a) = [.Push 0 s.nextId] by
+                      simp [toQOps, hrt, hts, hpar, hfc, hfresh], applyQOps_push0]
+                have hq : (step s (.restartOne t failedChild a)).1.readyQ = s.readyQ ++ [s.nextId] := by
+                  simp [step, hrt, hts, hpar, hfc, hfresh]
+                exact { queue_eq    := by simp [hq, hbs.queue_eq]
+                        other_empty := fun w hw => by
+                          simp [show w ≠ 0 from hw]; exact hbs.other_empty w hw }
+              | some _ =>
+                rw [show toQOps s (.restartOne t failedChild a) = [] by
+                      simp [toQOps, hrt, hts, hpar, hfc, hfresh], applyQOps_nil]
+                exact bridge_stable hbs (by simp [step, hrt, hts, hpar, hfc, hfresh])
+            | new | ready | running | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+              rw [show toQOps s (.restartOne t failedChild a) = [] by
+                    simp [toQOps, hrt, hts, hpar, hfc], applyQOps_nil]
+              exact bridge_stable hbs (by simp [step, hrt, hts, hpar, hfc])
+          | none =>
+            rw [show toQOps s (.restartOne t failedChild a) = [] by
+                  simp [toQOps, hrt, hts, hpar, hfc], applyQOps_nil]
+            exact bridge_stable hbs (by simp [step, hrt, hts, hpar, hfc])
+        · rw [show toQOps s (.restartOne t failedChild a) = [] by
+                simp [toQOps, hrt, hts, hpar], applyQOps_nil]
+          exact bridge_stable hbs (by simp [step, hrt, hts, hpar])
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
+        rw [show toQOps s (.restartOne t failedChild a) = [] by
+              simp [toQOps, hrt, hts], applyQOps_nil]
+        exact bridge_stable hbs (by simp [step, hrt, hts])
+    | none =>
+      rw [show toQOps s (.restartOne t failedChild a) = [] by
+            simp [toQOps, hrt, hts], applyQOps_nil]
+      exact bridge_stable hbs (by simp [step, hrt, hts])
+  · rw [show toQOps s (.restartOne t failedChild a) = [] by
+          simp [toQOps, hrt], applyQOps_nil]
+    exact bridge_stable hbs (by simp [step, hrt])
+
 /-- **`bridge_step_single_worker`** — For any `RuntimeOp`, if `BridgeState` holds
     before the step, it holds after, with the translated queue effects applied.
     This is the central single-worker bridge theorem (RFC 036). -/
@@ -526,6 +596,8 @@ theorem bridge_step_single_worker (s : RuntimeState) (op : RuntimeOp) (wqs : Wor
   | .inject a m      => exact bridge_inject s a m wqs hbs
   | .tick t          => exact bridge_tick s t wqs hbs
   | .cancelTree root => exact bridge_cancelTree s root wqs hbs
+  | .fail t          => exact bridge_fail s t wqs hbs
+  | .restartOne p c a => exact bridge_restartOne s p c a wqs hbs
   | .receiveUntil t d =>
     rw [show toQOps s (.receiveUntil t d) = [] from by simp [toQOps], applyQOps_nil]
     apply bridge_stable hbs

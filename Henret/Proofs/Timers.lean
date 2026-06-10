@@ -139,6 +139,11 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
     | none => simp [step, hts]
     | some st => cases st <;> simp [step, hts]
   | cancelTree _ => exact Nat.le_refl _
+  | fail t =>
+    simp only [step]; split <;> (try split) <;> (try split) <;> exact Nat.le_refl _
+  | restartOne p c a =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;> exact Nat.le_refl _
   | receiveUntil t deadline =>
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;>
@@ -206,6 +211,12 @@ theorem step_preserves_sorted {s : RuntimeState}
   | cancelTree _ =>
     simp only [step]
     exact Timer.sorted_filter _ h
+  | fail t =>
+    simp only [step]
+    split <;> (try split) <;> first | exact h | exact Timer.sorted_filter _ h
+  | restartOne p c a =>
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;> exact h
   | receiveUntil t deadline =>
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;>

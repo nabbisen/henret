@@ -266,3 +266,17 @@ zero-assumption core.
 | 144 | The explorer finds and minimizes a deliberately false property to its shortest counterexample | TESTED | `findAndShrink ... propReadyAlwaysEmpty` → `[spawn 0]` |
 | 145 | The explorer is empirical model-search support, not a proof; checkers are bounded necessary conditions only | DOCUMENTED | `docs/model-explorer.md`; `HenretExplore` outside default import |
 | 146 | The explorer does not affect the verified model or its axiom budget | PROVEN (by construction) | separate Lake library; `import Henret` unchanged |
+
+## v0.15.0 claims (supervision restart policies, RFC 049)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 147 | Failure (`.failed`) is a terminal state distinct from cancellation | PROVEN | `TaskState.failed`, `isTerminal_failed`, `step_preserves_terminal` |
+| 148 | `fail` and `restartOne` preserve the 28-field WellFormed invariant | PROVEN | `preserves_wf_fail`, `preserves_wf_restartOne` |
+| 149 | A restart creates a fresh task id strictly greater than the failed one | PROVEN | `reachable_restart_fresh` |
+| 150 | The task replaced by a restart is failed | PROVEN | `reachable_restart_old_failed` |
+| 151 | A restart replacement shares the failed task's supervising parent | PROVEN | `reachable_restart_parent_consistent` |
+| 152 | Parent acyclicity is preserved across restart | PROVEN | `restart_preserves_parent_acyclicity` |
+| 153 | A restarted task has an owning actor | PROVEN | `restarted_task_has_owner` |
+| 154 | Restart provenance is inspectable via `restartOf` and the trace ledger | TESTED/DOCUMENTED | `examples/12_supervision_restart.lean`, `TraceEvent.restarted` |
+| 155 | No liveness claim is made; restart occurs only on an explicit `restartOne` | DOCUMENTED | `docs/supervision-restart.md` |

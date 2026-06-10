@@ -523,7 +523,7 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                 exact h.timed_waiters_exclusive a' b' u hab'
                   (by simpa [step, hrt, hts, how, hmb, hw] using hma)
                   (by simpa [step, hrt, hts, how, hmb, hw] using hmb')
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
 
@@ -742,7 +742,7 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
               · -- timed_waiters_exclusive: timedMailboxWaiters unchanged
                 intro a' b' u hab' hma hmb'
                 exact h.timed_waiters_exclusive a' b' u hab' hma hmb'
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
 
@@ -1406,7 +1406,7 @@ theorem preserves_wf_receiveUntil {s : RuntimeState} (h : WellFormed s)
                     · have := h.timed_waiters_valid a' u hma; rw [hts] at this; cases this
                   · simp only [if_neg ha'] at hma; simp only [if_neg hb'] at hmb'
                     exact h.timed_waiters_exclusive a' b' u hab' hma hmb'
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
 
@@ -1627,7 +1627,7 @@ theorem preserves_wf_receiveByOccurrence {s : RuntimeState} (h : WellFormed s)
               · -- timed_waiters_exclusive: timedMailboxWaiters unchanged
                 intro a' b' u hab' hma hmb'
                 exact h.timed_waiters_exclusive a' b' u hab' hma hmb'
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
 
@@ -1847,7 +1847,7 @@ theorem preserves_wf_receiveFrom {s : RuntimeState} (h : WellFormed s)
               · -- timed_waiters_exclusive: timedMailboxWaiters unchanged
                 intro a' b' u hab' hma hmb'
                 exact h.timed_waiters_exclusive a' b' u hab' hma hmb'
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
 

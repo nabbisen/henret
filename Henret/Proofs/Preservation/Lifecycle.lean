@@ -545,7 +545,7 @@ theorem preserves_wf_yield (h : WellFormed s) :
           exact h.timed_waiters_exclusive a' b' u hab'
             (by simpa [step, hrt, hts] using hma) (by simpa [step, hrt, hts] using hmb')
 
-      | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+      | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
 
@@ -701,7 +701,7 @@ theorem preserves_wf_complete (h : WellFormed s) :
           exact h.timed_waiters_exclusive a' b' u hab'
             (by simpa [step, hrt, hts] using hma) (by simpa [step, hrt, hts] using hmb')
 
-      | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+      | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
 
@@ -930,6 +930,235 @@ theorem preserves_wf_cancel (h : WellFormed s) :
 
 -- Helper: key spawnChild proof patterns mirror spawn exactly
 -- (spawnChild only adds taskParent; all other WF fields follow the same logic)
+
+/-- `fail` preserves well-formedness (RFC 049). Mirrors `preserves_wf_cancel`:
+    identical cleanup, terminal target `.failed` instead of `.cancelled`. -/
+theorem preserves_wf_fail (h : WellFormed s) :
+    WellFormed ((step s (.fail t)).1) := by
+  cases hts : s.taskState t with
+  | none => simpa [step, hts] using h
+  | some s' =>
+    by_cases hterm : s'.isTerminal = true
+    · simpa [step, hts, hterm] using h
+    · simp at hterm
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · simp [step, hts, hterm]; exact h.readyQ_nodup.filter _
+      · intro u hm
+        simp [step, hts, hterm] at hm ⊢
+        obtain ⟨hm, hu⟩ := hm
+        simp only [upd, if_neg hu]; exact h.readyQ_queued u hm
+      · intro u hru
+        simp only [step, hts, hterm, Bool.false_eq_true, if_false] at hru ⊢
+        by_cases hcase : s.running = some t
+        · rw [if_pos hcase] at hru; cases hru
+        · rw [if_neg hcase] at hru
+          have h1 := h.running_runs u hru
+          have hu : u ≠ t := fun he => hcase (he ▸ hru)
+          simp only [upd, if_neg hu]; exact h1
+      · simp [step, hts, hterm]
+        exact nodup_of_sublist
+          (List.Sublist.map _ (List.filter_sublist s.timers)) h.timers_nodup
+      · intro e he
+        simp [step, hts, hterm] at he ⊢
+        obtain ⟨he, hu⟩ := he
+        rcases h.timers_sleep e he with h1 | h1
+        · exact Or.inl (by simp only [upd, if_neg hu]; exact h1)
+        · exact Or.inr (by simp only [upd, if_neg hu]; exact h1)
+      · intro u hu
+        simp [step, hts, hterm] at hu ⊢
+        have h1 : u ≠ t := fun he => by
+          rw [← he] at hts; rw [h.fresh_none u hu] at hts; cases hts
+        simp only [upd, if_neg h1]; exact h.fresh_none u hu
+      · simp [step, hts, hterm]; exact Timer.sorted_filter _ h.timers_sorted
+      · intro u st hts'
+        simp [step, hts, hterm] at hts' ⊢
+        by_cases hu : u = t
+        · subst hu; exact h.spawned_has_owner u s' hts
+        · simp only [upd, if_neg hu] at hts'; exact h.spawned_has_owner u st hts'
+      · intro u b hown
+        simp [step, hts, hterm] at hown ⊢; exact h.owned_has_mailbox u b hown
+      · intro u st hts' hrun
+        simp [step, hts, hterm] at hts' ⊢
+        by_cases hu : u = t
+        · subst hu; simp only [upd_self] at hts'; cases hts'
+          simp [TaskState.isRunnable] at hrun
+        · simp only [upd, if_neg hu] at hts'
+          exact ⟨h.runnable_queued u st hts' hrun, hu⟩
+      · -- waiters_waiting (RFC 031)
+        intro a u hm
+        simp only [step, hts, hterm, Bool.false_eq_true, if_false] at hm ⊢
+        cases hown : s.taskOwner t with
+        | none =>
+          -- t has no owner → t is not in any waiter list → u ≠ t
+          simp only [hown] at hm ⊢
+          have ho := h.waiters_owned a u hm
+          have hut : u ≠ t := by
+            intro he
+            have ho := h.waiters_owned a u hm
+            rw [he, hown] at ho; cases ho
+          simp only [upd, if_neg hut]
+          exact h.waiters_waiting a u hm
+        | some oa =>
+          simp only [hown] at hm ⊢
+          by_cases hao : a = oa
+          · subst hao; simp only [if_pos rfl] at hm ⊢
+            have hmem := (List.mem_filter.mp hm).1
+            have hut : u ≠ t := by
+              intro he
+              have := (List.mem_filter.mp hm).2
+              simp [he, decide_eq_true_eq] at this
+            have hts_u := h.waiters_waiting a u hmem
+            simp only [upd, if_neg hut]; exact hts_u
+          · simp only [if_neg hao] at hm ⊢
+            have hts_u := h.waiters_waiting a u hm
+            have hut : u ≠ t := by
+              intro he
+              have ho := h.waiters_owned a u hm
+              rw [he, hown] at ho
+              exact absurd (Option.some.inj ho).symm hao
+            simp only [upd, if_neg hut]; exact hts_u
+      · -- waiters_owned (RFC 031)
+        intro a u hm
+        simp only [step, hts, hterm, Bool.false_eq_true, if_false] at hm ⊢
+        cases hown : s.taskOwner t with
+        | none =>
+          simp only [hown] at hm ⊢
+          exact h.waiters_owned a u hm
+        | some oa =>
+          simp only [hown] at hm ⊢
+          by_cases hao : a = oa
+          · subst hao; simp only [if_pos rfl] at hm ⊢
+            exact h.waiters_owned a u (List.mem_filter.mp hm).1
+          · simp only [if_neg hao] at hm ⊢
+            exact h.waiters_owned a u hm
+      · -- waiting_queued (RFC 031)
+        intro u hts'
+        simp only [step, hts, hterm, Bool.false_eq_true, if_false] at hts' ⊢
+        by_cases hut : u = t
+        · subst hut; simp only [upd_self] at hts'; cases hts'
+        · simp only [upd, if_neg hut] at hts'
+          obtain ⟨a, ha, hmem⟩ := h.waiting_queued u hts'
+          refine ⟨a, ha, ?_⟩
+          cases hown : s.taskOwner t with
+          | none => simp only [hown]; exact hmem
+          | some oa =>
+            simp only [hown]
+            by_cases hao : a = oa
+            · subst hao; simp only [if_pos rfl]
+              exact List.mem_filter.mpr ⟨hmem, by simpa [decide_eq_true_eq] using hut⟩
+            · simp only [if_neg hao]; exact hmem
+      · -- waiters_nodup (RFC 031)
+        intro a
+        simp only [step, hts, hterm, Bool.false_eq_true, if_false]
+        cases hown : s.taskOwner t with
+        | none => simp only [hown]; exact h.waiters_nodup a
+        | some oa =>
+          simp only [hown]
+          by_cases hao : a = oa
+          · subst hao; simp only [if_pos rfl]
+            exact (h.waiters_nodup a).filter _
+          · simp only [if_neg hao]; exact h.waiters_nodup a
+      · -- parent_lt (RFC 042)
+        intro u p hp
+        exact wf_parent_lt_pass h (by simp [step, hts, hterm, Bool.false_eq_true, if_false]) u p hp
+      · -- parent_spawned (RFC 042)
+        intro u p hp
+        obtain ⟨st, hst⟩ := h.parent_spawned u p
+          (by simp only [step, hts, hterm, Bool.false_eq_true, if_false] at hp; exact hp)
+        exact step_preserves_spawned hst _
+      · -- occ_fresh (RFC 042)
+        intro a mb env hmb henv
+        exact wf_occ_fresh_pass h (by simp [step, hts, hterm, if_false]) (by simp [step, hts, hterm, if_false]) a mb env hmb henv
+      · -- occ_nodup (RFC 042)
+        intro a mb hmb
+        exact wf_occ_nodup_pass h (by simp [step, hts, hterm, if_false]) a mb hmb
+      · -- occ_disjoint (RFC 042)
+        intro a b mba mbb hab hmba hmbb ea hea eb heb
+        exact wf_occ_disjoint_pass h (by simp [step, hts, hterm, if_false]) a b mba mbb hab hmba hmbb ea hea eb heb
+      · -- owner_spawned (RFC 038): taskOwner unchanged by cancel
+        intro u a' how
+        obtain ⟨st, hst⟩ := h.owner_spawned u a'
+          (by simp [step, hts, hterm, if_false] at how; exact how)
+        exact step_preserves_spawned hst _
+      · -- parent_child_spawned (RFC 038): taskParent unchanged by cancel
+        intro u p hp
+        obtain ⟨st, hst⟩ := h.parent_child_spawned u p
+          (by simp [step, hts, hterm, if_false] at hp; exact hp)
+        exact step_preserves_spawned hst _
+      · -- timed_has_deadline (RFC 040)
+        intro u hu
+        by_cases huf : u = t
+        · subst huf; simp [step, hts, hterm] at *
+        · have htask : ((step s (.fail t)).1).taskState u = s.taskState u := by
+            simp [step, hts, hterm, if_false, upd, if_neg huf]
+          obtain ⟨d, hd⟩ := h.timed_has_deadline u (htask ▸ hu)
+          refine ⟨d, ?_⟩
+          -- waitDeadline u after cancel = if u = t then none else s.waitDeadline u
+          simp only [step, hts, hterm, Bool.false_eq_true, if_false]
+          rw [if_neg huf]; exact hd
+      · -- deadline_is_timed (RFC 040)
+        intro u d hd
+        by_cases huf : u = t
+        · -- cancel sets waitDeadline t = none; with huf:u=t, none=some d → False
+          simp [step, hts, hterm, if_false, huf] at hd
+        · have hwait : ((step s (.fail t)).1).waitDeadline u = s.waitDeadline u := by
+            simp only [step, hts, hterm, Bool.false_eq_true, if_false]
+            rw [if_neg huf]
+          have hback := h.deadline_is_timed u d (hwait ▸ hd)
+          have htask : s.taskState u = ((step s (.fail t)).1).taskState u := by
+            simp [step, hts, hterm, if_false, upd, if_neg huf]
+          exact htask ▸ hback
+      · -- timed_has_timer (RFC 040)
+        intro u hu
+        by_cases huf : u = t
+        · subst huf; simp [step, hts, hterm] at *
+        · have htask : ((step s (.fail t)).1).taskState u = s.taskState u := by
+            simp [step, hts, hterm, if_false, upd, if_neg huf]
+          obtain ⟨e, he, hek⟩ := h.timed_has_timer u (htask ▸ hu)
+          have hne : e.task ≠ t := hek ▸ huf
+          refine ⟨e, ?_, hek⟩
+          simp only [step, hts, hterm, Bool.false_eq_true, if_false]
+          exact List.mem_filter.mpr ⟨he, by simp [hne]⟩
+      · -- timed_is_waiter (RFC 040)
+        intro u hu
+        by_cases huf : u = t
+        · subst huf; simp [step, hts, hterm] at *
+        · have htask : ((step s (.fail t)).1).taskState u = s.taskState u := by
+            simp [step, hts, hterm, if_false, upd, if_neg huf]
+          obtain ⟨b, hb⟩ := h.timed_is_waiter u (htask ▸ hu)
+          refine ⟨b, ?_⟩
+          -- New model: timedMailboxWaiters ac = filter (· ≠ t) ac; u ≠ t so u passes
+          simp only [step, hts, hterm, Bool.false_eq_true, if_false]
+          exact List.mem_filter.mpr ⟨hb, by simp [huf]⟩
+      · -- timed_waiters_valid (RFC 040)
+        intro b u hu
+        by_cases huf : u = t
+        · -- u = t: u is filtered out of timedMailboxWaiters by cancel
+          subst huf
+          -- hu : u ∈ (s.timedMailboxWaiters b).filter (· ≠ u) → False (filter excludes u)
+          simp only [step, hts, hterm, Bool.false_eq_true, if_false, List.mem_filter,
+                     decide_eq_true_eq, ne_eq, not_true, and_false] at hu
+        · have hmem : u ∈ s.timedMailboxWaiters b := by
+            simp only [step, hts, hterm, Bool.false_eq_true, if_false] at hu
+            exact (List.mem_filter.mp hu).1
+          have hval := h.timed_waiters_valid b u hmem
+          have htask : s.taskState u = ((step s (.fail t)).1).taskState u := by
+            simp [step, hts, hterm, if_false, upd, if_neg huf]
+          exact htask ▸ hval
+      · -- timed_waiters_nodup (RFC 040)
+        intro b
+        simp only [step, hts, hterm, Bool.false_eq_true, if_false]
+        exact nodup_of_sublist (List.filter_sublist _) (h.timed_waiters_nodup b)
+      · -- timed_waiters_exclusive (RFC 040): cancel filters t from all lists
+        intro a' b' u hab' hma hmb'
+        simp only [step, hts, hterm, Bool.false_eq_true, if_false] at hma hmb'
+        have hma' : u ∈ s.timedMailboxWaiters a' := (List.mem_filter.mp hma).1
+        have hmb'' : u ∈ s.timedMailboxWaiters b' := (List.mem_filter.mp hmb').1
+        exact h.timed_waiters_exclusive a' b' u hab' hma' hmb''
+
+-- Helper: key spawnChild proof patterns mirror spawn exactly
+-- (spawnChild only adds taskParent; all other WF fields follow the same logic)
+
 theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
     {t : TaskId} (childA : ActorId) :
     WellFormed ((step s (.spawnChild t childA)).1) := by
@@ -1282,7 +1511,42 @@ theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
                 exact h.timed_waiters_exclusive a' b' u hab' hma hmb'
 
 
-      | new | ready | yielded | sleeping | waitingTimed | waiting | completed | cancelled =>
+      | new | ready | yielded | sleeping | waitingTimed | waiting | completed | cancelled | failed =>
+          simpa [step, hrt, hts] using h
+  · simpa [step, hrt] using h
+
+/-- `restartOne` preserves well-formedness (RFC 049). Reduces to
+    `preserves_wf_spawnChild`: when valid, the restart's resulting state is
+    exactly the `spawnChild` state plus a `restartOf` update, and no
+    `WellFormed` field mentions `restartOf` (`WellFormed.restartOf_irrel`). -/
+theorem preserves_wf_restartOne {s : RuntimeState} (h : WellFormed s)
+    {t failedChild : TaskId} (childA : ActorId) :
+    WellFormed ((step s (.restartOne t failedChild childA)).1) := by
+  by_cases hrt : s.running = some t
+  · cases hts : s.taskState t with
+    | none => simpa [step, hrt, hts] using h
+    | some st => cases st with
+      | running =>
+        by_cases hpar : s.taskParent failedChild = some t
+        · cases hfc : s.taskState failedChild with
+          | none => simpa [step, hrt, hts, hpar, hfc] using h
+          | some st2 => cases st2 with
+            | failed =>
+              cases hfresh : s.taskState s.nextId with
+              | some _ => simpa [step, hrt, hts, hpar, hfc, hfresh] using h
+              | none =>
+                obtain ⟨oa, hoa⟩ := h.spawned_has_owner t .running hts
+                have heq : (step s (.restartOne t failedChild childA)).1
+                    = { (step s (.spawnChild t childA)).1 with
+                        restartOf := upd s.restartOf s.nextId (some failedChild) } := by
+                  simp [step, hrt, hts, hpar, hfc, hfresh, hoa]
+                rw [heq]
+                exact (preserves_wf_spawnChild h childA).restartOf_irrel _
+            | new | ready | running | yielded | sleeping | waitingTimed
+            | waiting | completed | cancelled =>
+                simpa [step, hrt, hts, hpar, hfc] using h
+        · simpa [step, hrt, hts, hpar] using h
+      | new | ready | yielded | sleeping | waitingTimed | waiting | completed | cancelled | failed =>
           simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
 

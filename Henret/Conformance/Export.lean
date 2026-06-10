@@ -28,6 +28,8 @@ def renderEvent : TraceEvent → String
   | .received t a occ     => s!"received(task={t}, actor={a}, occ={occ})"
   | .parked t a           => s!"parked(task={t}, actor={a})"
   | .waiterWoke a t       => s!"waiterWoke(actor={a}, task={t})"
+  | .failed t             => s!"failed(task={t})"
+  | .restarted p o n a    => s!"restarted(parent={p}, old={o}, new={n}, actor={a})"
   | .noEffect op r        => s!"noEffect({repr op}, {repr r})"
 
 /-- Render an event trace as a numbered list. -/

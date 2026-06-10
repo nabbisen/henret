@@ -55,7 +55,7 @@ theorem event_received_sound {s : RuntimeState} {t : TaskId} {a : ActorId} {occ 
     | none, _ => simp [hts] at he
     | some .new, _ | some .ready, _ | some .running, none | some .yielded, _
     | some .sleeping, _ | some .waitingTimed, _ | some .completed, _
-    | some .cancelled, _ | some .waiting, _ => simp [hts, how] at he
+    | some .cancelled, _ | some .waiting, _ | some .failed, _ => simp [hts, how] at he
   · simp only [if_neg hrt] at he; simp at he
 
 /-- A `parked` event for `.receive t` certifies that `t` is now `.waiting`
@@ -85,7 +85,7 @@ theorem event_parked_sound {s : RuntimeState} {t : TaskId} {a : ActorId}
               subst he
               refine ⟨by simp [step, hrt, hts, how, hmb, hd, upd_self], ?_⟩
               simp [step, hrt, hts, how, hmb, hd, upd_self]
-      | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+      | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
         simp [hts] at he
   · simp only [if_neg hrt] at he; simp at he
 
@@ -101,7 +101,7 @@ theorem event_directWoke_sound {s : RuntimeState} {t : TaskId}
   | some st =>
     cases st with
     | sleeping => rfl
-    | new | ready | running | yielded | waitingTimed | completed | cancelled | waiting =>
+    | new | ready | running | yielded | waitingTimed | completed | cancelled | waiting | failed =>
       simp [hts] at he
 
 /-! ## timerWoke -/
@@ -152,7 +152,7 @@ theorem event_spawnChild_sound {s : RuntimeState} {parent child : TaskId} {a : A
                        true_and, and_true] at he
             subst he
             exact ⟨hrt, rfl, rfl, rfl⟩
-      | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+      | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
         simp [hts] at he
   · simp only [if_neg hrt] at he; simp at he
 
@@ -220,7 +220,7 @@ theorem event_waiterWoke_send_sound {s : RuntimeState} {t : TaskId} {a : ActorId
                 · rw [he]
                 · simp at he
               | nil => simp [hts, how, hmb, hw, htw] at he
-      | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+      | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
         simp [hts] at he
   · simp only [if_neg hrt] at he; simp at he
 

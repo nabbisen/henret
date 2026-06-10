@@ -158,6 +158,24 @@ def traceEvents (s : RuntimeState) (op : RuntimeOp) : List TraceEvent :=
       match s.taskState t with
       | some .sleeping => [.directWoke t]
       | _ => [.invalid op]
+  | .fail t =>
+      match s.taskState t with
+      | some st => if st.isTerminal then [.invalid op] else [.failed t]
+      | none    => [.invalid op]
+  | .restartOne parent failedChild actor =>
+      if s.running = some parent then
+        match s.taskState parent with
+        | some .running =>
+          if s.taskParent failedChild = some parent then
+            match s.taskState failedChild with
+            | some .failed =>
+              match s.taskState s.nextId with
+              | none   => [.restarted parent failedChild s.nextId actor]
+              | some _ => [.invalid op]
+            | _ => [.invalid op]
+          else [.invalid op]
+        | _ => [.invalid op]
+      else [.invalid op]
 
 /-- One step, with its event ledger.  State and result are *exactly*
     `step s op`; only the third component is new. -/

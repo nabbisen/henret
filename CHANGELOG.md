@@ -1,5 +1,63 @@
 # Changelog
 
+## v0.15.0 — Supervision Restart Policies (RFC 049)
+
+A small semantic nucleus for failure and one-for-one restart, built on
+the parenthood and cascade-cancel groundwork. This is the first model
+addition since RFC 040, touching the core `step`, the 28-field
+`WellFormed` preservation, parenthood, the trace ledger, and the bridge.
+
+### Failure distinct from cancellation
+
+New terminal task state `TaskState.failed`, distinct from `.cancelled`,
+so supervisors can restart *failures* rather than intentional cancels.
+New operation `fail t` performs the same cleanup as `cancel` (dequeue,
+drop timer, remove from waiter lists) but lands in `.failed`.
+
+### One-for-one restart
+
+New operation `restartOne parent failedChild actor` creates a fresh
+replacement child for a failed task, recording provenance in the new
+`RuntimeState.restartOf` field (`restartOf new = some old`). Guards: the
+parent is running, the failed child is parented by it and is `.failed`,
+and a fresh id is available.
+
+### Base invariant preservation
+
+`preserves_wf_fail` mirrors `preserves_wf_cancel`. `preserves_wf_restartOne`
+reduces to `preserves_wf_spawnChild` via the helper
+`WellFormed.restartOf_irrel` — no `WellFormed` field mentions `restartOf`,
+so the restart's state is the spawnChild state plus an irrelevant
+provenance update. Both are wired into `step_preserves_wf`. The
+`taskParent`-writer projection was honestly corrected: `restartOne` also
+writes `taskParent`, so `step_taskParent_stable` now excludes it too.
+
+### Provenance invariants (separate from WellFormed)
+
+A separate `RestartWellFormed` structure keeps the base contract
+untouched. Three facts hold in every reachable state:
+`restart_parent_consistent` (replacement and failed task share a parent),
+`restart_old_failed` (the replaced task is `.failed`), and
+`restart_fresh` (`old < new`, restart acyclicity). Headlines:
+`reachable_restart_fresh`, `reachable_restart_old_failed`,
+`reachable_restart_parent_consistent`,
+`restart_preserves_parent_acyclicity`, and `restarted_task_has_owner`.
+
+### Trace, bridge, example, docs
+
+Trace events `failed`/`restarted` (RFC 045). Bridge cases `bridge_fail`
+(Filter) and `bridge_restartOne` (Push) keep the single-worker bridge
+total. `examples/12_supervision_restart.lean` shows a supervisor → child
+fails → restart flow with the invariants discharged.
+`docs/supervision-restart.md` documents the design and non-goals.
+
+### Axiom budget: unchanged
+
+All new theorems depend only on `propext`, `Classical.choice`, and
+`Quot.sound`. No project axioms.
+
+---
+
 ## v0.14.1 — Bounded Model Explorer and Shrinker (RFC 048)
 
 A development/testing tool that enumerates small `RuntimeOp` sequences,

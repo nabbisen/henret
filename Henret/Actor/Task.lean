@@ -22,6 +22,10 @@ inductive TaskState where
   | waiting
   /-- Parked waiting for a message with a deadline; timer also registered (RFC 040). -/
   | waitingTimed
+  /-- Failed (abnormal termination). Terminal, and distinct from `cancelled`
+      so that supervision restart policies can tell failure from an
+      intentional cancel (RFC 049). -/
+  | failed
 deriving Repr, DecidableEq, Inhabited
 
 namespace TaskState
@@ -30,6 +34,7 @@ namespace TaskState
 def isTerminal : TaskState → Bool
   | .completed => true
   | .cancelled => true
+  | .failed    => true
   | _ => false
 
 /-- States from which `schedule` may select a queued task. -/
@@ -39,6 +44,7 @@ def isRunnable : TaskState → Bool
 
 @[simp] theorem isTerminal_completed : isTerminal .completed = true := rfl
 @[simp] theorem isTerminal_cancelled : isTerminal .cancelled = true := rfl
+@[simp] theorem isTerminal_failed    : isTerminal .failed    = true := rfl
 
 end TaskState
 

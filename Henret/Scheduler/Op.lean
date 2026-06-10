@@ -95,6 +95,16 @@ inductive RuntimeOp where
       of every other envelope. Parks in `mailboxWaiters` if no match
       (Option A). -/
   | receiveFrom (t : TaskId) (src : ActorId) : RuntimeOp
+  /-- `fail t`: abnormally terminate a non-terminal task `t`, moving it to
+      the `.failed` state and clearing its ready/waiter/timer locations.
+      Distinct from `cancel` so supervisors can restart only failures
+      (RFC 049). -/
+  | fail (t : TaskId) : RuntimeOp
+  /-- `restartOne parent failedChild actor`: one-for-one restart. The
+      supervisor `parent` spawns a fresh replacement child for the failed
+      `failedChild` (which must be `.failed` and parented by `parent`),
+      owned by `actor`, recording restart provenance (RFC 049). -/
+  | restartOne (parent : TaskId) (failedChild : TaskId) (actor : ActorId) : RuntimeOp
 deriving Repr, DecidableEq
 
 end Henret

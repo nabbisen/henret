@@ -163,6 +163,7 @@ theorem receive_blocked_parks {s : RuntimeState} {t : TaskId}
       | waitingTimed => simp [step, hrt, hts] at h
       | completed => simp [step, hrt, hts] at h
       | cancelled => simp [step, hrt, hts] at h
+      | failed => simp [step, hrt, hts] at h
   · simp [step, hrt] at h
 
 /-- An unowned task's receive is invalid. -/
@@ -210,7 +211,7 @@ theorem receive_only_own {s : RuntimeState} {t : TaskId} {env : Envelope}
               · simp [step, hrt, hts, how, hmb, hd, upd]
               · intro b hb
                 exact receive_preserves_other how hb
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simp [step, hrt, hts] at h
   · simp [step, hrt] at h
 
@@ -275,7 +276,7 @@ theorem send_mailbox_isSome {s : RuntimeState} {t : TaskId}
               | nil =>
                 cases htw : s.timedMailboxWaiters b <;>
                   exact ⟨mb, by simpa [step, hrt, hts, how, hmb, hw, htw, upd, hcb] using h⟩
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
   · exact ⟨mb, by simp [step, hrt]; exact h⟩
 
@@ -326,7 +327,7 @@ theorem receive_mailbox_isSome {s : RuntimeState} {t : TaskId}
               · subst hca
                 exact ⟨p.2, by simp [step, hrt, hts, how, hmb, hd, upd]⟩
               · exact ⟨mb, by simpa [step, hrt, hts, how, hmb, hd, upd, hca] using h⟩
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed =>
+      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
   · exact ⟨mb, by simp [step, hrt]; exact h⟩
 

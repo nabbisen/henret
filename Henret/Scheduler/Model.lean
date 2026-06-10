@@ -45,6 +45,11 @@ structure RuntimeState where
       receives the current value and the counter is bumped.
       Analogue of `nextId` for occurrence uniqueness (RFC 033). -/
   nextMsgId : MessageId
+  /-- Restart provenance: `restartOf new = some old` means task `new`
+      was spawned by `restartOne` as the replacement for failed task
+      `old`. `none` means `new` is not a restart replacement. Written
+      exactly once, at `restartOne` time (RFC 049). -/
+  restartOf : TaskId → Option TaskId
 
 namespace RuntimeState
 
@@ -63,6 +68,7 @@ def init : RuntimeState where
   now            := 0
   nextId         := 0
   nextMsgId      := 0
+  restartOf      := fun _ => none
 
 end RuntimeState
 
@@ -422,6 +428,55 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
                .blocked)
           | none => (s, .invalid)
         | none => (s, .invalid)
+      | _ => (s, .invalid)
+    else (s, .invalid)
+  | .fail t =>
+    -- Abnormal termination: like cancel, but to .failed (RFC 049).
+    match s.taskState t with
+    | some st =>
+      if st.isTerminal then (s, .invalid)
+      else
+        let ownerWaitersUpdate : ActorId → List TaskId :=
+          match s.taskOwner t with
+          | some a => fun ac => if ac = a then (s.mailboxWaiters a).filter (· ≠ t)
+                                else s.mailboxWaiters ac
+          | none   => s.mailboxWaiters
+        let ownerTimedWaitersUpdate : ActorId → List TaskId :=
+          fun ac => (s.timedMailboxWaiters ac).filter (· ≠ t)
+        ({ s with
+            taskState               := upd s.taskState t (some .failed)
+            readyQ                  := s.readyQ.filter (fun u => u ≠ t)
+            timers                  := s.timers.filter (fun e => e.task ≠ t)
+            running                 := if s.running = some t then none else s.running
+            mailboxWaiters          := ownerWaitersUpdate
+            timedMailboxWaiters     := ownerTimedWaitersUpdate
+            waitDeadline            := fun u => if u = t then none else s.waitDeadline u }, .ok)
+    | none => (s, .invalid)
+  | .restartOne parent failedChild actor =>
+    -- One-for-one restart: spawn a fresh replacement for a failed child (RFC 049).
+    if s.running = some parent then
+      match s.taskState parent with
+      | some .running =>
+        if s.taskParent failedChild = some parent then
+          match s.taskState failedChild with
+          | some .failed =>
+            let n := s.nextId
+            match s.taskState n with
+            | none =>
+              let mbs := match s.mailboxes actor with
+                | some _ => s.mailboxes
+                | none   => upd s.mailboxes actor (some Mailbox.empty)
+              ({ s with
+                  taskState  := upd s.taskState n (some .new)
+                  taskOwner  := upd s.taskOwner n (some actor)
+                  taskParent := upd s.taskParent n (some parent)
+                  readyQ     := s.readyQ ++ [n]
+                  mailboxes  := mbs
+                  nextId     := n + 1
+                  restartOf  := upd s.restartOf n (some failedChild) }, .spawned n)
+            | some _ => (s, .invalid)
+          | _ => (s, .invalid)
+        else (s, .invalid)
       | _ => (s, .invalid)
     else (s, .invalid)
 

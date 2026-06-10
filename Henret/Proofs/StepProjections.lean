@@ -120,20 +120,23 @@ variable (s : RuntimeState) (t : TaskId) (a : ActorId)
     ((step s (.spawnChild t a)).1).taskParent u = s.taskParent u := by
   simp only [step]; split <;> (try split) <;> (try split) <;> (try split) <;> simp [upd, hu]
 
-/-- No operation other than `spawnChild` ever writes `taskParent`. -/
+/-- No operation other than `spawnChild` or `restartOne` ever writes
+    `taskParent` (both only write the fresh slot). -/
 @[simp] theorem step_taskParent_stable {u : TaskId} (s : RuntimeState) (op : RuntimeOp)
     (hfresh : s.taskState s.nextId = none)
-    (h : ∀ t a, op ≠ .spawnChild t a) :
+    (h : ∀ t a, op ≠ .spawnChild t a)
+    (h2 : ∀ p c a, op ≠ .restartOne p c a) :
     ((step s op).1).taskParent u = s.taskParent u := by
   match op with
   | .spawn _ | .schedule | .yield _ | .complete _ | .cancel _
   | .send _ _ _ | .receive _ | .inject _ _ | .sleep _ _ | .tick _ | .wake _
-  | .receiveUntil _ _ | .receiveByOccurrence _ _ | .receiveFrom _ _ =>
+  | .receiveUntil _ _ | .receiveByOccurrence _ _ | .receiveFrom _ _ | .fail _ =>
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>
         (try split) <;> (try split) <;> simp [upd, hfresh]
   | .cancelTree _ => rfl
   | .spawnChild t a => exact absurd rfl (h t a)
+  | .restartOne p c a => exact absurd rfl (h2 p c a)
 
 end SpawnChildProjections
 

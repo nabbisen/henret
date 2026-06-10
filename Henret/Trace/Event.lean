@@ -52,6 +52,11 @@ inductive TraceEvent where
   | parked      (t : TaskId) (actor : ActorId)                          : TraceEvent
   /-- `send`/`inject`: delivery woke waiter `t` on actor `actor`. -/
   | waiterWoke  (actor : ActorId) (t : TaskId)                          : TraceEvent
+  /-- `fail`: task `t` abnormally terminated (RFC 049). -/
+  | failed      (t : TaskId)                                            : TraceEvent
+  /-- `restartOne`: `parent` restarted failed `old` as fresh `new` on
+      actor `actor` (RFC 049). -/
+  | restarted   (parent old new : TaskId) (actor : ActorId)             : TraceEvent
   /-- A legal operation with no state change (carries its result). -/
   | noEffect    (op : RuntimeOp) (result : StepResult)                  : TraceEvent
 deriving Repr, DecidableEq, Inhabited

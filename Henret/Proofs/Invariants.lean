@@ -198,6 +198,17 @@ theorem wf_init : WellFormed RuntimeState.init := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [RuntimeState.init]
 
+/-- Changing only `restartOf` preserves well-formedness: no `WellFormed`
+    field mentions `restartOf`, so every field is unchanged (RFC 049). -/
+theorem WellFormed.restartOf_irrel {s : RuntimeState} (f : TaskId → Option TaskId)
+    (h : WellFormed s) : WellFormed { s with restartOf := f } :=
+  ⟨h.readyQ_nodup, h.readyQ_queued, h.running_runs, h.timers_nodup, h.timers_sleep,
+   h.fresh_none, h.timers_sorted, h.spawned_has_owner, h.owned_has_mailbox, h.runnable_queued,
+   h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, h.parent_lt,
+   h.parent_spawned, h.occ_fresh, h.occ_nodup, h.occ_disjoint, h.owner_spawned,
+   h.parent_child_spawned, h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer,
+   h.timed_is_waiter, h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive⟩
+
 /-! ## Ownership uniqueness corollaries (RFC 004 acceptance) -/
 
 /-- A queued task is never in the running slot. -/

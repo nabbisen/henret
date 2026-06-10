@@ -96,14 +96,14 @@ theorem step_preserves_parent {s : RuntimeState} {op : RuntimeOp} {u : TaskId}
   match op with
   | .spawn _ | .schedule | .yield _ | .complete _ | .cancel _
   | .send _ _ _ | .receive _ | .receiveUntil _ _ | .receiveByOccurrence _ _ | .receiveFrom _ _
-  | .inject _ _ | .sleep _ _ | .tick _ | .wake _ =>
+  | .inject _ _ | .sleep _ _ | .tick _ | .wake _ | .fail _ =>
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>
         (try split) <;> (try split) <;> simp [upd, hu]
-  | .spawnChild _ _ =>
+  | .spawnChild _ _ | .restartOne _ _ _ =>
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>
-        simp [upd, hu]
+        (try split) <;> simp [upd, hu]
   | .cancelTree _ => rfl
 
 /-! ## Headline theorems -/

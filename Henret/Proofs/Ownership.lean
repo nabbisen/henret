@@ -44,7 +44,7 @@ theorem wakeOne_none {ts : TaskMap} {u : TaskId} (h : ts u = none)
       have hu : u ≠ t := fun he => by rw [he, hts] at h; cases h
       simp [upd, hu]
       exact h
-    | new | ready | running | yielded | completed | cancelled | waiting => exact h
+    | new | ready | running | yielded | completed | cancelled | waiting | failed => exact h
 
 /-- `wakeMany` maps `none` to `none`. -/
 theorem wakeMany_none {u : TaskId} :
@@ -87,7 +87,7 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
                 by_cases hu : u = s.nextId
                 · subst hu; rw [h] at hfresh; cases hfresh
                 · exact ⟨st, by simp_all [step, upd]⟩
-          | new | ready | yielded | sleeping | waitingTimed | waiting | completed | cancelled =>
+          | new | ready | yielded | sleeping | waitingTimed | waiting | completed | cancelled | failed =>
             exact ⟨st, by simp_all [step, upd]⟩
       · exact ⟨st, by simp [step, hrt, h]⟩
     exact hstate
@@ -114,7 +114,7 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
           by_cases hut : u = t
           · subst hut; exact ⟨.yielded, by simp [step, hrt, hts, upd]⟩
           · exact ⟨st, by simp [step, hrt, hts, upd, if_neg hut]; exact h⟩
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           exact ⟨st, by simp [step, hrt, hts, h]⟩
     · exact ⟨st, by simp [step, hrt, h]⟩
   | complete t =>
@@ -127,7 +127,7 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
           by_cases hut : u = t
           · subst hut; exact ⟨.completed, by simp [step, hrt, hts, upd]⟩
           · exact ⟨st, by simp [step, hrt, hts, upd, if_neg hut]; exact h⟩
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           exact ⟨st, by simp [step, hrt, hts, h]⟩
     · exact ⟨st, by simp [step, hrt, h]⟩
   | cancel t =>
@@ -165,7 +165,7 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
                   by_cases huw : u = w
                   · subst huw; exact ⟨.ready, by simp [step, hrt, hts, how, hmb, hw, htw, upd]⟩
                   · exact ⟨st, by simp [step, hrt, hts, how, hmb, hw, htw, upd, huw]; exact h⟩
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           exact ⟨st, by simp [step, hrt, hts, h]⟩
     · exact ⟨st, by simp [step, hrt, h]⟩
   | receive t' =>
@@ -187,7 +187,7 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
                 by_cases hut : u = t'
                 · subst hut; exact ⟨.waiting, by simp [step, hrt, hts, how, hmb, hd, upd]⟩
                 · exact ⟨st, by simp [step, hrt, hts, how, hmb, hd, upd, hut]; exact h⟩
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           exact ⟨st, by simp [step, hrt, hts, h]⟩
     · exact ⟨st, by simp [step, hrt, h]⟩
   | receiveByOccurrence t' sel =>
@@ -209,7 +209,7 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
                 by_cases hut : u = t'
                 · subst hut; exact ⟨.waiting, by simp [step, hrt, hts, how, hmb, hd, upd]⟩
                 · exact ⟨st, by simp [step, hrt, hts, how, hmb, hd, upd, hut]; exact h⟩
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           exact ⟨st, by simp [step, hrt, hts, h]⟩
     · exact ⟨st, by simp [step, hrt, h]⟩
   | receiveFrom t' sel =>
@@ -231,7 +231,7 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
                 by_cases hut : u = t'
                 · subst hut; exact ⟨.waiting, by simp [step, hrt, hts, how, hmb, hd, upd]⟩
                 · exact ⟨st, by simp [step, hrt, hts, how, hmb, hd, upd, hut]; exact h⟩
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           exact ⟨st, by simp [step, hrt, hts, h]⟩
     · exact ⟨st, by simp [step, hrt, h]⟩
   | inject a m =>
@@ -260,7 +260,7 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
           by_cases hut : u = t
           · subst hut; exact ⟨.sleeping, by simp [step, hrt, hts, upd]⟩
           · exact ⟨st, by simp [step, hrt, hts, upd, if_neg hut]; exact h⟩
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           exact ⟨st, by simp [step, hrt, hts, h]⟩
     · exact ⟨st, by simp [step, hrt, h]⟩
   | tick now =>
@@ -278,7 +278,7 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
         by_cases hut : u = t
         · subst hut; exact ⟨.ready, by simp [step, hts, upd]⟩
         · exact ⟨st, by simp [step, hts, upd, if_neg hut]; exact h⟩
-      | new | ready | running | yielded | waitingTimed | completed | cancelled | waiting =>
+      | new | ready | running | yielded | waitingTimed | completed | cancelled | waiting | failed =>
         exact ⟨st, by simp [step, hts, h]⟩
   | cancelTree root =>
     simp only [step, applyCancelTree]
@@ -288,6 +288,41 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
       · exact ⟨st, by simp [hterm]⟩
       · exact ⟨.cancelled, by simp [hterm]⟩
     · exact ⟨st, by simp [hu, h]⟩
+  | fail t =>
+    cases hts : s.taskState t with
+    | none => exact ⟨st, by simp [step, hts, h]⟩
+    | some st' =>
+      by_cases hterm' : st'.isTerminal = true
+      · exact ⟨st, by simp [step, hts, hterm', h]⟩
+      · simp at hterm'
+        by_cases hut : u = t
+        · subst hut; exact ⟨.failed, by simp [step, hts, hterm', upd]⟩
+        · exact ⟨st, by simp [step, hts, hterm', upd, if_neg hut]; exact h⟩
+  | restartOne pt fc pa =>
+    by_cases hrt : s.running = some pt
+    · cases hts2 : s.taskState pt with
+      | none => exact ⟨st, by simp [step, hrt, hts2, h]⟩
+      | some stpt =>
+        cases stpt with
+        | running =>
+          by_cases hpar : s.taskParent fc = some pt
+          · cases hfc : s.taskState fc with
+            | none => exact ⟨st, by simp_all [step, upd]⟩
+            | some stfc =>
+              cases stfc with
+              | failed =>
+                cases hfresh : s.taskState s.nextId with
+                | some _ => exact ⟨st, by simp_all [step, upd]⟩
+                | none =>
+                  by_cases hu : u = s.nextId
+                  · subst hu; rw [h] at hfresh; cases hfresh
+                  · exact ⟨st, by simp_all [step, upd]⟩
+              | new | ready | running | yielded | sleeping | waitingTimed | waiting | completed | cancelled =>
+                exact ⟨st, by simp_all [step, upd]⟩
+          · exact ⟨st, by simp_all [step, upd]⟩
+        | new | ready | yielded | sleeping | waitingTimed | waiting | completed | cancelled | failed =>
+          exact ⟨st, by simp_all [step, upd]⟩
+    · exact ⟨st, by simp [step, hrt, h]⟩
   | receiveUntil t' deadline =>
     by_cases hrt : s.running = some t'
     · cases hts : s.taskState t' with
@@ -310,7 +345,7 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
                   by_cases hut : u = t'
                   · subst hut; exact ⟨.waitingTimed, by simp [upd]⟩
                   · exact ⟨st, by simp [upd, if_neg hut]; exact h⟩
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           exact ⟨st, by simp [step, hrt, hts, h]⟩
     · exact ⟨st, by simp [step, hrt, h]⟩
 
@@ -343,7 +378,7 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
               | none =>
                 have hu : u ≠ s.nextId := fun he => by subst he; rw [h] at hfresh; cases hfresh
                 simp_all [step, upd]
-          | new | ready | yielded | sleeping | waitingTimed | waiting | completed | cancelled =>
+          | new | ready | yielded | sleeping | waitingTimed | waiting | completed | cancelled | failed =>
             simp_all [step, upd]
     · simp [step, hrt]; exact h
   | schedule =>
@@ -374,7 +409,7 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
             have heq := hts.symm.trans h; simp at heq; subst heq
             simp [TaskState.isTerminal] at hterm
           · simp [step, hrt, hts, upd, hut]; exact h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]; exact h
     · simp [step, hrt]; exact h
   | complete t =>
@@ -389,7 +424,7 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
             have heq := hts.symm.trans h; simp at heq; subst heq
             simp [TaskState.isTerminal] at hterm
           · simp [step, hrt, hts, upd, hut]; exact h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]; exact h
     · simp [step, hrt]; exact h
   | cancel t =>
@@ -404,6 +439,25 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
           have heq := hts.symm.trans h; simp at heq; subst heq
           exact absurd hterm (by rw [hterm']; decide)
         · simp [step, hts, hterm', upd, hut]; exact h
+  | fail t =>
+    cases hts : s.taskState t with
+    | none => simp [step, hts]; exact h
+    | some st' =>
+      by_cases hterm' : st'.isTerminal = true
+      · simp [step, hts, hterm']; exact h
+      · simp at hterm'
+        by_cases hut : u = t
+        · subst hut
+          have heq := hts.symm.trans h; simp at heq; subst heq
+          exact absurd hterm (by rw [hterm']; decide)
+        · simp [step, hts, hterm', upd, hut]; exact h
+  | restartOne pt fc pa =>
+    have hunq : u ≠ s.nextId := by
+      intro he; subst he
+      rw [h_wf.fresh_none s.nextId (Nat.le_refl _)] at h; cases h
+    simp only [step]
+    split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;>
+      first | (simp only [upd, if_neg hunq]; exact h) | exact h
   | send t b m =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -433,7 +487,7 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
                     have hmem : u ∈ s.timedMailboxWaiters b := htw ▸ List.mem_cons_self u ws
                     rw [h_wf.timed_waiters_valid b u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
                   · simp [step, hrt, hts, how, hmb, hw, htw, upd, huw]; exact h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]; exact h
     · simp [step, hrt]; exact h
   | receive t =>
@@ -457,7 +511,7 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
                   have heq := hts.symm.trans h; simp at heq; subst heq
                   simp [TaskState.isTerminal] at hterm
                 · simp [step, hrt, hts, how, hmb, hd, upd, hut]; exact h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]; exact h
     · simp [step, hrt]; exact h
   | receiveByOccurrence t sel =>
@@ -481,7 +535,7 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
                   have heq := hts.symm.trans h; simp at heq; subst heq
                   simp [TaskState.isTerminal] at hterm
                 · simp [step, hrt, hts, how, hmb, hd, upd, hut]; exact h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]; exact h
     · simp [step, hrt]; exact h
   | receiveFrom t sel =>
@@ -505,7 +559,7 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
                   have heq := hts.symm.trans h; simp at heq; subst heq
                   simp [TaskState.isTerminal] at hterm
                 · simp [step, hrt, hts, how, hmb, hd, upd, hut]; exact h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]; exact h
     · simp [step, hrt]; exact h
   | inject a m =>
@@ -540,7 +594,7 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
             have heq := hts.symm.trans h; simp at heq; subst heq
             simp [TaskState.isTerminal] at hterm
           · simp [step, hrt, hts, upd, hut]; exact h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]; exact h
     · simp [step, hrt]; exact h
   | tick t =>
@@ -568,7 +622,7 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
           have heq := hts.symm.trans h; simp at heq; subst heq
           simp [TaskState.isTerminal] at hterm
         · simp [step, hts, upd, hut]; exact h
-      | new | ready | running | yielded | waitingTimed | completed | cancelled | waiting =>
+      | new | ready | running | yielded | waitingTimed | completed | cancelled | waiting | failed =>
         simp [step, hts]; exact h
   | cancelTree root =>
     simp only [step, applyCancelTree]
@@ -598,7 +652,7 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
                     have heq := hts.symm.trans h; simp at heq; subst heq
                     simp [TaskState.isTerminal] at hterm
                   · simp [step, hrt, hts, how, hmb, hdq, if_neg hpast, upd, hut]; exact h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]; exact h
     · simp [step, hrt]; exact h
 theorem step_preserves_completed {s : RuntimeState} {u : TaskId}
@@ -662,7 +716,7 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
           | some _ => cases hfresh : s.taskState s.nextId with
             | none => simp_all [step, upd]
             | some _ => simp_all [step]
-        | new | ready | yielded | sleeping | waitingTimed | waiting | completed | cancelled =>
+        | new | ready | yielded | sleeping | waitingTimed | waiting | completed | cancelled | failed =>
           simp_all [step]
     · simp_all [step]
   | schedule =>
@@ -714,7 +768,7 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
                 cases htw : s.timedMailboxWaiters b with
                 | nil => simp [step, hrt, hts, how, hmb, hw, htw] at h
                 | cons w ws => simp [step, hrt, hts, how, hmb, hw, htw] at h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]
     · simp [step, hrt]
   | receive t =>
@@ -733,7 +787,7 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
               cases hd : mb.dequeue with
               | none => simp [step, hrt, hts, how, hmb, hd] at h
               | some p => simp [step, hrt, hts, how, hmb, hd] at h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]
     · simp [step, hrt]
   | receiveByOccurrence t sel =>
@@ -752,7 +806,7 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
               cases hd : mb.dequeueFirst (·.occurrence = sel) with
               | none => simp [step, hrt, hts, how, hmb, hd] at h
               | some p => simp [step, hrt, hts, how, hmb, hd] at h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]
     · simp [step, hrt]
   | receiveFrom t sel =>
@@ -771,7 +825,7 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
               cases hd : mb.dequeueFirst (·.source = some sel) with
               | none => simp [step, hrt, hts, how, hmb, hd] at h
               | some p => simp [step, hrt, hts, how, hmb, hd] at h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]
     · simp [step, hrt]
   | inject a m =>
@@ -799,6 +853,33 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
     | none => simp [step, hts]
     | some st => cases st <;> simp [step, hts] <;> simp [step, hts] at h
   | cancelTree _ => simp [step] at h
+  | fail t =>
+    cases hts : s.taskState t with
+    | none => simp [step, hts]
+    | some st =>
+      by_cases hterm : st.isTerminal = true
+      · simp [step, hts, hterm]
+      · simp at hterm; simp [step, hts, hterm] at h
+  | restartOne pt fc pa =>
+    by_cases hrt : s.running = some pt
+    · cases hts : s.taskState pt with
+      | none => simp [step, hrt, hts]
+      | some stp => cases stp with
+        | running =>
+          by_cases hpar : s.taskParent fc = some pt
+          · cases hfc : s.taskState fc with
+            | none => simp [step, hrt, hts, hpar, hfc]
+            | some stf => cases stf with
+              | failed =>
+                cases hfresh : s.taskState s.nextId with
+                | none => simp [step, hrt, hts, hpar, hfc, hfresh] at h
+                | some _ => simp [step, hrt, hts, hpar, hfc, hfresh]
+              | new | ready | running | yielded | sleeping | waitingTimed | waiting | completed | cancelled =>
+                simp [step, hrt, hts, hpar, hfc]
+          · simp [step, hrt, hts, hpar]
+        | new | ready | yielded | sleeping | waitingTimed | waiting | completed | cancelled | failed =>
+          simp [step, hrt, hts]
+    · simp [step, hrt]
   | receiveUntil t deadline =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -818,7 +899,7 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
                 by_cases hpast : deadline ≤ s.now
                 · simp [step, hrt, hts, how, hmb, hdq, if_pos hpast] at h
                 · simp [step, hrt, hts, how, hmb, hdq, if_neg hpast] at h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting =>
+        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]
     · simp [step, hrt]
 

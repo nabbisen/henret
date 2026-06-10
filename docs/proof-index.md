@@ -481,3 +481,26 @@ A development/testing tool (no new theorems). Enumerates small `RuntimeOp` seque
 **Properties**: `propWellFormed`, `propOccurrenceUnique`, `propBridge` (confirm the proven invariants over the bounded sample), and `propReadyAlwaysEmpty` (deliberately false, for the shrinker demo).
 
 The checkers are **bounded necessary conditions, testing-only** — deliberately not connected to soundness theorems (which would be false given the infinite-domain quantification in `WellFormed`). They confirm proven invariants over a sample and catch regressions; they never substitute for the proofs. See `docs/model-explorer.md`.
+
+---
+
+### RFC 049 — Supervision Restart Policies
+
+One-for-one restart semantics built on parenthood and cascade-cancel. New terminal state `TaskState.failed` (distinct from `.cancelled`); new ops `fail` (cleanup to `.failed`, mirrors `cancel`) and `restartOne parent failedChild actor` (fresh replacement, mirrors `spawnChild` + `restartOf`); new state field `RuntimeState.restartOf` for provenance.
+
+**Base preservation** (in `Henret/Proofs/Preservation/Lifecycle.lean`): `preserves_wf_fail` (clone of `preserves_wf_cancel`), `preserves_wf_restartOne` (reduces to `preserves_wf_spawnChild` via `WellFormed.restartOf_irrel`, since no `WellFormed` field mentions `restartOf`). Both wired into `step_preserves_wf`.
+
+**Provenance invariants** — separate `RestartWellFormed` structure (`Henret/Proofs/Restart.lean`), keeping the 28-field `WellFormed` untouched:
+
+| Field / Theorem | Guarantee |
+|---|---|
+| `restart_parent_consistent` | a replacement and the failed task share a supervising parent |
+| `restart_old_failed` | the replaced task is `.failed` |
+| `restart_fresh` | the replaced task's id is strictly smaller than its replacement |
+| `reachable_restart_fresh` | `restartOf new = some old → old < new` (reachable) |
+| `reachable_restart_old_failed` | the replaced task is `.failed` (reachable) |
+| `reachable_restart_parent_consistent` | shared parent (reachable) |
+| `restart_preserves_parent_acyclicity` | `parent_lt` preserved across restart |
+| `restarted_task_has_owner` | a restarted task has an owning actor |
+
+Preservation: 16 ops + `fail` leave `restartOf` unchanged (`step_restartOf_stable`), so `restart_wf_of_restartOf_stable` carries pairs forward via `step_preserves_parent`/`step_preserves_terminal`; `restart_wf_restartOne` establishes the new pair. Trace events `failed`/`restarted` added (RFC 045). See `docs/supervision-restart.md`.

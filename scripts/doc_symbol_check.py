@@ -92,6 +92,16 @@ IGNORE = {
     "occurrenceIds", "propWellFormed", "propOccurrenceUnique", "propBridge",
     "propReadyAlwaysEmpty", "explore", "confirms", "shrinkPass",
     "shrinkProgram", "findAndShrink", "Property",
+    # RFC 049 supervision restart policies
+    "fail", "restartOne", "restartOf", "RestartWellFormed",
+    "restart_parent_consistent", "restart_old_failed", "restart_fresh",
+    "restart_wf_init", "step_restartOf_stable", "step_preserves_restart_wf",
+    "reachable_restart_wf", "reachable_restart_fresh",
+    "reachable_restart_old_failed", "reachable_restart_parent_consistent",
+    "restart_preserves_parent_acyclicity", "restarted_task_has_owner",
+    "preserves_wf_fail", "preserves_wf_restartOne", "bridge_fail",
+    "bridge_restartOne", "restartOf_irrel", "run_preserves_restart_wf",
+    "restart_wf_of_restartOf_stable", "restart_wf_restartOne", "supervision",
     # RFC 035/036 Bridge sub-namespace types/internals — not standalone theorems
     "bridgeState_init", "bridgeState_push0", "bridgeState_pop0", "bridgeState_filter0",
     "bridgeState_readyQ_unchanged", "applyQOp", "applyQOps", "applyQOps_append",
