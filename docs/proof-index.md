@@ -504,3 +504,19 @@ One-for-one restart semantics built on parenthood and cascade-cancel. New termin
 | `restarted_task_has_owner` | a restarted task has an owning actor |
 
 Preservation: 16 ops + `fail` leave `restartOf` unchanged (`step_restartOf_stable`), so `restart_wf_of_restartOf_stable` carries pairs forward via `step_preserves_parent`/`step_preserves_terminal`; `restart_wf_restartOne` establishes the new pair. Trace events `failed`/`restarted` added (RFC 045). See `docs/supervision-restart.md`.
+
+---
+
+### RFC 050 — Observability and Pedagogical Visualization
+
+Pure-string renderers (no theorems, no axiom impact) in `Henret/Render/` (`Trace`, `State`, `Diagram`) + aggregator `Henret/Render.lean`. Outside the proof-critical path.
+
+| Renderer | Output |
+|---|---|
+| `TraceEvent.render` / `Render.traceTable` | one event / a numbered transition table |
+| `RuntimeState.render` / `Render.locationMap` | one-screen state summary / per-task location map (explains the `WellFormed` location invariants) |
+| `Render.mailboxView` | actor/mailbox contents and waiter lists |
+| `Render.parentTreeMermaid` / `mailboxMermaid` | Mermaid diagrams (paste into Markdown) |
+| `Render.bridgeWorkerQueues` | single-worker bridge projection |
+
+Examples `13_trace_rendering.lean`, `14_state_diagrams.lean`. See `docs/observability.md`.

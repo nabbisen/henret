@@ -280,3 +280,12 @@ zero-assumption core.
 | 153 | A restarted task has an owning actor | PROVEN | `restarted_task_has_owner` |
 | 154 | Restart provenance is inspectable via `restartOf` and the trace ledger | TESTED/DOCUMENTED | `examples/12_supervision_restart.lean`, `TraceEvent.restarted` |
 | 155 | No liveness claim is made; restart occurs only on an explicit `restartOne` | DOCUMENTED | `docs/supervision-restart.md` |
+
+## v0.15.1 claims (observability / visualization, RFC 050)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 156 | States, traces, and actor/task relations have human-readable renderers | TESTED | `examples/13_trace_rendering.lean`, `examples/14_state_diagrams.lean` |
+| 157 | Renderers cover ready/waiting/sleeping/running/completed/cancelled/failed tasks | TESTED | `Render.taskLocation`, `Render.stateWord` |
+| 158 | Mermaid output is valid for Markdown preview tools | DOCUMENTED | `docs/observability.md` (rendered parent tree) |
+| 159 | Renderers add no theorems and do not affect the axiom budget | PROVEN (by construction) | pure `String` functions; `import Henret` axiom audit unchanged |

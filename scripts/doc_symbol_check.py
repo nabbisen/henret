@@ -102,6 +102,12 @@ IGNORE = {
     "preserves_wf_fail", "preserves_wf_restartOne", "bridge_fail",
     "bridge_restartOne", "restartOf_irrel", "run_preserves_restart_wf",
     "restart_wf_of_restartOf_stable", "restart_wf_restartOne", "supervision",
+    "isTerminal_failed", "TaskState.failed",
+    # RFC 050 observability / visualization (pure renderers)
+    "render", "traceTable", "stateWord", "taskLocation", "locationMap",
+    "mailboxView", "stateRender", "readyIndex", "waitingActor",
+    "timedWaitingActor", "usedActors", "mailboxLine", "parentTreeMermaid",
+    "mailboxMermaid", "bridgeWorkerQueues", "scenario", "tree",
     # RFC 035/036 Bridge sub-namespace types/internals — not standalone theorems
     "bridgeState_init", "bridgeState_push0", "bridgeState_pop0", "bridgeState_filter0",
     "bridgeState_readyQ_unchanged", "applyQOp", "applyQOps", "applyQOps_append",

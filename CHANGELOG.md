@@ -1,5 +1,41 @@
 # Changelog
 
+## v0.15.1 — Observability and Pedagogical Visualization (RFC 050)
+
+Human-readable renderers for states, traces, and actor/task relations.
+Pure `String` functions in `Henret/Render/` (`Trace`, `State`, `Diagram`)
+with aggregator `Henret/Render.lean` — outside the proof-critical path,
+adding **no theorems** and leaving the axiom budget unchanged.
+
+### What it renders
+
+- `TraceEvent.render` / `Render.traceTable` — one event / a numbered
+  transition table (covers all 18 event constructors, including the new
+  `failed`/`restarted`).
+- `RuntimeState.render` / `Render.locationMap` — a one-screen state
+  summary and a per-task location map that directly explains the
+  `WellFormed` location invariants.
+- `Render.mailboxView` — actor mailbox contents and waiter lists.
+- `Render.parentTreeMermaid` / `mailboxMermaid` — Mermaid diagrams with
+  restart provenance annotated; no external library needed.
+- `Render.bridgeWorkerQueues` — the single-worker bridge projection.
+
+### Examples and docs
+
+`examples/13_trace_rendering.lean` renders a parking/wake/timer scenario;
+`examples/14_state_diagrams.lean` renders a supervision tree as a
+location map, Mermaid parent tree, mailbox diagram, and bridge
+projection. `docs/observability.md` shows the rendered output and uses it
+to explain a non-trivial scenario.
+
+### Scope
+
+Renderers are generated directly from the current data structures, so
+they stay correct as the model evolves. Not a GUI; never enters the proof
+kernel.
+
+---
+
 ## v0.15.0 — Supervision Restart Policies (RFC 049)
 
 A small semantic nucleus for failure and one-for-one restart, built on

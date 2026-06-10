@@ -5,6 +5,7 @@ import Henret.Bridge
 import Henret.Trace
 import Henret.Conformance
 import Henret.Progress
+import Henret.Render
 
 /-!
 # Henret
