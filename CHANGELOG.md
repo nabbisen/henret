@@ -1,5 +1,57 @@
 # Changelog
 
+## v0.13.0 — Execution Trace Ledger (RFC 045)
+
+Makes execution traces first-class. Each operation now emits, alongside
+its ordinary `(state, result)` effect, a list of semantic `TraceEvent`s
+— which task was scheduled, which envelope delivered, which task parked,
+which timer fired. New module `Henret/Trace/` (`Event`, `Run`,
+`Theorems`) with aggregator `Henret/Trace.lean`, wired into the top-level
+`Henret` import.
+
+### Event vocabulary
+
+`TraceEvent` has one constructor per meaningful runtime observation:
+`spawned`, `spawnChild`, `scheduled`, `yielded`, `completed`,
+`cancelled`, `slept`, `timerWoke`, `directWoke`, `sent`, `injected`,
+`received`, `parked`, `waiterWoke`, `invalid`, `noEffect`.
+
+### Agreement by construction
+
+`stepTrace` reuses `step` for its state and result and only *adds* a
+separate `traceEvents` computation, so the agreement theorems are
+definitional:
+
+- `stepTrace_state_eq_step` — `(stepTrace s op).1 = (step s op).1` (`rfl`);
+- `stepTrace_result_eq_step` — result agrees (`rfl`);
+- `runTraceLedger_state_eq_run` — final state agrees with `run` (induction);
+- `runTraceLedger_results_eq_runTrace` — result list agrees with `runTrace`.
+
+There is no risk of the ledger drifting from the semantics, because it
+never recomputes the state.
+
+### Event soundness
+
+Seven soundness theorems certify that an emitted event reflects a real
+semantic fact: `event_received_sound`, `event_parked_sound`,
+`event_directWoke_sound`, `event_timerWoke_sound`,
+`event_spawnChild_sound`, `event_scheduled_sound`, and
+`event_waiterWoke_send_sound`. Each is a guard-case analysis, since
+`traceEvents` mirrors `step`'s guards exactly.
+
+### Example and docs
+
+`examples/11_trace_ledger.lean` prints a readable trace and discharges
+the agreement and soundness theorems. `docs/trace-ledger.md` documents
+the design.
+
+### Axiom budget: unchanged
+
+All trace theorems depend only on `propext` and `Quot.sound`. No project
+axioms. Verified by `scripts/axiom_audit.py`.
+
+---
+
 ## v0.12.1 — Runtime Integration Contract (RFC 044)
 
 Documentation and ecosystem-maturity release. No model or proof changes;

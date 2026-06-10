@@ -401,3 +401,32 @@ Generalises the single-worker `BridgeState` (list-equality on worker 0) to a **m
 | `reachable_multi_bridge` | Every reachable state has a `WorkerQueues` witness satisfying `MultiBridgeState` (via `single_bridge_implies_multi_bridge` + `reachable_wf.readyQ_nodup`) |
 
 **Scope note**: this is a model-level membership bridge. Order is deliberately not preserved (work stealing does not preserve a single global ready order). It does not prove C race-freedom, fairness, or liveness — those remain out of scope. See `docs/bridge-architecture.md`.
+
+---
+
+### RFC 045 — Execution Trace Ledger
+
+Makes execution traces first-class. `stepTrace`/`runTraceLedger` emit a list of semantic `TraceEvent`s alongside the ordinary `(state, result)` effect. New module `Henret/Trace/` (`Event.lean`, `Run.lean`, `Theorems.lean`) + aggregator `Henret/Trace.lean`.
+
+**Agreement by construction**: `stepTrace` reuses `step` for state/result and only adds the event computation, so:
+
+| Theorem | Statement |
+|---|---|
+| `stepTrace_state_eq_step` | `(stepTrace s op).1 = (step s op).1` (`rfl`) |
+| `stepTrace_result_eq_step` | `(stepTrace s op).2.1 = (step s op).2` (`rfl`) |
+| `runTraceLedger_state_eq_run` | `(runTraceLedger s ops).1 = run s ops` (induction) |
+| `runTraceLedger_results_eq_runTrace` | results list agrees with `runTrace` |
+
+**Event soundness** (`Henret/Trace/Theorems.lean`):
+
+| Theorem | Guarantee |
+|---|---|
+| `event_received_sound` | `received t a occ` ⇒ `t` running, owns `a`, mailbox head dequeued with that occurrence |
+| `event_parked_sound` | `parked t a` ⇒ `t` now `.waiting`, in `a`'s waiter list |
+| `event_directWoke_sound` | `directWoke t` ⇒ `t` was `.sleeping` |
+| `event_timerWoke_sound` | `timerWoke now t` ⇒ `now` not past, `t`'s timer expired by `now` |
+| `event_spawnChild_sound` | `spawnChild parent child a` ⇒ `parent` running, `child = nextId` fresh |
+| `event_scheduled_sound` | `scheduled t` ⇒ nothing running, `t` was runnable `readyQ` head |
+| `event_waiterWoke_send_sound` | `waiterWoke a w` from `send` ⇒ `w` head of `a`'s regular/timed waiter list |
+
+See `docs/trace-ledger.md`.

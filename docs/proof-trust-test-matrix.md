@@ -220,3 +220,19 @@ zero-assumption core.
 | 118 | Every reachable state has a worker-queue witness satisfying `MultiBridgeState` | PROVEN | `reachable_multi_bridge` |
 | 119 | Multi-worker bridge preserves membership, not order (work stealing does not preserve a global ready order) | DOCUMENTED | `docs/bridge-architecture.md`; relation is set-based by construction |
 | 120 | No worker-placement field added to `RuntimeState`; worker assignment is bridge-level only | PROVEN | `RuntimeState` unchanged; `MultiBridgeState` over `WorkerQueues` |
+
+## v0.13.0 claims (execution trace ledger, RFC 045)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 121 | `stepTrace` agrees with `step` on resulting state and result (by construction) | PROVEN | `stepTrace_state_eq_step`, `stepTrace_result_eq_step` |
+| 122 | `runTraceLedger` agrees with `run` on final state | PROVEN | `runTraceLedger_state_eq_run` |
+| 123 | `runTraceLedger` agrees with `runTrace` on the per-op result list | PROVEN | `runTraceLedger_results_eq_runTrace` |
+| 124 | A `received` event certifies the dequeue actually occurred with the stated occurrence | PROVEN | `event_received_sound` |
+| 125 | A `parked` event certifies the receiver is now `.waiting` and queued in the actor's waiter list | PROVEN | `event_parked_sound` |
+| 126 | A `directWoke` event certifies the task was `.sleeping` | PROVEN | `event_directWoke_sound` |
+| 127 | A `timerWoke now t` event certifies `now` is not in the past and `t`'s timer expired by `now` | PROVEN | `event_timerWoke_sound` |
+| 128 | A `spawnChild` event certifies the parent was running and the child is the fresh `nextId` | PROVEN | `event_spawnChild_sound` |
+| 129 | A `scheduled t` event certifies nothing was running and `t` was the runnable `readyQ` head | PROVEN | `event_scheduled_sound` |
+| 130 | A `waiterWoke` event from `send` certifies the woken task is the head of the actor's waiter list | PROVEN | `event_waiterWoke_send_sound` |
+| 131 | Trace events are a model-level observation layer; not yet frozen as public API | DOCUMENTED | `docs/trace-ledger.md` (deferred to RFC 052) |

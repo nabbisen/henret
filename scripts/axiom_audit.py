@@ -47,6 +47,14 @@ ALLOWLIST = {
     # RFC 043 multi-worker bridge
     "Henret.Bridge.reachable_multi_bridge":            (set(), STD_C),
     "Henret.Bridge.single_bridge_implies_multi_bridge": (set(), STD),
+    # RFC 045 execution trace ledger
+    "Henret.Trace.stepTrace_state_eq_step":   (set(), STD),
+    "Henret.Trace.stepTrace_result_eq_step":  (set(), STD),
+    "Henret.Trace.runTraceLedger_state_eq_run": (set(), STD),
+    "Henret.Trace.event_received_sound":      (set(), STD),
+    "Henret.Trace.event_parked_sound":        (set(), STD),
+    "Henret.Trace.event_timerWoke_sound":     (set(), STD),
+    "Henret.Trace.event_spawnChild_sound":    (set(), STD),
     # Pure native layer: still standard only.
     # "Henret.Native.qRun_tracks":             (set(), STD),
     # "Henret.Native.driveStackB_complete":    (set(), STD),

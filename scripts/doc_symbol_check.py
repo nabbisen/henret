@@ -59,6 +59,16 @@ IGNORE = {
     "single_bridge_implies_multi_bridge", "reachable_multi_bridge",
     # MultiBridgeState / WellFormed field names referenced in prose
     "global_unique", "worker_nodup", "reachable_wf.readyQ_nodup",
+    # RFC 045 trace ledger
+    "TraceEvent", "stepTrace", "runTraceLedger", "traceEvents", "eventsOf",
+    "stepTrace_state_eq_step", "stepTrace_result_eq_step",
+    "runTraceLedger_state_eq_run", "runTraceLedger_results_eq_runTrace",
+    "event_received_sound", "event_parked_sound", "event_directWoke_sound",
+    "event_timerWoke_sound", "event_spawnChild_sound", "event_scheduled_sound",
+    "event_waiterWoke_send_sound",
+    "invalid", "spawned", "spawnChild", "scheduled", "yielded", "completed",
+    "cancelled", "slept", "timerWoke", "directWoke", "sent", "injected",
+    "received", "parked", "waiterWoke", "noEffect", "runTrace",
     # RFC 035/036 Bridge sub-namespace types/internals — not standalone theorems
     "bridgeState_init", "bridgeState_push0", "bridgeState_pop0", "bridgeState_filter0",
     "bridgeState_readyQ_unchanged", "applyQOp", "applyQOps", "applyQOps_append",
