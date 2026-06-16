@@ -632,6 +632,13 @@ theorem bridge_stopWhenIdle (s : RuntimeState) (wqs : WorkerQueues)
   rw [show toQOps s .stopWhenIdle = [] from rfl, applyQOps_nil]
   exact bridge_stable hbs (by simp only [step]; split <;> rfl)
 
+/-- **Bridge for stopWhenDrained** (RFC 087). -/
+theorem bridge_stopWhenDrained (s : RuntimeState) (wqs : WorkerQueues)
+    (hbs : BridgeState s wqs) :
+    BridgeState (step s .stopWhenDrained).1 (applyQOps wqs (toQOps s .stopWhenDrained)) := by
+  rw [show toQOps s .stopWhenDrained = [] from rfl, applyQOps_nil]
+  exact bridge_stable hbs (by simp only [step]; split <;> rfl)
+
 /-- **`bridge_step_single_worker`** — For any `RuntimeOp`, if `BridgeState` holds
     before the step, it holds after, with the translated queue effects applied.
     This is the central single-worker bridge theorem (RFC 036). -/
@@ -657,6 +664,7 @@ theorem bridge_step_single_worker (s : RuntimeState) (op : RuntimeOp) (wqs : Wor
   | .closeActor a    => exact bridge_closeActor s a wqs hbs
   | .shutdown        => exact bridge_shutdown s wqs hbs
   | .stopWhenIdle    => exact bridge_stopWhenIdle s wqs hbs
+  | .stopWhenDrained => exact bridge_stopWhenDrained s wqs hbs
   | .receiveUntil t d =>
     rw [show toQOps s (.receiveUntil t d) = [] from by simp [toQOps], applyQOps_nil]
     apply bridge_stable hbs

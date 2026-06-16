@@ -118,6 +118,10 @@ inductive RuntimeOp where
       (no running task, empty ready queue, no pending timers). Invalid
       otherwise (RFC 055). -/
   | stopWhenIdle : RuntimeOp
+  /-- Transition the runtime to `stopped` **only if** it is quiescent **and**
+      the resource ledger is fully drained (no `allocated`/`closing` resource).
+      A drain-gated stop never leaves a resource leaked (RFC 087). -/
+  | stopWhenDrained : RuntimeOp
   /-- Running task `t` acquires a fresh resource (RFC 057). -/
   | acquire (t : TaskId) : RuntimeOp
   /-- Running task `t` releases its live resource `r` (RFC 057). -/

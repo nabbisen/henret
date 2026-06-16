@@ -103,7 +103,7 @@ theorem step_preserves_parent {s : RuntimeState} {op : RuntimeOp} {u : TaskId}
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>
         (try split) <;> simp [upd, hu]
-  | .closeActor _ | .shutdown | .stopWhenIdle =>
+  | .closeActor _ | .shutdown | .stopWhenIdle | .stopWhenDrained =>
       simp only [step] <;> (try split) <;> simp [upd, hu]
   | .cancelTree _ => rfl
 

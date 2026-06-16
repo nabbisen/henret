@@ -174,6 +174,13 @@ ALLOWLIST = {
     "Henret.foldl_winner":              (set(), STD),
     "Henret.deadlineLt_irrefl":         (set(), STD),
     "Henret.deadline_policy_selects_min_deadline": (set(), STD),
+    "Henret.closing_finalize_releases": (set(), STD),
+    "Henret.resourceDrained_drained":  (set(), STD),
+    "Henret.stopWhenDrained_stops_drained": (set(), STD),
+    "Henret.stopWhenDrained_stops":    (set(), STD),
+    "Henret.stopWhenDrained_noop":     (set(), STD),
+    "Henret.preserves_wf_stopWhenDrained": (set(), STD),
+    "Henret.Bridge.bridge_stopWhenDrained": (set(), STD),
 }
 
 text = sys.stdin.read()

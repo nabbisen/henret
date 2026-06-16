@@ -2,7 +2,7 @@
 
 # Public theorem index
 
-The 121 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 128 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
@@ -21,6 +21,7 @@ The 121 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.closeActor_sets_closed`
 - `Henret.closed_actor_rejects_inject`
 - `Henret.closed_actor_rejects_send`
+- `Henret.closing_finalize_releases`
 - `Henret.complete_marks_owned_resource_closing`
 - `Henret.core_le_actor`
 - `Henret.core_le_full`
@@ -53,6 +54,7 @@ The 121 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.preserves_wf_release`
 - `Henret.preserves_wf_setDeadline`
 - `Henret.preserves_wf_setPriority`
+- `Henret.preserves_wf_stopWhenDrained`
 - `Henret.priority_policy_selects_max`
 - `Henret.reachable_allocated_owner_nonterminal`
 - `Henret.reachable_closing_owner_terminal`
@@ -84,6 +86,7 @@ The 121 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.released_resource_never_live_run`
 - `Henret.released_resource_never_live_step`
 - `Henret.reorder_preserves_wf`
+- `Henret.resourceDrained_drained`
 - `Henret.restart_preserves_parent_acyclicity`
 - `Henret.restarted_task_has_owner`
 - `Henret.run_preserves_wf`
@@ -99,6 +102,9 @@ The 121 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.step_clock_monotone`
 - `Henret.step_invalid_unchanged`
 - `Henret.step_preserves_terminal`
+- `Henret.stopWhenDrained_noop`
+- `Henret.stopWhenDrained_stops`
+- `Henret.stopWhenDrained_stops_drained`
 - `Henret.stopWhenIdle_requires_quiescent`
 - `Henret.stopWhenIdle_sets_stopped`
 - `Henret.timedOut_not_fault`
@@ -111,6 +117,7 @@ The 121 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.Bridge.bridge_run_general`
 - `Henret.Bridge.bridge_run_tracks_single_worker`
 - `Henret.Bridge.bridge_step_single_worker`
+- `Henret.Bridge.bridge_stopWhenDrained`
 - `Henret.Bridge.reachable_multi_bridge`
 - `Henret.Bridge.single_bridge_implies_multi_bridge`
 

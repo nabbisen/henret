@@ -106,6 +106,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [084](done/084-model-to-documentation-extraction-implementation.md) | Model-to-Documentation Extraction Implementation | Implemented (v0.17.7) | — |
 | [085](done/085-rfc-metadata-normalization.md) | RFC Metadata Normalization | Implemented (v0.17.1) | — |
 | [086](done/086-warning-hygiene-and-public-lemma-tightening.md) | Warning Hygiene and Public Lemma Tightening | Implemented (v0.17.4) | — |
+| [087](done/087-resource-drain-discipline.md) | Resource Drain Discipline (RFC 057 Tier 2) | Implemented (v0.23.0) | v0.23.0 |
 
 ## Archive
 

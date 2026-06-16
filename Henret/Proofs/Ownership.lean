@@ -363,6 +363,7 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
   | closeActor a => exact ⟨st, by simp only [step]; split <;> simp [upd, h]⟩
   | shutdown => exact ⟨st, by simp [step, h]⟩
   | stopWhenIdle => exact ⟨st, by simp only [step]; split <;> simp [h]⟩
+  | stopWhenDrained => exact ⟨st, by simp only [step]; split <;> simp [h]⟩
   | acquire t => exact ⟨st, by simp only [step] <;> (repeat' split) <;> simp [h]⟩
   | release t r => exact ⟨st, by simp only [step] <;> (repeat' split) <;> simp [h]⟩
   | finalize r => exact ⟨st, by simp only [step] <;> (repeat' split) <;> simp [h]⟩
@@ -690,6 +691,7 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
   | closeActor a => simp only [step]; split <;> simp [upd]<;> exact h
   | shutdown => simp [step]; exact h
   | stopWhenIdle => simp only [step]; split <;> simp <;> exact h
+  | stopWhenDrained => simp only [step]; split <;> simp <;> exact h
   | acquire t => simp only [step] <;> (repeat' split) <;> simp <;> exact h
   | release t r => simp only [step] <;> (repeat' split) <;> simp <;> exact h
   | finalize r => simp only [step] <;> (repeat' split) <;> simp <;> exact h
@@ -961,6 +963,10 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
   | shutdown => simp [step] at h
   | stopWhenIdle =>
     by_cases hq : s.running = none ∧ s.readyQ = [] ∧ s.timers = []
+    · simp [step, hq] at h
+    · simp [step, hq]
+  | stopWhenDrained =>
+    by_cases hq : s.running = none ∧ s.readyQ = [] ∧ s.timers = [] ∧ s.resourceDrained = true
     · simp [step, hq] at h
     · simp [step, hq]
   | acquire t => simp only [step] at h ⊢ <;> (repeat' split at h) <;> simp_all

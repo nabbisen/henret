@@ -161,6 +161,8 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
   | shutdown => exact Nat.le_refl _
   | stopWhenIdle =>
     simp only [step] <;> (try split) <;> exact Nat.le_refl _
+  | stopWhenDrained =>
+    simp only [step] <;> (try split) <;> exact Nat.le_refl _
   | acquire t =>
     simp only [step] <;> (repeat' split) <;> exact Nat.le_refl _
   | release t r =>
@@ -244,6 +246,7 @@ theorem step_preserves_sorted {s : RuntimeState}
   | closeActor a => simp only [step] <;> (try split) <;> exact h
   | shutdown => exact h
   | stopWhenIdle => simp only [step] <;> (try split) <;> exact h
+  | stopWhenDrained => simp only [step] <;> (try split) <;> exact h
   | acquire t => simp only [step] <;> (repeat' split) <;> exact h
   | release t r => simp only [step] <;> (repeat' split) <;> exact h
   | finalize r => simp only [step] <;> (repeat' split) <;> exact h

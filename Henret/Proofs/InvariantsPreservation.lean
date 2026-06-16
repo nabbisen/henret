@@ -37,6 +37,14 @@ theorem preserves_wf_stopWhenIdle {s : RuntimeState} (h : WellFormed s) :
   · exact WellFormed.status_irrel s.actorStatus .stopped h
   · simpa using h
 
+/-- `stopWhenDrained` only flips the runtime status (or is a no-op) (RFC 087). -/
+theorem preserves_wf_stopWhenDrained {s : RuntimeState} (h : WellFormed s) :
+    WellFormed ((step s .stopWhenDrained).1) := by
+  simp only [step]
+  split
+  · exact WellFormed.status_irrel s.actorStatus .stopped h
+  · simpa using h
+
 /-- Every operation preserves well-formedness. -/
 theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
     (op : RuntimeOp) : WellFormed ((step s op).1) := by
@@ -62,6 +70,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
   | closeActor a => exact preserves_wf_closeActor h a
   | shutdown => exact preserves_wf_shutdown h
   | stopWhenIdle => exact preserves_wf_stopWhenIdle h
+  | stopWhenDrained => exact preserves_wf_stopWhenDrained h
   | acquire t => exact preserves_wf_acquire h t
   | release t r => exact preserves_wf_release h t r
   | finalize r => exact preserves_wf_finalize h r

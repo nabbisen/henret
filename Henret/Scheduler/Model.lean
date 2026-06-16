@@ -112,6 +112,16 @@ def init : RuntimeState where
   nextResourceId := 0
   taskMeta       := fun _ => none
 
+/-- Decidable "the resource ledger is fully drained" check, bounded by
+    `nextResourceId` (RFC 087): every allocated id is `released` (or `none`).
+    Together with the `resource_fresh` invariant this captures the unbounded
+    `Drained` predicate (`resourceDrained_drained`). -/
+def resourceDrained (s : RuntimeState) : Bool :=
+  (List.range s.nextResourceId).all fun r =>
+    match s.resources r with
+    | some rr => decide (rr.state = .released)
+    | none    => true
+
 /-- Is actor `b`'s mailbox `mb` at or over its configured capacity? (RFC 056)
     Always `false` for an unbounded policy. `send`/`inject` consult this only
     after every validity/admission guard, so a full mailbox yields
@@ -598,6 +608,11 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
   | .stopWhenIdle =>
     -- Transition to stopped only if quiescent (RFC 055).
     if s.running = none ∧ s.readyQ = [] ∧ s.timers = [] then
+      ({ s with runtimeStatus := .stopped }, .ok)
+    else (s, .invalid)
+  | .stopWhenDrained =>
+    -- Transition to stopped only if quiescent AND fully drained (RFC 087).
+    if s.running = none ∧ s.readyQ = [] ∧ s.timers = [] ∧ s.resourceDrained = true then
       ({ s with runtimeStatus := .stopped }, .ok)
     else (s, .invalid)
   | .acquire t =>

@@ -8,6 +8,7 @@ import Henret.Proofs.Invariants
 import Henret.Proofs.InvariantsPreservation
 import Henret.Proofs.ResourceReachable
 import Henret.Proofs.ResourceBranch
+import Henret.Proofs.ResourceDrain
 import Henret.Proofs.Policy
 import Henret.Proofs.Metadata
 import Henret.Proofs.MetaPolicy

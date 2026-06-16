@@ -184,6 +184,9 @@ def traceEvents (s : RuntimeState) (op : RuntimeOp) : List TraceEvent :=
   | .stopWhenIdle =>
       if s.running = none ∧ s.readyQ = [] ∧ s.timers = []
       then [.stoppedWhenIdle] else [.invalid op]
+  | .stopWhenDrained =>
+      if s.running = none ∧ s.readyQ = [] ∧ s.timers = []
+      then [.stoppedWhenIdle] else [.invalid op]
   | .acquire t =>
       if s.running = some t then
         match s.taskState t with

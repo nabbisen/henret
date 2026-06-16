@@ -21,6 +21,8 @@ the path that matches you.
 - [Fault & outcome taxonomy](fault-taxonomy.md) — the precise vocabulary for
 - [Scheduling policy layer](scheduling-policy.md) — policy-parametric
 - [Deadline & priority semantics](deadline-priority.md) — optional
+- [Resource drain discipline](resource-drain.md) — drain progress and a
+  drain-gated stop (RFC 057 Tier 2; safety only, no liveness claim).
   priority/deadline metadata and metadata policies (logical-time only).
   scheduling (FIFO/LIFO) that preserves the core safety invariant.
   invalidity, waiting, cancellation, timeout, and the reserved fault classes.

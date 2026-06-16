@@ -109,7 +109,9 @@ def coverageRegistry : List CoverageEntry :=
     { op := "finalize", branchId := "finalize.allocated-invalid",   scenario := "resource_finalize_allocated_invalid" },
     { op := "complete", branchId := "complete.marks-owned-closing", scenario := "resource_complete_marks_closing" },
     { op := "cancel",   branchId := "cancel.marks-owned-closing",   scenario := "resource_cancel_marks_closing" },
-    { op := "fail",     branchId := "fail.marks-owned-closing",     scenario := "resource_fail_marks_closing" } ]
+    { op := "fail",     branchId := "fail.marks-owned-closing",     scenario := "resource_fail_marks_closing" },
+    { op := "stopWhenDrained", branchId := "stopWhenDrained.drained-stops",          scenario := "stopWhenDrained_drained_stops" },
+    { op := "stopWhenDrained", branchId := "stopWhenDrained.live-resource-invalid",  scenario := "stopWhenDrained_live_resource_invalid" } ]
 
 /-- The names of every available golden scenario (trace + branch). -/
 def allScenarioNames : List String :=

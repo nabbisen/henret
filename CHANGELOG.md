@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.23.0 — Resource Drain Discipline (RFC 087 / RFC 057 Tier 2)
+
+The first Tier-2 slice of the resource ledger, on the safety/possibility axis.
+Additive — no change to existing operations, no new resource state, no `sorry`,
+no new axiom kinds. **No wall-clock/liveness claim.**
+
+- **Drain progress** (`Henret/Proofs/ResourceDrain.lean`):
+  `closing_finalize_releases` — a `closing` resource is always finalizable in
+  one step. With Tier 1's terminal-marks-closing results, the drain path is
+  never blocked.
+- **Drain-before-stop**: new additive operation `stopWhenDrained` (RuntimeOp
+  26 → 27) that reaches `stopped` only when quiescent **and** the ledger is
+  drained (decidable `resourceDrained` check, bounded by `nextResourceId`).
+  `stopWhenIdle` is unchanged.
+- **Proofs** (all STD): `stopWhenDrained_stops_drained` (a successful drained
+  stop never leaves a resource leaked), `resourceDrained_drained` (the bounded
+  check captures the unbounded `Drained` predicate under `WellFormed`),
+  `stopWhenDrained_stops` / `stopWhenDrained_noop` (per-branch),
+  `preserves_wf_stopWhenDrained` (all 33 `WellFormed` fields), and
+  `bridge_stopWhenDrained`.
+- **Conformance**: `stopWhenDrained_drained_stops` (drain → stop succeeds) and
+  `stopWhenDrained_live_resource_invalid` (stop refused while a resource is
+  closing), registered in the coverage registry.
+- **Downstream**: the new operation propagated through every exhaustive
+  `RuntimeOp` match (step, WF dispatcher, projections, bridge, trace, stable
+  theorems, model docs).
+- **Docs**: new `docs/resource-drain.md`; proof-index and matrix (claims
+  204–206). RFC 087 drafted and implemented.
+- **Deferred** to later Tier-2 slices: the breaking global `stopped → Drained`
+  invariant, actor-owned resources, and wall-clock liveness/timeliness.
+
 ## v0.22.1 — RFC 059 closeout: EDF ordering-optimality
 
 Completes the one item deferred from v0.22.0. `deadline_policy_selects_min_deadline`

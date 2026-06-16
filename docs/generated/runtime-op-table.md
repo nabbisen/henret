@@ -2,7 +2,7 @@
 
 # RuntimeOp operation grammar
 
-Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Scheduler/Op.lean` (26 constructors).
+Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Scheduler/Op.lean` (27 constructors).
 
 | # | Constructor | Since | Category | Summary |
 |---|---|---|---|---|
@@ -27,8 +27,9 @@ Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Scheduler/Op.l
 | 19 | `closeActor` | RFC 055 | shutdown | close an actor; future send/inject rejected |
 | 20 | `shutdown` | RFC 055 | shutdown | begin runtime shutdown |
 | 21 | `stopWhenIdle` | RFC 055 | shutdown | stop the runtime if quiescent |
-| 22 | `acquire` | RFC 057 | resource | running task allocates a fresh resource |
-| 23 | `release` | RFC 057 | resource | owning task releases an allocated resource |
-| 24 | `finalize` | RFC 057 | resource | environment reclaims a closing resource |
-| 25 | `setPriority` | RFC 059 | metadata | set a spawned task's scheduling priority |
-| 26 | `setDeadline` | RFC 059 | metadata | set a spawned task's logical deadline |
+| 22 | `stopWhenDrained` | RFC 087 | shutdown | stop the runtime if quiescent and resources drained |
+| 23 | `acquire` | RFC 057 | resource | running task allocates a fresh resource |
+| 24 | `release` | RFC 057 | resource | owning task releases an allocated resource |
+| 25 | `finalize` | RFC 057 | resource | environment reclaims a closing resource |
+| 26 | `setPriority` | RFC 059 | metadata | set a spawned task's scheduling priority |
+| 27 | `setDeadline` | RFC 059 | metadata | set a spawned task's logical deadline |

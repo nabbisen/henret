@@ -525,6 +525,23 @@ def resource_acquire_not_running_invalid : BranchScenario where
   covers := ["acquire.not-running-invalid"]
   negative := true
 
+def stopWhenDrained_drained_stops : BranchScenario where
+  name := "stopWhenDrained_drained_stops"
+  description := "stopWhenDrained stops the runtime once resources are drained"
+  ops := [.spawn 7, .schedule, .acquire 0, .complete 0, .finalize 0, .stopWhenDrained]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .ok, .ok, .ok]
+  finalCheck := fun s => s.runtimeStatus == .stopped && s.resourceDrained
+  covers := ["stopWhenDrained.drained-stops"]
+
+def stopWhenDrained_live_resource_invalid : BranchScenario where
+  name := "stopWhenDrained_live_resource_invalid"
+  description := "stopWhenDrained is invalid (no-op) while a resource is still closing"
+  ops := [.spawn 7, .schedule, .acquire 0, .complete 0, .stopWhenDrained]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .ok, .invalid]
+  finalCheck := fun s => s.runtimeStatus != .stopped && s.resources 0 == some ⟨0, .closing⟩
+  covers := ["stopWhenDrained.live-resource-invalid"]
+  negative := true
+
 
 /-- The full branch-coverage suite. -/
 def branchScenarios : List BranchScenario :=
@@ -551,7 +568,8 @@ def branchScenarios : List BranchScenario :=
     resource_release_non_owner_invalid, resource_release_after_release_invalid,
     resource_finalize_allocated_invalid, resource_cancel_marks_closing,
     resource_fail_marks_closing, resource_complete_marks_closing,
-    resource_finalize_closing_released, resource_acquire_not_running_invalid ]
+    resource_finalize_closing_released, resource_acquire_not_running_invalid,
+    stopWhenDrained_drained_stops, stopWhenDrained_live_resource_invalid ]
 
 def branchAllPass : Bool := branchScenarios.all checkBranch
 

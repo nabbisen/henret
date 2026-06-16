@@ -125,7 +125,7 @@ variable (s : RuntimeState) (t : TaskId) (a : ActorId)
   | .acquire _ | .release _ _ | .finalize _ | .setPriority _ _ | .setDeadline _ _ =>
       simp only [step]
       (repeat' split) <;> simp [upd]
-  | .closeActor _ | .shutdown | .stopWhenIdle =>
+  | .closeActor _ | .shutdown | .stopWhenIdle | .stopWhenDrained =>
       simp only [step] <;> (try split) <;> simp [upd]
   | .cancelTree _ => rfl
   | .spawnChild t a => exact absurd rfl (h t a)

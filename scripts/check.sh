@@ -255,6 +255,13 @@ open Henret Henret.Native Henret.Bridge
 #print axioms foldl_winner
 #print axioms deadlineLt_irrefl
 #print axioms deadline_policy_selects_min_deadline
+#print axioms closing_finalize_releases
+#print axioms resourceDrained_drained
+#print axioms stopWhenDrained_stops_drained
+#print axioms stopWhenDrained_stops
+#print axioms stopWhenDrained_noop
+#print axioms preserves_wf_stopWhenDrained
+#print axioms bridge_stopWhenDrained
 LEAN
   lake env lean "$A" | python3 scripts/axiom_audit.py
   rc=$?

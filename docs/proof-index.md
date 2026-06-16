@@ -742,3 +742,23 @@ values, so each inherits `policyStep_preserves_wf` (RFC 058).
 `deadline_policy_selects_min_deadline` (with `foldl_winner` and the `deadlineLt`
 order lemmas, v0.22.1) proves EDF chooses a deadline-minimal ready task. No
 theorem claims a deadline is *met* (that needs liveness).
+
+### RFC 087 — Resource Drain Discipline (RFC 057 Tier 2)
+
+Safety/possibility Tier-2 slice (`Henret/Proofs/ResourceDrain.lean`). Drain
+progress: a `closing` resource is always finalizable. Drain-before-stop: an
+additive `stopWhenDrained` operation (RuntimeOp 27) stops only when quiescent
+*and* the ledger is drained. No wall-clock/liveness claim
+(`docs/resource-drain.md`).
+
+| Theorem | Statement |
+|---|---|
+| `closing_finalize_releases` | a `closing` resource can always be finalized in one step (drain progress) |
+| `resourceDrained_drained` | the decidable bounded drain check captures the unbounded `Drained` predicate (under `WellFormed`, via `resource_fresh`) |
+| `stopWhenDrained_stops_drained` | if `stopWhenDrained` succeeds, the ledger was fully drained — a drained stop never leaks a resource |
+| `stopWhenDrained_stops`, `stopWhenDrained_noop` | per-branch: quiescent ∧ drained ⇒ stops; otherwise a `.invalid` no-op |
+| `preserves_wf_stopWhenDrained`, `bridge_stopWhenDrained` | the op preserves all 33 `WellFormed` fields and the single-worker bridge (status-only) |
+
+`stopWhenIdle` is unchanged; the drained stop is additive. The breaking global
+`stopped → Drained` invariant, actor-owned resources, and wall-clock liveness
+are deferred to later Tier-2 slices.

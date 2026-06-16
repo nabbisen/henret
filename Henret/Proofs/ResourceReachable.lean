@@ -163,6 +163,7 @@ theorem step_resources_eq_of_released {s : RuntimeState} (h_wf : WellFormed s)
   | closeActor a => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
   | shutdown => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
   | stopWhenIdle => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | stopWhenDrained => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
 
 /-- A released resource keeps its `released` record under every operation: the
 ledger only flips `allocated`/`closing` forward, never back. -/
