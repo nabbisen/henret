@@ -108,4 +108,79 @@ theorem cancelTree_marks_descendant_resource_closing (s : RuntimeState)
   show markClosingIf (fun u => decide (u ∈ descendantsOf s root)) s.resources r = _
   unfold markClosingIf; rw [hres]; simp [hmem]
 
+/-! ## Released resources never return to life -/
+
+/-- A released resource's record is the target of no `upd` or `markClosingIf`
+change: every operation leaves `resources r` fixed when `r` is released. -/
+theorem step_resources_eq_of_released {s : RuntimeState} (h_wf : WellFormed s)
+    {r : ResourceId} {rr : ResourceRecord} (hrr : s.resources r = some rr)
+    (hrel : rr.state = .released) (op : RuntimeOp) :
+    (step s op).1.resources r = s.resources r := by
+  cases op with
+  | acquire t =>
+    have hrne : r ≠ s.nextResourceId := by
+      intro he; rw [he, h_wf.resource_fresh _ (Nat.le_refl _)] at hrr
+      exact absurd hrr (by simp)
+    simp only [step]; (repeat' split) <;> first | rfl | exact upd_ne _ _ hrne
+  | release t rOp =>
+    simp only [step]; (repeat' split) <;>
+      first | rfl | exact upd_ne _ _ (by intro he; subst he; cases rr; simp_all)
+  | finalize rOp =>
+    simp only [step]; (repeat' split) <;>
+      first | rfl | exact upd_ne _ _ (by intro he; subst he; cases rr; simp_all)
+  | complete t =>
+    simp only [step]; (repeat' split) <;>
+      first | rfl | exact markClosingIf_eq_of_released (p := (· == t)) hrr hrel
+  | cancel t =>
+    simp only [step]; (repeat' split) <;>
+      first | rfl | exact markClosingIf_eq_of_released (p := (· == t)) hrr hrel
+  | fail t =>
+    simp only [step]; (repeat' split) <;>
+      first | rfl | exact markClosingIf_eq_of_released (p := (· == t)) hrr hrel
+  | cancelTree root =>
+    simp only [step]
+    exact markClosingIf_eq_of_released (p := (· ∈ descendantsOf s root)) hrr hrel
+  | spawn a => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | schedule => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | yield t => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | send t b m => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | receive t => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | inject a m => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | sleep t d => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | tick now => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | wake t => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | spawnChild t a => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | receiveUntil t d => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | receiveByOccurrence t occ => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | receiveFrom t src => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | restartOne p c a => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | closeActor a => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | shutdown => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | stopWhenIdle => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+
+/-- A released resource keeps its `released` record under every operation: the
+ledger only flips `allocated`/`closing` forward, never back. -/
+theorem released_resource_never_live_step {s : RuntimeState} (h_wf : WellFormed s)
+    {r : ResourceId} (op : RuntimeOp) (h : ResourceReleased s r) :
+    ResourceReleased (step s op).1 r := by
+  obtain ⟨rr, hrr, hrel⟩ := h
+  exact ⟨rr, (step_resources_eq_of_released h_wf hrr hrel op).trans hrr, hrel⟩
+
+/-- A released resource stays released along any run. -/
+theorem released_resource_never_live_run {s : RuntimeState} (h_wf : WellFormed s)
+    {r : ResourceId} (ops : List RuntimeOp) (h : ResourceReleased s r) :
+    ResourceReleased (run s ops) r := by
+  induction ops generalizing s with
+  | nil => exact h
+  | cons op rest ih =>
+    rw [run_cons]
+    exact ih (step_preserves_wf h_wf op) (released_resource_never_live_step h_wf op h)
+
+/-- In every reachable future, a released resource remains released:
+`released` is a terminal ledger state. -/
+theorem reachable_released_resource_never_live (ops ops' : List RuntimeOp)
+    {r : ResourceId} (h : ResourceReleased (run RuntimeState.init ops) r) :
+    ResourceReleased (run (run RuntimeState.init ops) ops') r :=
+  released_resource_never_live_run (reachable_wf ops) ops' h
+
 end Henret

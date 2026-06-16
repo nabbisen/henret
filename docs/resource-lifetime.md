@@ -52,7 +52,10 @@ never calls `acquire`.
 the four `reachable_resource_*` projections; `nextResourceId_monotone_step` /
 `_run` (ids never reused); and the four terminal-coupling theorems
 `{complete,cancel,fail}_marks_owned_resource_closing` and
-`cancelTree_marks_descendant_resource_closing`. Per-branch behaviour is pinned
+`cancelTree_marks_descendant_resource_closing`. `released` is a terminal ledger
+state — a released resource stays released under every operation and in every
+reachable future (`released_resource_never_live_step` / `_run`,
+`reachable_released_resource_never_live`). Per-branch behaviour is pinned
 by `Henret/Proofs/ResourceBranch.lean`; end-to-end behaviour by the ten
 `resource_*` conformance scenarios.
 

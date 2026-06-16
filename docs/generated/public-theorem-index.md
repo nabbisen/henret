@@ -2,7 +2,7 @@
 
 # Public theorem index
 
-The 92 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 95 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
@@ -44,6 +44,7 @@ The 92 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_a
 - `Henret.reachable_parent_child_spawned`
 - `Henret.reachable_parent_lt`
 - `Henret.reachable_queue_exact`
+- `Henret.reachable_released_resource_never_live`
 - `Henret.reachable_resource_fresh`
 - `Henret.reachable_resource_owner_spawned`
 - `Henret.reachable_restart_fresh`
@@ -61,6 +62,8 @@ The 92 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_a
 - `Henret.release_non_owner_invalid`
 - `Henret.release_owner_allocated_ok`
 - `Henret.release_released_invalid`
+- `Henret.released_resource_never_live_run`
+- `Henret.released_resource_never_live_step`
 - `Henret.restart_preserves_parent_acyclicity`
 - `Henret.restarted_task_has_owner`
 - `Henret.run_preserves_wf`

@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.19.2 — RFC 057 closeout + roadmap refresh
+
+Closes the last RFC 057 loose end and corrects stale planning docs. No model or
+invariant changes; **zero `sorry` and zero project axioms**.
+
+- **`released_resource_never_live`** — the previously-deferred theorem now lands
+  (`Henret/Proofs/ResourceReachable.lean`). `released_resource_never_live_step`
+  (every operation fixes a released record), `released_resource_never_live_run`
+  (stable along any run), and `reachable_released_resource_never_live` (stable
+  in every reachable future) make `released` a proved terminal ledger state.
+  The supporting `step_resources_eq_of_released` case-splits all 24 ops, closing
+  the acquire/release/finalize `upd` cases by index-disjointness and the
+  terminal-marking cases by `markClosingIf_eq_of_released`. All three are in the
+  axiom audit; matrix claim 192.
+- **Roadmap refreshed** — `docs/roadmap.md` had drifted to "Current version:
+  v0.8.0"; it now reflects v0.19.x (24 ops, 10 results, 33-field invariant), the
+  65 implemented RFCs, and the open 058–079 backlog grouped by theme, plus the
+  RFC 057 Tier 2 and multi-worker follow-ups.
+
 ## v0.19.1 — RFC 057 cleanup: branch theorems, conformance & docs
 
 Completes the items deferred from v0.19.0. No model or invariant changes; this

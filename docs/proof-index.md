@@ -666,6 +666,7 @@ released` (terminal transition then `finalize`). See
 | `acquire_running_allocates`, `acquire_not_running_invalid`, `acquire_non_running_state_invalid` | per-branch `acquire` behaviour (result + ledger effect) |
 | `release_owner_allocated_ok`, `release_non_owner_invalid`, `release_released_invalid`, `release_closing_invalid` | per-branch `release` behaviour |
 | `finalize_closing_ok`, `finalize_allocated_invalid`, `finalize_released_invalid` | per-branch `finalize` behaviour |
+| `released_resource_never_live_step` / `_run`, `reachable_released_resource_never_live` | `released` is a terminal ledger state: a released resource stays released under every operation and along any run |
 | `full_has_resourceLifetime` | the `full` profile carries the `resourceLifetime` feature |
 
 Conformance (`Henret/Conformance/Branch.lean`, under `branch_suite_passes`):

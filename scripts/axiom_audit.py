@@ -141,6 +141,10 @@ ALLOWLIST = {
     "Henret.finalize_closing_ok":                (set(), STD),
     "Henret.finalize_allocated_invalid":         (set(), STD),
     "Henret.finalize_released_invalid":          (set(), STD),
+    # RFC 057: released is a terminal ledger state
+    "Henret.released_resource_never_live_step": (set(), STD),
+    "Henret.released_resource_never_live_run":  (set(), STD_C),
+    "Henret.reachable_released_resource_never_live": (set(), STD_C),
 }
 
 text = sys.stdin.read()
