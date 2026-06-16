@@ -100,7 +100,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [083](proposed/083-golden-conformance-coverage-expansion.md) | Golden Conformance Coverage Expansion | — | P1 |
 | [084](proposed/084-model-to-documentation-extraction-implementation.md) | Model-to-Documentation Extraction Implementation | — | P1 |
 | [085](done/085-rfc-metadata-normalization.md) | RFC Metadata Normalization | Implemented (v0.17.1) | — |
-| [086](proposed/086-warning-hygiene-and-public-lemma-tightening.md) | Warning Hygiene and Public Lemma Tightening | — | P2 |
+| [086](done/086-warning-hygiene-and-public-lemma-tightening.md) | Warning Hygiene and Public Lemma Tightening | Implemented (v0.17.4) | — |
 
 ## Archive
 

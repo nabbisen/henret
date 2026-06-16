@@ -130,9 +130,9 @@ def isInSubtreeOf (s : RuntimeState) (root : TaskId) (t : TaskId) : Bool :=
   if t = root then true
   else match s.taskParent t with
   | none   => false
-  | some p => if hp : p < t then isInSubtreeOf s root p else false
+  | some p => if _hp : p < t then isInSubtreeOf s root p else false
 termination_by t
-decreasing_by exact hp
+decreasing_by exact _hp
 
 /-- The set of tasks to cancel: tasks in `0..nextId-1` that are spawned and
     whose parent chain reaches `root` (including `root` itself). -/

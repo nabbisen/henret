@@ -90,8 +90,7 @@ theorem spawnChild_unowned_invalid {s : RuntimeState} {t : TaskId} {a : ActorId}
 /-- Parenthood is set at creation and never changed. No operation other than
     `spawnChild` writes `taskParent`; `spawnChild` only writes the fresh slot. -/
 theorem step_preserves_parent {s : RuntimeState} {op : RuntimeOp} {u : TaskId}
-    (hu : u ≠ s.nextId)
-    (hfresh : s.taskState s.nextId = none) :
+    (hu : u ≠ s.nextId) :
     ((step s op).1).taskParent u = s.taskParent u := by
   match op with
   | .spawn _ | .schedule | .yield _ | .complete _ | .cancel _

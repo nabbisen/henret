@@ -160,7 +160,7 @@ def toQOps (s : RuntimeState) (op : RuntimeOp) : List QOp :=
       match s.taskState t with
       | some st => if st.isTerminal then [] else [.Filter 0 t]
       | none    => []
-  | .restartOne parent failedChild actor =>
+  | .restartOne parent failedChild _actor =>
       -- Like spawnChild: a fresh replacement is pushed to worker 0 (RFC 049).
       if s.running = some parent then
         match s.taskState parent with

@@ -72,8 +72,7 @@ theorem bridgeState_push0 {s : RuntimeState} {wqs : WorkerQueues}
 /-- A `BridgeState` for `s` gives a `BridgeState` after a `Pop 0` when the
     queue is non-empty. -/
 theorem bridgeState_pop0 {s : RuntimeState} {wqs : WorkerQueues}
-    (hbs : BridgeState s wqs) {t : TaskId} {rest : List TaskId}
-    (hq : s.readyQ = t :: rest) :
+    (hbs : BridgeState s wqs) {rest : List TaskId} :
     BridgeState { s with readyQ := rest }
                 (fun w => if w = 0 then rest else wqs w) := {
   queue_eq    := by simp

@@ -360,13 +360,7 @@ section SelectiveReceive
 /-- A successful `receiveByOccurrence` returns the envelope matching the
 requested occurrence id. -/
 theorem receiveByOccurrence_removes_matching
-    {s : RuntimeState} {t : TaskId} {occ : MessageId} {env : Envelope}
-    {a : ActorId} {mb : Mailbox}
-    (hrt  : s.running = some t)
-    (hts  : s.taskState t = some .running)
-    (how  : s.taskOwner t = some a)
-    (hmb  : s.mailboxes a = some mb)
-    {rest : Mailbox}
+    {occ : MessageId} {env : Envelope} {mb : Mailbox} {rest : Mailbox}
     (hd   : mb.dequeueFirst (·.occurrence = occ) = some (env, rest)) :
     env.occurrence = occ := by
   have h := Mailbox.dequeueFirst_matches _ mb hd
@@ -375,13 +369,7 @@ theorem receiveByOccurrence_removes_matching
 /-- A successful `receiveFrom` returns an envelope whose source matches
 the selector. -/
 theorem receiveFrom_source_matches
-    {s : RuntimeState} {t : TaskId} {src : ActorId} {env : Envelope}
-    {a : ActorId} {mb : Mailbox}
-    (hrt  : s.running = some t)
-    (hts  : s.taskState t = some .running)
-    (how  : s.taskOwner t = some a)
-    (hmb  : s.mailboxes a = some mb)
-    {rest : Mailbox}
+    {src : ActorId} {env : Envelope} {mb : Mailbox} {rest : Mailbox}
     (hd   : mb.dequeueFirst (·.source = some src) = some (env, rest)) :
     env.source = some src := by
   have h := Mailbox.dequeueFirst_matches _ mb hd
@@ -420,9 +408,7 @@ theorem receiveFrom_parks_on_miss
 /-- Nonmatching envelopes remain in their original relative order after a
 successful `receiveByOccurrence`. Follows directly from `dequeueFirst_sublist`. -/
 theorem receiveByOccurrence_preserves_nonmatching_order
-    {s : RuntimeState} {t : TaskId} {occ : MessageId}
-    {a : ActorId} {mb : Mailbox}
-    (hmb : s.mailboxes a = some mb)
+    {occ : MessageId} {mb : Mailbox}
     {env : Envelope} {rest : Mailbox}
     (hd : mb.dequeueFirst (·.occurrence = occ) = some (env, rest)) :
     rest.messages.Sublist mb.messages :=
@@ -431,9 +417,7 @@ theorem receiveByOccurrence_preserves_nonmatching_order
 /-- Nonmatching envelopes remain in their original relative order after a
 successful `receiveFrom`. Follows directly from `dequeueFirst_sublist`. -/
 theorem receiveFrom_preserves_nonmatching_order
-    {s : RuntimeState} {t : TaskId} {src : ActorId}
-    {a : ActorId} {mb : Mailbox}
-    (hmb : s.mailboxes a = some mb)
+    {src : ActorId} {mb : Mailbox}
     {env : Envelope} {rest : Mailbox}
     (hd : mb.dequeueFirst (·.source = some src) = some (env, rest)) :
     rest.messages.Sublist mb.messages :=

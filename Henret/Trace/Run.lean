@@ -67,7 +67,7 @@ def traceEvents (s : RuntimeState) (op : RuntimeOp) : List TraceEvent :=
   | .cancelTree root =>
       -- One cancellation event per task in the cancellation set.
       (descendantsOf s root).map (fun t => .cancelled t)
-  | .send t b m =>
+  | .send t b _m =>
       if s.running = some t then
         match s.taskState t, s.taskOwner t, s.mailboxes b with
         | some .running, some _, some _ =>
@@ -80,7 +80,7 @@ def traceEvents (s : RuntimeState) (op : RuntimeOp) : List TraceEvent :=
             | []     => [base]
         | _, _, _ => [.invalid op]
       else [.invalid op]
-  | .inject a m =>
+  | .inject a _m =>
       match s.mailboxes a with
       | some _ =>
         let base : TraceEvent := .injected a s.nextMsgId

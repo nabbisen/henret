@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.17.4 — Warning Hygiene and Public Lemma Tightening (RFC 086)
+
+The full gate-scope build now emits **zero warnings**. No project axioms were
+added and no semantic model behavior changed (the axiom audit over the 60
+headline theorems is unchanged); some helper-lemma *types* were tightened by
+dropping genuinely unused hypotheses, which is accepted pre-public-stability
+(086-B).
+
+- **`scripts/warning_budget.py`** — fills the RFC 080 stage-10 gate. Parses the
+  gate's build log and enforces a total-warning budget of zero (086-1) and an
+  unused-variable budget of zero, with an explicit, justification-bearing
+  allowlist for any exception (086-D). It consumes the build/example/demo logs
+  the earlier gates capture (086-4); authoritative on the fresh CI build.
+- **Unused proof-local / pattern bindings underscored** (no type change):
+  `isInSubtreeOf` (`_hp`, also in `decreasing_by`), `toQOps` `restartOne`
+  (`_actor`), and the `send`/`inject` trace branches (`_m`).
+- **Seven helper lemmas tightened** — genuinely unused hypotheses dropped
+  (086-2 migration table):
+
+  | lemma | dropped hypotheses | downstream | wrapper |
+  |---|---|---|---|
+  | `step_taskParent_stable` | `hfresh` | none (0 callers) | no |
+  | `step_preserves_parent` | `hfresh` | 2 calls in `Restart.lean` (updated) | no |
+  | `bridgeState_pop0` | `t`, `hq` | none (0 callers) | no |
+  | `receiveByOccurrence_removes_matching` | `s,t,a,hrt,hts,how,hmb` | none | no |
+  | `receiveFrom_source_matches` | `s,t,a,hrt,hts,how,hmb` | none | no |
+  | `receiveByOccurrence_preserves_nonmatching_order` | `s,t,a,hmb` | none | no |
+  | `receiveFrom_preserves_nonmatching_order` | `s,t,a,hmb` | none | no |
+
+  Each was reviewed (086 formal-verification note): the lemma is genuinely
+  stronger and no admission guard was lost. No `@[deprecated]` wrappers are
+  needed — none of these is public-stable under RFC 070, so they are tightened
+  directly (086-3).
+
 ## v0.17.3 — Package Boundary and Evidence Ledger (RFC 081)
 
 Non-semantic release: documentation, governance, and tooling only. No Lean

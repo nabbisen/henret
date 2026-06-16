@@ -79,8 +79,8 @@ theorem restart_wf_of_restartOf_stable {s : RuntimeState}
     rw [hru] at hne
     obtain ⟨p, hpnew, hpold⟩ := hr.restart_parent_consistent new old hne
     refine ⟨p, ?_, ?_⟩
-    · rw [step_preserves_parent (hlt new p hpnew) hfresh]; exact hpnew
-    · rw [step_preserves_parent (hlt old p hpold) hfresh]; exact hpold
+    · rw [step_preserves_parent (hlt new p hpnew)]; exact hpnew
+    · rw [step_preserves_parent (hlt old p hpold)]; exact hpold
   · intro new old hne
     rw [hru] at hne
     exact step_preserves_terminal h_wf (hr.restart_old_failed new old hne) rfl op

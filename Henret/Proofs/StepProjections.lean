@@ -123,7 +123,6 @@ variable (s : RuntimeState) (t : TaskId) (a : ActorId)
 /-- No operation other than `spawnChild` or `restartOne` ever writes
     `taskParent` (both only write the fresh slot). -/
 @[simp] theorem step_taskParent_stable {u : TaskId} (s : RuntimeState) (op : RuntimeOp)
-    (hfresh : s.taskState s.nextId = none)
     (h : ∀ t a, op ≠ .spawnChild t a)
     (h2 : ∀ p c a, op ≠ .restartOne p c a) :
     ((step s op).1).taskParent u = s.taskParent u := by
@@ -133,7 +132,7 @@ variable (s : RuntimeState) (t : TaskId) (a : ActorId)
   | .receiveUntil _ _ | .receiveByOccurrence _ _ | .receiveFrom _ _ | .fail _ =>
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>
-        (try split) <;> (try split) <;> (try split) <;> simp [upd, hfresh]
+        (try split) <;> (try split) <;> (try split) <;> simp [upd]
   | .closeActor _ | .shutdown | .stopWhenIdle =>
       simp only [step] <;> (try split) <;> simp [upd]
   | .cancelTree _ => rfl

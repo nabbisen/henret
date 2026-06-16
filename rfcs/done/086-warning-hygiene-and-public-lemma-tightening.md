@@ -1,8 +1,8 @@
 ---
 rfc: 86
 title: Warning Hygiene and Public Lemma Tightening
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.17.4
 supersedes: []
 superseded_by: []
 depends_on: [80]
@@ -14,10 +14,14 @@ category: tooling
 
 ## Status
 
-Proposed strategic RFC. Approved in the v0.17.0 audit review (item A8,
+Implemented in **v0.17.4**. Approved in the v0.17.0 audit review (item A8,
 decision **B — drop genuinely unused public hypotheses, underscore
-proof-local bindings**, priority **P2**); amendments 086-A..D applied from
-the RFCs 080-086 review.
+proof-local bindings**, priority **P2**); amendments 086-A..D and the
+v2-review final-pass amendments 086-1..4 applied. The full-scope build now
+emits zero warnings, `scripts/warning_budget.py` (total budget zero, 086-1)
+fills the RFC 080 stage-10 gate, and seven lemmas were tightened (migration
+table in the CHANGELOG, 086-2). No project axioms added; no semantic model
+behavior changed (the axiom audit is unchanged).
 
 ## Summary
 

@@ -223,10 +223,16 @@ gate_doc_consistency() {
 gate_rfc_metadata() { python3 scripts/rfc_metadata_check.py; }
 
 gate_warning_budget() {
-  # RFC 086 fills this stage. Until then the stage is wired but the detector
-  # is a documented stub (the framework-with-stubbed-stages pattern, RFC 080).
+  # RFC 086: enforce a zero warning budget over the gate's build scope (086-4).
+  # Consume the build/example/demo logs the earlier gates already captured; on a
+  # fresh CI build these carry every warning, on a cached local build they carry
+  # none (authoritative in CI, RFC 080-D).
   if [ -f scripts/warning_budget.py ]; then
-    python3 scripts/warning_budget.py
+    local log="$LOGDIR/warnings.log"; : > "$log"
+    for g in gate-1.out gate-1.err gate-2.out gate-2.err gate-3.out gate-3.err; do
+      [ -f "$LOGDIR/$g" ] && cat "$LOGDIR/$g" >> "$log"
+    done
+    python3 scripts/warning_budget.py "$log" --all-warnings 0 --unused-variables 0
   else
     echo "warning budget: gate wired; detector deferred to RFC 086"
   fi
