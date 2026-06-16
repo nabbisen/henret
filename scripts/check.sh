@@ -252,6 +252,9 @@ open Henret Henret.Native Henret.Bridge
 #print axioms foldl_best_mem
 #print axioms foldl_best_ge
 #print axioms priority_policy_selects_max
+#print axioms foldl_winner
+#print axioms deadlineLt_irrefl
+#print axioms deadline_policy_selects_min_deadline
 LEAN
   lake env lean "$A" | python3 scripts/axiom_audit.py
   rc=$?

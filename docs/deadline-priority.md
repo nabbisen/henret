@@ -76,8 +76,9 @@ does not *guarantee* the deadline is met. Henret states ordering facts only.
 
 ## Status
 
-Soundness of all three policies and `priority_policy_selects_max` are proved.
-The analogous EDF ordering-optimality theorem
-(the EDF analogue of priority_policy_selects_max) requires transitivity/asymmetry lemmas
-over the bespoke `Option Nat` deadline order and is tracked as a closeout
-follow-up; the EDF *selection* is demonstrated by example in the meantime.
+All three policies are sound, and both ordering-optimality theorems are proved:
+`priority_policy_selects_max` (priorities) and, since v0.22.1,
+`deadline_policy_selects_min_deadline` (deadlines — EDF chooses a ready task no
+ready task is strictly earlier than, via `foldl_winner` and the strict-total
+`deadlineLt` order lemmas). Neither claims a deadline is *met*: that requires a
+liveness policy, which this RFC does not provide.

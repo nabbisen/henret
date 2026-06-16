@@ -2,7 +2,7 @@
 
 # Public theorem index
 
-The 118 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 121 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
@@ -24,6 +24,8 @@ The 118 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.complete_marks_owned_resource_closing`
 - `Henret.core_le_actor`
 - `Henret.core_le_full`
+- `Henret.deadlineLt_irrefl`
+- `Henret.deadline_policy_selects_min_deadline`
 - `Henret.fail_marks_owned_resource_closing`
 - `Henret.fifo_policy_equiv_schedule`
 - `Henret.finalize_allocated_invalid`
@@ -31,6 +33,7 @@ The 118 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.finalize_released_invalid`
 - `Henret.foldl_best_ge`
 - `Henret.foldl_best_mem`
+- `Henret.foldl_winner`
 - `Henret.full_has_resourceLifetime`
 - `Henret.full_has_schedulingPolicy`
 - `Henret.inject_full_backpressured`

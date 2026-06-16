@@ -171,6 +171,9 @@ ALLOWLIST = {
     "Henret.foldl_best_mem":            (set(), STD),
     "Henret.foldl_best_ge":             (set(), STD),
     "Henret.priority_policy_selects_max": (set(), STD),
+    "Henret.foldl_winner":              (set(), STD),
+    "Henret.deadlineLt_irrefl":         (set(), STD),
+    "Henret.deadline_policy_selects_min_deadline": (set(), STD),
 }
 
 text = sys.stdin.read()

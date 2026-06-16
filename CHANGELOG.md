@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.22.1 — RFC 059 closeout: EDF ordering-optimality
+
+Completes the one item deferred from v0.22.0. `deadline_policy_selects_min_deadline`
+proves the earliest-deadline-first policy chooses a ready task whose deadline is
+minimal — no ready task is strictly earlier (a `deadlineLt`-minimum). Supporting
+results in `Henret/Proofs/MetaPolicy.lean`: `foldl_winner` (a fold-min returns an
+element nothing strictly beats, given a strict-total comparator) and the order
+facts `deadlineLt_irrefl`, `dlt_htA`, `dlt_htB` over the bespoke `Option Nat`
+deadline order. Still an ordering fact only — no theorem claims a deadline is
+met. Zero `sorry`, zero new axiom kinds; RFC 059's proof-obligation list is now
+fully discharged. Matrix claim 203.
+
 ## v0.22.0 — Deadline & Priority Semantics (RFC 059)
 
 Adds optional per-task scheduling metadata and metadata-driven policies on the

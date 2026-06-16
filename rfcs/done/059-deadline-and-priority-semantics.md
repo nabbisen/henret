@@ -14,8 +14,9 @@ category: model-semantics
 
 ## Status
 
-Implemented (v0.22.0). Policy soundness and `priority_policy_selects_max` are
-proved; the EDF ordering-optimality theorem is a tracked closeout follow-up.
+Implemented (v0.22.0); EDF ordering-optimality closeout in v0.22.1. Policy
+soundness, `priority_policy_selects_max`, and `deadline_policy_selects_min_deadline`
+are all proved.
 
 ## Summary
 

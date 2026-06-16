@@ -734,8 +734,11 @@ claim** (`docs/deadline-priority.md`).
 | `pickBy_mem`, `foldl_best_mem` | the metadata selector always returns a task in the queue — soundness for all three policies via `choose_sound` |
 | `priority_policy_selects_max` | `priorityPolicy` chooses a ready task whose priority is ≥ every ready task's |
 | `foldl_best_ge` | the underlying max-fold optimality lemma |
+| `deadline_policy_selects_min_deadline` | `edfPolicy` chooses a ready task no ready task is strictly earlier than (a `deadlineLt`-minimum; v0.22.1) |
+| `foldl_winner`, `deadlineLt_irrefl`, `dlt_htA`, `dlt_htB` | the fold-min lemma and the strict-total-order facts it needs |
 
 `priorityPolicy` / `edfPolicy` / `hybridPolicy` are sound `SchedulingPolicy`
-values, so each inherits `policyStep_preserves_wf` (RFC 058). EDF
-ordering-optimality (the EDF analogue of priority_policy_selects_max) is a tracked
-closeout follow-up; no theorem claims a deadline is *met* (that needs liveness).
+values, so each inherits `policyStep_preserves_wf` (RFC 058).
+`deadline_policy_selects_min_deadline` (with `foldl_winner` and the `deadlineLt`
+order lemmas, v0.22.1) proves EDF chooses a deadline-minimal ready task. No
+theorem claims a deadline is *met* (that needs liveness).
