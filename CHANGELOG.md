@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.21.0 — Scheduling Policy Layer (RFC 058)
+
+Adds a policy-parametric scheduling layer **on top of** the unchanged core
+scheduler: a policy may choose *which* ready task runs next, but only ever a
+ready task, and the choice changes ordering, not safety. Additive — no new
+`RuntimeOp`, no change to `step`/`schedule`, no fairness claim — and still zero
+`sorry`, zero new axiom kinds.
+
+- **Interface** (`Henret/Scheduler/Policy.lean`): `SchedulingPolicy`
+  (`choose : RuntimeState → Option TaskId` + `choose_sound`, a soundness proof
+  that any chosen task is in `readyQ`). The derived runner
+  `policyStep p s := step (p.reorder s) .schedule` moves the chosen task to the
+  queue head (a permutation) and runs the core `schedule`.
+- **Built-in policies**: `fifoPolicy` (head) and `lifoPolicy` (tail), each
+  proved sound.
+- **Proofs** (`Henret/Proofs/Policy.lean`): `reorder_preserves_wf` (the
+  permutation keeps all 33 `WellFormed` fields), and from it
+  `policyStep_preserves_wf` — **parametric in the policy**, so every sound
+  policy inherits the full invariant. Plus `policy_does_not_create_task`,
+  `fifo_policy_equiv_schedule` (FIFO *is* the core `schedule`), and
+  `fifo_picks_head` / `lifo_picks_last` (the two policies select opposite ends).
+- **Profile**: `schedulingPolicy` is now part of `Profile.full`
+  (`full_has_schedulingPolicy`).
+- **Docs**: new `docs/scheduling-policy.md`; profile-index corrected (it had
+  listed `schedulingPolicy`/`resourceLifetime` as not-yet-in-any-profile);
+  proof-index and matrix (claims 196–198) extended.
+
 ## v0.20.0 — Fault & Outcome Taxonomy (RFC 064)
 
 Gives Henret a precise, machine-checked vocabulary for the notions English

@@ -19,6 +19,8 @@ the path that matches you.
 - [Proof / trust / test matrix](proof-trust-test-matrix.md) — every
   correctness claim, classified PROVEN / ASSUMED / TESTED / OUTSCOPE.
 - [Fault & outcome taxonomy](fault-taxonomy.md) — the precise vocabulary for
+- [Scheduling policy layer](scheduling-policy.md) — policy-parametric
+  scheduling (FIFO/LIFO) that preserves the core safety invariant.
   invalidity, waiting, cancellation, timeout, and the reserved fault classes.
 - [Assumption index](assumption-index.md) — the complete axiom budget.
 - [Conformance suite](conformance-suite.md) — golden-trace conformance

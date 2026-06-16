@@ -216,6 +216,7 @@ open Henret Henret.Native Henret.Bridge
 #print axioms fail_marks_owned_resource_closing
 #print axioms cancelTree_marks_descendant_resource_closing
 #print axioms full_has_resourceLifetime
+#print axioms full_has_schedulingPolicy
 #print axioms acquire_running_allocates
 #print axioms acquire_not_running_invalid
 #print axioms acquire_non_running_state_invalid
@@ -237,6 +238,11 @@ open Henret Henret.Native Henret.Bridge
 #print axioms backpressured_not_fault
 #print axioms timedOut_not_fault
 #print axioms ok_not_fault
+#print axioms reorder_preserves_wf
+#print axioms policyStep_preserves_wf
+#print axioms policy_does_not_create_task
+#print axioms fifo_policy_equiv_schedule
+#print axioms schedule_preserves_nextId
 LEAN
   lake env lean "$A" | python3 scripts/axiom_audit.py
   rc=$?

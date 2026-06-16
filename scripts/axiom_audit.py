@@ -130,6 +130,7 @@ ALLOWLIST = {
     "Henret.fail_marks_owned_resource_closing":     (set(), STD),
     "Henret.cancelTree_marks_descendant_resource_closing": (set(), STD),
     "Henret.full_has_resourceLifetime": (set(), STD),
+    "Henret.full_has_schedulingPolicy": (set(), STD),
     # RFC 057: per-branch behavioural theorems
     "Henret.acquire_running_allocates":          (set(), STD),
     "Henret.acquire_not_running_invalid":        (set(), STD),
@@ -154,6 +155,12 @@ ALLOWLIST = {
     "Henret.backpressured_not_fault":          (set(), STD),
     "Henret.timedOut_not_fault":               (set(), STD),
     "Henret.ok_not_fault":                     (set(), STD),
+    # RFC 058: scheduling policy layer
+    "Henret.reorder_preserves_wf":      (set(), STD_C),
+    "Henret.policyStep_preserves_wf":   (set(), STD_C),
+    "Henret.policy_does_not_create_task": (set(), STD),
+    "Henret.fifo_policy_equiv_schedule": (set(), STD),
+    "Henret.schedule_preserves_nextId":  (set(), STD),
 }
 
 text = sys.stdin.read()

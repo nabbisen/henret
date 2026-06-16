@@ -12,12 +12,13 @@ theorem or the behavior of `step`/`run`. The vocabulary lives in
 |---|---|---|
 | `core` | lifecycle | bare task lifecycle: spawn, schedule, yield, complete, cancel |
 | `actor` | + actorMessaging, parking, occurrenceIdentity | actor mailboxes, parking on empty receive, message occurrence identity |
-| `full` | + timers, supervision, bridge, boundedMailbox | every currently-implemented feature |
+| `full` | + timers, supervision, bridge, boundedMailbox, resourceLifetime, schedulingPolicy | every currently-implemented feature |
 
 Inclusion is kernel-proven: `core_le_actor`, `actor_le_full`,
-`core_le_full` (all depend only on `propext`). Reserved features
-`schedulingPolicy` (RFC 058) and `resourceLifetime` (RFC 057) exist in
-the `SemanticFeature` enum but appear in no named profile yet.
+`core_le_full` (all depend only on `propext`). The `full` profile carries every
+implemented feature, including `resourceLifetime` (RFC 057,
+`full_has_resourceLifetime`) and `schedulingPolicy` (RFC 058,
+`full_has_schedulingPolicy`).
 
 ## Theorem → minimum profile
 

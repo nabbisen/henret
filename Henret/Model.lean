@@ -5,6 +5,7 @@ import Henret.Actor.Mailbox
 import Henret.Scheduler.Op
 import Henret.Scheduler.Timer
 import Henret.Scheduler.Model
+import Henret.Scheduler.Policy
 import Henret.Scheduler.Driver
 
 /-!

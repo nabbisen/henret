@@ -182,6 +182,8 @@ IGNORE = {
     "resource_finalize_allocated_invalid", "resource_cancel_marks_closing",
     "resource_fail_marks_closing", "resource_complete_marks_closing",
     "resource_finalize_closing_released", "resource_acquire_not_running_invalid",
+    # RFC 058 SchedulingPolicy field referenced bare (dotted form is checked)
+    "choose_sound",
 }
 
 NAME_RE = re.compile(r"`([A-Za-z][A-Za-z0-9_.']*)`")

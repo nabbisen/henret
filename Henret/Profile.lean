@@ -77,7 +77,8 @@ def actor : SemanticProfile :=
     timers, supervision (fail/restart), and the bridge. -/
 def full : SemanticProfile :=
   ⟨[.lifecycle, .actorMessaging, .timers, .parking, .supervision,
-    .occurrenceIdentity, .bridge, .boundedMailbox, .resourceLifetime], by decide⟩
+    .occurrenceIdentity, .bridge, .boundedMailbox, .resourceLifetime,
+    .schedulingPolicy], by decide⟩
 
 end Profile
 
@@ -104,5 +105,8 @@ theorem full_has_boundedMailbox : Profile.full.Has .boundedMailbox := by decide
 
 /-- The full profile includes resource lifetime / finalization (RFC 057). -/
 theorem full_has_resourceLifetime : Profile.full.Has .resourceLifetime := by decide
+
+/-- The full profile includes the scheduling-policy layer (RFC 058). -/
+theorem full_has_schedulingPolicy : Profile.full.Has .schedulingPolicy := by decide
 
 end Henret

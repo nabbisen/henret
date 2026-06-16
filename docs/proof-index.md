@@ -695,3 +695,24 @@ classes and the out-of-model adapter/backend classes) is in
 | `blocked_not_fault`, `backpressured_not_fault`, `timedOut_not_fault`, `ok_not_fault` | waiting, timeout, and normal progress are **not** faults |
 
 No new operations, results, or axioms; existing semantics unchanged.
+
+### RFC 058 — Scheduling Policy Layer
+
+A policy-parametric layer over the *unchanged* core scheduler
+(`Henret/Scheduler/Policy.lean`, proofs in `Henret/Proofs/Policy.lean`). A
+`SchedulingPolicy` is a sound chooser over `readyQ` (`choose_sound`); the
+derived runner `policyStep` reorders the chosen task to the head (a queue
+permutation) and runs the core `schedule`. Policy choice changes *ordering*,
+never the set of runnable tasks.
+
+| Theorem | Statement |
+|---|---|
+| `reorder_preserves_wf` | moving the chosen ready task to the queue head preserves all 33 `WellFormed` fields (a `readyQ` permutation) |
+| `policyStep_preserves_wf` | **every** policy preserves `WellFormed` (parametric in the policy), so FIFO, LIFO, and any future sound policy inherit the full invariant |
+| `policy_does_not_create_task` | a policy step never allocates a task id |
+| `fifo_policy_equiv_schedule` | the FIFO policy is exactly the core `schedule` (the head-to-head reorder is a no-op) |
+| `fifo_picks_head`, `lifo_picks_last` | the two built-in policies select opposite ends of the queue |
+| `full_has_schedulingPolicy` | the `full` profile carries the `schedulingPolicy` feature |
+
+No change to the core scheduler, no new `RuntimeOp`, no fairness claim (RFC 058
+non-goals).

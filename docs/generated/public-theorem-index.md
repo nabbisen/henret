@@ -2,7 +2,7 @@
 
 # Public theorem index
 
-The 103 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 109 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
@@ -25,10 +25,12 @@ The 103 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.core_le_actor`
 - `Henret.core_le_full`
 - `Henret.fail_marks_owned_resource_closing`
+- `Henret.fifo_policy_equiv_schedule`
 - `Henret.finalize_allocated_invalid`
 - `Henret.finalize_closing_ok`
 - `Henret.finalize_released_invalid`
 - `Henret.full_has_resourceLifetime`
+- `Henret.full_has_schedulingPolicy`
 - `Henret.inject_full_backpressured`
 - `Henret.inject_stamps_none`
 - `Henret.inject_unbounded_not_backpressured`
@@ -37,6 +39,8 @@ The 103 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.nextResourceId_monotone_step`
 - `Henret.ok_not_fault`
 - `Henret.parent_chain_terminates`
+- `Henret.policyStep_preserves_wf`
+- `Henret.policy_does_not_create_task`
 - `Henret.preserves_wf_acquire`
 - `Henret.preserves_wf_cancelTree`
 - `Henret.preserves_wf_finalize`
@@ -70,9 +74,11 @@ The 103 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.release_released_invalid`
 - `Henret.released_resource_never_live_run`
 - `Henret.released_resource_never_live_step`
+- `Henret.reorder_preserves_wf`
 - `Henret.restart_preserves_parent_acyclicity`
 - `Henret.restarted_task_has_owner`
 - `Henret.run_preserves_wf`
+- `Henret.schedule_preserves_nextId`
 - `Henret.send_full_backpressured`
 - `Henret.send_stamps_source`
 - `Henret.send_unbounded_not_backpressured`
