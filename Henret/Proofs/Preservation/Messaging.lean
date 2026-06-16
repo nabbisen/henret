@@ -30,6 +30,86 @@ private theorem nextMsgId_fresh {s : RuntimeState} (h : WellFormed s)
   obtain ⟨e, he, hocc⟩ := List.mem_map.mp hmem
   exact Nat.lt_irrefl _ (hocc ▸ h.occ_fresh a mb e hmb he)
 
+-- ─── RFC 062 Phase 2A: occurrence fields under enqueue ─────────────────────
+-- The three occurrence-identity fields (`occ_fresh`/`occ_nodup`/`occ_disjoint`)
+-- have an identical proof at every enqueue site — `send` and `inject`, in both
+-- the waiter-present and waiter-absent branches. The proof is occurrence-only
+-- (it never reads the envelope's `source`), so one helper trio covers all of
+-- them. Each helper is parameterized by the enqueue characterization: mailbox
+-- `b` gains `env` (with `env.occurrence = s.nextMsgId`), `nextMsgId` bumps by
+-- one, all other mailboxes unchanged. Capacity (`mailbox_within_capacity`) is
+-- deliberately *not* folded in here — `send`/`inject` grow a mailbox and must
+-- prove the new length stays within capacity, which is real reasoning kept
+-- explicit at each site.
+
+/-- `occ_fresh` after an enqueue of a fresh-occurrence envelope. -/
+private theorem wf_occ_fresh_under_enqueue {s s' : RuntimeState} (h : WellFormed s)
+    {b : ActorId} {mb : Mailbox} (env : Envelope)
+    (hmb : s.mailboxes b = some mb) (hocc : env.occurrence = s.nextMsgId)
+    (hmbx : s'.mailboxes = upd s.mailboxes b (some (mb.enqueue env)))
+    (hnext : s'.nextMsgId = s.nextMsgId + 1) :
+    ∀ ac mc e, s'.mailboxes ac = some mc → e ∈ mc.messages →
+      e.occurrence < s'.nextMsgId := by
+  intro ac mc e hmbc henv
+  rw [hnext]
+  by_cases hac : ac = b
+  · subst hac; rw [hmbx, upd_self] at hmbc
+    have hmc := Option.some.inj hmbc; subst hmc
+    simp only [Mailbox.enqueue, List.mem_append, List.mem_singleton] at henv
+    rcases henv with henv | rfl
+    · exact Nat.lt_succ_of_lt (h.occ_fresh _ mb e hmb henv)
+    · rw [hocc]; exact Nat.lt_succ_self _
+  · rw [hmbx, upd_ne _ _ hac] at hmbc
+    exact Nat.lt_succ_of_lt (h.occ_fresh ac mc e hmbc henv)
+
+/-- `occ_nodup` after an enqueue of a fresh-occurrence envelope. -/
+private theorem wf_occ_nodup_under_enqueue {s s' : RuntimeState} (h : WellFormed s)
+    {b : ActorId} {mb : Mailbox} (env : Envelope)
+    (hmb : s.mailboxes b = some mb) (hocc : env.occurrence = s.nextMsgId)
+    (hmbx : s'.mailboxes = upd s.mailboxes b (some (mb.enqueue env))) :
+    ∀ ac mc, s'.mailboxes ac = some mc →
+      (mc.messages.map Envelope.occurrence).Nodup := by
+  intro ac mc hmbc
+  by_cases hac : ac = b
+  · subst hac; rw [hmbx, upd_self] at hmbc
+    have hmc := Option.some.inj hmbc; subst hmc
+    simp only [Mailbox.enqueue, List.map_append, List.map_singleton]
+    rw [hocc]
+    exact nodup_append_singleton (h.occ_nodup _ mb hmb) (nextMsgId_fresh h hmb)
+  · rw [hmbx, upd_ne _ _ hac] at hmbc; exact h.occ_nodup ac mc hmbc
+
+/-- `occ_disjoint` after an enqueue of a fresh-occurrence envelope. -/
+private theorem wf_occ_disjoint_under_enqueue {s s' : RuntimeState} (h : WellFormed s)
+    {b : ActorId} {mb : Mailbox} (env : Envelope)
+    (hmb : s.mailboxes b = some mb) (hocc : env.occurrence = s.nextMsgId)
+    (hmbx : s'.mailboxes = upd s.mailboxes b (some (mb.enqueue env))) :
+    ∀ ac bc mba mbb, ac ≠ bc → s'.mailboxes ac = some mba → s'.mailboxes bc = some mbb →
+      ∀ ea ∈ mba.messages, ∀ eb ∈ mbb.messages, ea.occurrence ≠ eb.occurrence := by
+  intro ac bc mba mbb hab hmba hmbb ea hea eb heb
+  rw [hmbx] at hmba hmbb
+  by_cases hac : ac = b <;> by_cases hbc : bc = b
+  · exact absurd (hac.trans hbc.symm) hab
+  · simp only [hac, upd_self] at hmba
+    have hv := Option.some.inj hmba; subst hv
+    simp only [upd, if_neg hbc] at hmbb
+    simp only [Mailbox.enqueue, List.mem_append, List.mem_singleton] at hea
+    rcases hea with hea | rfl
+    · exact h.occ_disjoint ac bc mb mbb hab (hac ▸ hmb) hmbb ea hea eb heb
+    · intro heq
+      have h1 : eb.occurrence < s.nextMsgId := h.occ_fresh bc mbb eb hmbb heb
+      rw [← heq, hocc] at h1; exact Nat.lt_irrefl _ h1
+  · simp only [hbc, upd_self] at hmbb
+    have hv := Option.some.inj hmbb; subst hv
+    simp only [upd, if_neg hac] at hmba
+    simp only [Mailbox.enqueue, List.mem_append, List.mem_singleton] at heb
+    rcases heb with heb | rfl
+    · exact h.occ_disjoint ac bc mba mb hab hmba (hbc ▸ hmb) ea hea eb heb
+    · intro heq
+      have h1 : ea.occurrence < s.nextMsgId := h.occ_fresh ac mba ea hmba hea
+      rw [heq, hocc] at h1; exact Nat.lt_irrefl _ h1
+  · simp only [upd, if_neg hac] at hmba; simp only [upd, if_neg hbc] at hmbb
+    exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
+
 -- ─── send: WellFormed preservation ────────────────────────────────────────
 
 theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
@@ -91,44 +171,11 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                       (by simpa [step, hcl, hrt, hts, how, hmb, hw, hfull] using hp)
                     exact ⟨st, by simpa [step, hcl, hrt, hts, how, hmb, hw, hfull] using hst⟩
                   · -- occ_fresh
-                    intro ac mc env hmbc henv
-                    by_cases hac : ac = b
-                    · subst hac; simp only [upd_self] at hmbc
-                      have hmc := Option.some.inj hmbc; subst hmc
-                      simp only [Mailbox.enqueue, List.mem_append, List.mem_singleton] at henv
-                      rcases henv with henv | rfl
-                      · exact Nat.lt_succ_of_lt (h.occ_fresh _ mb env hmb henv)
-                      · exact Nat.lt_succ_self _
-                    · simp only [upd, if_neg hac] at hmbc
-                      exact Nat.lt_succ_of_lt (h.occ_fresh ac mc env hmbc henv)
+                    exact wf_occ_fresh_under_enqueue h ⟨s.nextMsgId, s.taskOwner t, m⟩ hmb rfl rfl rfl
                   · -- occ_nodup
-                    intro ac mc hmbc
-                    by_cases hac : ac = b
-                    · subst hac; simp only [upd_self] at hmbc
-                      have hmc := Option.some.inj hmbc; subst hmc
-                      simp only [Mailbox.enqueue, List.map_append, List.map_singleton]
-                      exact nodup_append_singleton (h.occ_nodup _ mb hmb) (nextMsgId_fresh h hmb)
-                    · simp only [upd, if_neg hac] at hmbc; exact h.occ_nodup ac mc hmbc
+                    exact wf_occ_nodup_under_enqueue h ⟨s.nextMsgId, s.taskOwner t, m⟩ hmb rfl rfl
                   · -- occ_disjoint (RFC 033): send nil
-                    intro ac bc mba mbb hab hmba hmbb ea hea eb heb
-                    by_cases hac : ac = b <;> by_cases hbc : bc = b
-                    · exact absurd (hac.trans hbc.symm) hab
-                    · simp only [hac, upd_self] at hmba
-                      have hv := Option.some.inj hmba; subst hv
-                      simp only [upd, if_neg hbc] at hmbb
-                      simp only [Mailbox.enqueue, List.mem_append, List.mem_singleton] at hea
-                      rcases hea with hea | rfl
-                      · exact h.occ_disjoint ac bc mb mbb hab (hac ▸ hmb) hmbb ea hea eb heb
-                      · intro heq; exact Nat.lt_irrefl _ (heq ▸ h.occ_fresh bc mbb eb hmbb heb)
-                    · simp only [hbc, upd_self] at hmbb
-                      have hv := Option.some.inj hmbb; subst hv
-                      simp only [upd, if_neg hac] at hmba
-                      simp only [Mailbox.enqueue, List.mem_append, List.mem_singleton] at heb
-                      rcases heb with heb | rfl
-                      · exact h.occ_disjoint ac bc mba mb hab hmba (hbc ▸ hmb) ea hea eb heb
-                      · intro heq; exact Nat.lt_irrefl _ (heq.symm ▸ h.occ_fresh ac mba ea hmba hea)
-                    · simp only [upd, if_neg hac] at hmba; simp only [upd, if_neg hbc] at hmbb
-                      exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
+                    exact wf_occ_disjoint_under_enqueue h ⟨s.nextMsgId, s.taskOwner t, m⟩ hmb rfl rfl
                   · -- owner_spawned (RFC 038): taskOwner unchanged; taskState = s.taskState
                     intro u a' how'
                     exact h.owner_spawned u a' how'
@@ -239,49 +286,15 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                     obtain ⟨st, hst⟩ := h.parent_spawned u p (by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] using hp)
                     exact step_preserves_spawned hst _
                   · -- occ_fresh: nextMsgId + 1; mailbox b updated
-                    intro ac mc env hmbc henv
-                    have hmi : ((step s (.send t b m)).1).nextMsgId = s.nextMsgId + 1 := by
-                      simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull]
-                    rw [hmi]
-                    by_cases hac : ac = b
-                    · rw [hac, send_appends hrt hts how hmb hcl hfull m] at hmbc
-                      have hv := Option.some.inj hmbc; subst hv
-                      simp only [List.mem_append, List.mem_singleton] at henv
-                      rcases henv with henv | rfl
-                      · exact Nat.lt_succ_of_lt (h.occ_fresh _ mb env hmb henv)
-                      · exact Nat.lt_succ_self _
-                    · rw [send_preserves_other hac m] at hmbc
-                      exact Nat.lt_succ_of_lt (h.occ_fresh ac mc env hmbc henv)
+                    exact wf_occ_fresh_under_enqueue h ⟨s.nextMsgId, s.taskOwner t, m⟩ hmb rfl
+                      (by simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull])
+                      (by simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull])
                   · -- occ_nodup
-                    intro ac mc hmbc
-                    by_cases hac : ac = b
-                    · rw [hac, send_appends hrt hts how hmb hcl hfull m] at hmbc
-                      have hv := Option.some.inj hmbc; subst hv
-                      simp only [List.map_append, List.map_singleton]
-                      exact nodup_append_singleton (h.occ_nodup _ mb hmb) (nextMsgId_fresh h hmb)
-                    · rw [send_preserves_other hac m] at hmbc
-                      exact h.occ_nodup ac mc hmbc
+                    exact wf_occ_nodup_under_enqueue h ⟨s.nextMsgId, s.taskOwner t, m⟩ hmb rfl
+                      (by simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull])
                   · -- occ_disjoint
-                    intro ac bc mba mbb hab hmba hmbb ea hea eb heb
-                    by_cases hac : ac = b <;> by_cases hbc : bc = b
-                    · exact absurd (hac.trans hbc.symm) hab
-                    · rw [hac, send_appends hrt hts how hmb hcl hfull m] at hmba
-                      have hv := Option.some.inj hmba; subst hv
-                      rw [send_preserves_other hbc m] at hmbb
-                      simp only [List.mem_append, List.mem_singleton] at hea
-                      rcases hea with hea | rfl
-                      · exact h.occ_disjoint ac bc mb mbb hab (hac ▸ hmb) hmbb ea hea eb heb
-                      · intro heq; exact Nat.lt_irrefl _ (heq ▸ h.occ_fresh bc mbb eb hmbb heb)
-                    · rw [hbc, send_appends hrt hts how hmb hcl hfull m] at hmbb
-                      have hv := Option.some.inj hmbb; subst hv
-                      rw [send_preserves_other hac m] at hmba
-                      simp only [List.mem_append, List.mem_singleton] at heb
-                      rcases heb with heb | rfl
-                      · exact h.occ_disjoint ac bc mba mb hab hmba (hbc ▸ hmb) ea hea eb heb
-                      · intro heq; exact Nat.lt_irrefl _ (heq.symm ▸ h.occ_fresh ac mba ea hmba hea)
-                    · rw [send_preserves_other hac m] at hmba
-                      rw [send_preserves_other hbc m] at hmbb
-                      exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
+                    exact wf_occ_disjoint_under_enqueue h ⟨s.nextMsgId, s.taskOwner t, m⟩ hmb rfl
+                      (by simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull])
                   · -- owner_spawned
                     intro u a' how'
                     obtain ⟨st, hst⟩ := h.owner_spawned u a'
@@ -480,49 +493,15 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                   obtain ⟨st, hst⟩ := h.parent_spawned u p (by simpa [step, hcl, hrt, hts, how, hmb, hw, hfull] using hp)
                   exact step_preserves_spawned hst _
                 · -- occ_fresh (RFC 033): send cons, nextMsgId + 1
-                  intro ac mc env hmbc henv
-                  have hmi : ((step s (.send t b m)).1).nextMsgId = s.nextMsgId + 1 := by
-                    simp [step, hcl, hrt, hts, how, hmb, hw, hfull]
-                  rw [hmi]
-                  by_cases hac : ac = b
-                  · rw [hac, send_appends hrt hts how hmb hcl hfull m] at hmbc
-                    have hv := Option.some.inj hmbc; subst hv
-                    simp only [List.mem_append, List.mem_singleton] at henv
-                    rcases henv with henv | rfl
-                    · exact Nat.lt_succ_of_lt (h.occ_fresh _ mb env hmb henv)
-                    · exact Nat.lt_succ_self _
-                  · rw [send_preserves_other hac m] at hmbc
-                    exact Nat.lt_succ_of_lt (h.occ_fresh ac mc env hmbc henv)
+                  exact wf_occ_fresh_under_enqueue h ⟨s.nextMsgId, s.taskOwner t, m⟩ hmb rfl
+                    (by simp [step, hcl, hrt, hts, how, hmb, hw, hfull])
+                    (by simp [step, hcl, hrt, hts, how, hmb, hw, hfull])
                 · -- occ_nodup (RFC 033): send cons
-                  intro ac mc hmbc
-                  by_cases hac : ac = b
-                  · rw [hac, send_appends hrt hts how hmb hcl hfull m] at hmbc
-                    have hv := Option.some.inj hmbc; subst hv
-                    simp only [List.map_append, List.map_singleton]
-                    exact nodup_append_singleton (h.occ_nodup _ mb hmb) (nextMsgId_fresh h hmb)
-                  · rw [send_preserves_other hac m] at hmbc
-                    exact h.occ_nodup ac mc hmbc
+                  exact wf_occ_nodup_under_enqueue h ⟨s.nextMsgId, s.taskOwner t, m⟩ hmb rfl
+                    (by simp [step, hcl, hrt, hts, how, hmb, hw, hfull])
                 · -- occ_disjoint (RFC 033): send cons
-                  intro ac bc mba mbb hab hmba hmbb ea hea eb heb
-                  by_cases hac : ac = b <;> by_cases hbc : bc = b
-                  · exact absurd (hac.trans hbc.symm) hab
-                  · rw [hac, send_appends hrt hts how hmb hcl hfull m] at hmba
-                    have hv := Option.some.inj hmba; subst hv
-                    rw [send_preserves_other hbc m] at hmbb
-                    simp only [List.mem_append, List.mem_singleton] at hea
-                    rcases hea with hea | rfl
-                    · exact h.occ_disjoint ac bc mb mbb hab (hac ▸ hmb) hmbb ea hea eb heb
-                    · intro heq; exact Nat.lt_irrefl _ (heq ▸ h.occ_fresh bc mbb eb hmbb heb)
-                  · rw [hbc, send_appends hrt hts how hmb hcl hfull m] at hmbb
-                    have hv := Option.some.inj hmbb; subst hv
-                    rw [send_preserves_other hac m] at hmba
-                    simp only [List.mem_append, List.mem_singleton] at heb
-                    rcases heb with heb | rfl
-                    · exact h.occ_disjoint ac bc mba mb hab hmba (hbc ▸ hmb) ea hea eb heb
-                    · intro heq; exact Nat.lt_irrefl _ (heq.symm ▸ h.occ_fresh ac mba ea hmba hea)
-                  · rw [send_preserves_other hac m] at hmba
-                    rw [send_preserves_other hbc m] at hmbb
-                    exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
+                  exact wf_occ_disjoint_under_enqueue h ⟨s.nextMsgId, s.taskOwner t, m⟩ hmb rfl
+                    (by simp [step, hcl, hrt, hts, how, hmb, hw, hfull])
                 · -- owner_spawned (RFC 038): taskOwner unchanged by send
                   intro u a' how'
                   obtain ⟨st, hst⟩ := h.owner_spawned u a'
@@ -1017,45 +996,11 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
             · exact ⟨.ready, by simp [hpt, upd_self]⟩
             · exact ⟨st, by simp [upd_ne _ _ hpt]; exact hst⟩
           · -- occ_fresh
-            intro ac mc env hmbc henv
-            change env.occurrence < s.nextMsgId + 1
-            by_cases hac : ac = a
-            · rw [hac] at hmbc; simp only [upd_self] at hmbc
-              have hv := Option.some.inj hmbc; subst hv
-              simp only [Mailbox.enqueue, List.mem_append, List.mem_singleton] at henv
-              rcases henv with henv | rfl
-              · exact Nat.lt_succ_of_lt (h.occ_fresh a mb env hmb henv)
-              · exact Nat.lt_succ_self _
-            · simp only [upd, if_neg hac] at hmbc
-              exact Nat.lt_succ_of_lt (h.occ_fresh ac mc env hmbc henv)
+            exact wf_occ_fresh_under_enqueue h ⟨s.nextMsgId, none, m⟩ hmb rfl rfl rfl
           · -- occ_nodup
-            intro ac mc hmbc
-            by_cases hac : ac = a
-            · rw [hac] at hmbc; simp only [upd_self] at hmbc
-              have hv := Option.some.inj hmbc; subst hv
-              simp only [Mailbox.enqueue, List.map_append, List.map_singleton]
-              exact nodup_append_singleton (h.occ_nodup a mb hmb) (nextMsgId_fresh h hmb)
-            · simp only [upd, if_neg hac] at hmbc; exact h.occ_nodup ac mc hmbc
+            exact wf_occ_nodup_under_enqueue h ⟨s.nextMsgId, none, m⟩ hmb rfl rfl
           · -- occ_disjoint
-            intro ac bc mba mbb hab hmba hmbb ea hea eb heb
-            by_cases hac : ac = a <;> by_cases hbc : bc = a
-            · exact absurd (hac.trans hbc.symm) hab
-            · rw [hac] at hmba; simp only [upd_self] at hmba
-              have hv := Option.some.inj hmba; subst hv
-              simp only [upd, if_neg hbc] at hmbb
-              simp only [Mailbox.enqueue, List.mem_append, List.mem_singleton] at hea
-              rcases hea with hea | rfl
-              · exact h.occ_disjoint ac bc mb mbb hab (hac ▸ hmb) hmbb ea hea eb heb
-              · intro heq; exact Nat.lt_irrefl _ (heq ▸ h.occ_fresh bc mbb eb hmbb heb)
-            · rw [hbc] at hmbb; simp only [upd_self] at hmbb
-              have hv := Option.some.inj hmbb; subst hv
-              simp only [upd, if_neg hac] at hmba
-              simp only [Mailbox.enqueue, List.mem_append, List.mem_singleton] at heb
-              rcases heb with heb | rfl
-              · exact h.occ_disjoint ac bc mba mb hab hmba (hbc ▸ hmb) ea hea eb heb
-              · intro heq; exact Nat.lt_irrefl _ (heq.symm ▸ h.occ_fresh ac mba ea hmba hea)
-            · simp only [upd, if_neg hac] at hmba; simp only [upd, if_neg hbc] at hmbb
-              exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
+            exact wf_occ_disjoint_under_enqueue h ⟨s.nextMsgId, none, m⟩ hmb rfl rfl
           · -- owner_spawned
             intro u a' how'; obtain ⟨st, hst⟩ := h.owner_spawned u a' how'
             by_cases hue : u = w
@@ -1201,49 +1146,15 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
           obtain ⟨st, hst⟩ := h.parent_spawned u p (by simpa [step, hrs, hopen, hmb, hw, hfull] using hp)
           exact step_preserves_spawned hst _
         · -- occ_fresh (RFC 033): inject cons
-          intro ac mc env hmbc henv
-          have hmi : ((step s (.inject a m)).1).nextMsgId = s.nextMsgId + 1 := by
-            simp [step, hrs, hopen, hmb, hw, hfull]
-          rw [hmi]
-          by_cases hac : ac = a
-          · rw [hac] at hmbc; rw [inject_appends hmb hrs hopen hfull m] at hmbc
-            have hv := Option.some.inj hmbc; subst hv
-            simp only [List.mem_append, List.mem_singleton] at henv
-            rcases henv with henv | rfl
-            · exact Nat.lt_succ_of_lt (h.occ_fresh a mb env hmb henv)
-            · exact Nat.lt_succ_self _
-          · rw [inject_preserves_other hac m] at hmbc
-            exact Nat.lt_succ_of_lt (h.occ_fresh ac mc env hmbc henv)
+          exact wf_occ_fresh_under_enqueue h ⟨s.nextMsgId, none, m⟩ hmb rfl
+            (by simp [step, hrs, hopen, hmb, hw, hfull])
+            (by simp [step, hrs, hopen, hmb, hw, hfull])
         · -- occ_nodup (RFC 033): inject cons
-          intro ac mc hmbc
-          by_cases hac : ac = a
-          · rw [hac] at hmbc; rw [inject_appends hmb hrs hopen hfull m] at hmbc
-            have hv := Option.some.inj hmbc; subst hv
-            simp only [List.map_append, List.map_singleton]
-            exact nodup_append_singleton (h.occ_nodup a mb hmb) (nextMsgId_fresh h hmb)
-          · rw [inject_preserves_other hac m] at hmbc
-            exact h.occ_nodup ac mc hmbc
+          exact wf_occ_nodup_under_enqueue h ⟨s.nextMsgId, none, m⟩ hmb rfl
+            (by simp [step, hrs, hopen, hmb, hw, hfull])
         · -- occ_disjoint (RFC 033): inject cons
-          intro ac bc mba mbb hab hmba hmbb ea hea eb heb
-          by_cases hac : ac = a <;> by_cases hbc : bc = a
-          · exact absurd (hac.trans hbc.symm) hab
-          · rw [hac] at hmba; rw [inject_appends hmb hrs hopen hfull m] at hmba
-            have hv := Option.some.inj hmba; subst hv
-            rw [inject_preserves_other hbc m] at hmbb
-            simp only [List.mem_append, List.mem_singleton] at hea
-            rcases hea with hea | rfl
-            · exact h.occ_disjoint ac bc mb mbb hab (hac ▸ hmb) hmbb ea hea eb heb
-            · intro heq; exact Nat.lt_irrefl _ (heq ▸ h.occ_fresh bc mbb eb hmbb heb)
-          · rw [hbc] at hmbb; rw [inject_appends hmb hrs hopen hfull m] at hmbb
-            have hv := Option.some.inj hmbb; subst hv
-            rw [inject_preserves_other hac m] at hmba
-            simp only [List.mem_append, List.mem_singleton] at heb
-            rcases heb with heb | rfl
-            · exact h.occ_disjoint ac bc mba mb hab hmba (hbc ▸ hmb) ea hea eb heb
-            · intro heq; exact Nat.lt_irrefl _ (heq.symm ▸ h.occ_fresh ac mba ea hmba hea)
-          · rw [inject_preserves_other hac m] at hmba
-            rw [inject_preserves_other hbc m] at hmbb
-            exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
+          exact wf_occ_disjoint_under_enqueue h ⟨s.nextMsgId, none, m⟩ hmb rfl
+            (by simp [step, hrs, hopen, hmb, hw, hfull])
         · -- owner_spawned (RFC 038): taskOwner unchanged; taskState changes at w
           intro u a' how'
           obtain ⟨st, hst⟩ := h.owner_spawned u a' (by simpa [step, hrs, hopen, hmb, hw, hfull] using how')

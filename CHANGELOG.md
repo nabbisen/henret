@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.31.0 — Proof Ergonomics Library, Phase 2A (RFC 062)
+
+Messaging-only proof-ergonomics slice, architect-approved (Phase 2A). **No model
+change, no new op** — additive proof engineering; same theorem statements and
+public names, axioms unchanged, all nine fast gates green. RFC 062 stays Proposed
+(Phase 2B/Lifecycle gated on a 2A review).
+
+- Extracted the occurrence-identity fields under enqueue
+  (`occ_fresh`/`occ_nodup`/`occ_disjoint`) into three `private`
+  `*_under_enqueue` helpers in `Preservation/Messaging.lean`, shared by all five
+  `send`/`inject` enqueue sites. The proof is occurrence-only (source-agnostic),
+  so one helper trio replaces five inline copies. `Messaging.lean`: 2078 → 1989
+  lines; the occ proof is now defined once.
+- `send`/`inject` `mailbox_within_capacity` reasoning kept explicit (an enqueue
+  grows the mailbox; the not-full guard bounds the new length) — never disguised
+  as a pass-through (architect §10).
+- New `docs/proof-ergonomics-metrics.md` records the dummy-op file-touch
+  measurement (method defined in `docs/proof-style.md`; not a CI gate). Honest
+  finding: Phase 2A is a Shape-B (lines/duplication) win, not a Shape-A
+  (file-count) one.
+- `docs/proof-style.md`: recorded the simp-set permission rule (RFC 062 Phase 1
+  lesson) and the Phase-2 evidence gate; added the measurement method and the
+  Phase-2A/2B/2C status.
+- Public theorem surface unchanged (still 101 names; the new helpers are private
+  and not on the prefix-defined public surface). Matrix claims 233–234.
+
 ## v0.30.0 — Proof Ergonomics Library, Phase 1 (RFC 062)
 
 First slice of a phased, architect-gated proof-style modernization. **No model

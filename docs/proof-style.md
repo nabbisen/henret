@@ -122,6 +122,26 @@ sanctioned; the right place to evaluate them is **Phase 2 on `Messaging.lean` /
 and the payoff is measurable. Any set added then must be built green against the
 two largest proof files before landing (architect §13.5).
 
+### Simp-set permission rule (RFC 062 Phase 1 lesson; Phase 2 evidence gate)
+
+> Named simp-sets are permitted only when they demonstrably reduce repetition, do
+> not add heavy imports to the default `import Henret` graph, and remain narrow
+> enough that their contents are reviewable.
+
+Concretely, a named simp-set may ship in Phase 2 only if **all** of these hold
+(architect Phase-2 ruling §8):
+
+1. it fires in real proofs, not just toy examples;
+2. it reduces repeated local proof text;
+3. it does not cause broad `step` expansion;
+4. it does not require `Lean.Meta.*` in the default `import Henret` graph;
+5. its complete lemma membership is documented;
+6. it is tested against the two largest proof files;
+7. removing a lemma from the set has a clear, local failure mode.
+
+If no candidate qualifies, **ship no simp-set** — that is a valid RFC 062
+outcome. Explicit lemma invocation is preferred over a marginal set.
+
 ---
 
 ## 4. Operation-classification rule
@@ -278,19 +298,39 @@ touches and should shrink. Shape-A classification arms *are* meaningful and stay
 Secondary signals: public-theorem statements changed (target 0), helper lemmas
 introduced, simp-set lemmas added (each governed by §3), proof lines removed.
 
+**Method.** Add a dummy inert `RuntimeOp`, count the proof files that must change
+to keep the build green, and classify each remaining touch as *meaningful* (a
+genuine op-specific decision) or *mechanical* (a pass-through obligation a helper
+should absorb). Record observations — not a permanent target number — in
+`docs/proof-ergonomics-metrics.md`. This file defines the method; that file
+carries the dated readings. The metric is **not** a CI gate (architect §7): it
+informs design, it does not become a brittle performance bar.
+
+A Shape-B refactor (intra-proof field bullets) typically leaves the file *count*
+unchanged — the enumeration cascade is Shape A — while shrinking the per-op proof
+*within* the file a new op already touches. Both effects are real; do not read an
+unchanged file count as "no improvement."
+
 ---
 
 ## Appendix — RFC 062 phase status
 
-* **Phase 1 (v0.30.0, this document):** proof-style guide; public-theorem diff
+* **Phase 1 (v0.30.0):** proof-style guide; public-theorem diff
   gate; `Time.lean` pilot — extracted `wf_mailbox_capacity_pass` (the three time
   blocks now share one field-specific helper for `mailbox_within_capacity`),
   same theorem statements/names, axioms unchanged, no simp-set added (§3
   finding).
-* **Phase 2 (review-gated):** bulk record-build refactor of `Messaging.lean` /
-  `Lifecycle.lean` / `Resource.lean` with field-specific helper *families*
-  (`wf_field_unchanged_under_time_op`, `wf_waiter_fields_pass`, …); re-evaluate
-  named simp-sets on the dense files; optional explicit op-classification
-  function (§4). No catch-all, ever.
+* **Phase 2A (v0.31.0):** `Messaging.lean` only. Extracted the occurrence-identity
+  fields under enqueue (`occ_fresh`/`occ_nodup`/`occ_disjoint`) into three
+  `private` `*_under_enqueue` helpers shared by all five `send`/`inject` enqueue
+  sites (the proof is occurrence-only, so source-agnostic). Capacity and
+  waiter/timer reasoning left explicit (real per-op reasoning, architect §10). No
+  public statement/name change; axioms unchanged; no simp-set, no macro, no
+  Shape-A migration. Measurement recorded in `docs/proof-ergonomics-metrics.md`.
+* **Phase 2B (review-gated, after 2A review):** `Lifecycle.lean`; optional
+  one-projection Shape-A classification *pilot* only (architect §6). No catch-all,
+  ever.
+* **Phase 2C (only if warranted):** `Resource.lean`, only if a concrete repeated
+  proof mass appears.
 * **Phase 3 (new review required):** at most one small, goal-local macro, only if
   still justified after Phase 2 measurement.

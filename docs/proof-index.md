@@ -914,4 +914,29 @@ withdrawn — the `upd` lemmas do not compose under a named `simp only` set, and
 registering one would pull a `Lean.Meta.*` import into the otherwise prelude-only
 proof tree for no payoff. Named simp-sets remain sanctioned; adoption is deferred
 to the Phase-2 dense files (`Messaging.lean` / `Lifecycle.lean`) where the payoff
-is measurable. Phases 2–3 are gated on a separate review.
+is measurable. Phases 2B–3 are gated on a separate review.
+
+### RFC 062 — Proof Ergonomics Library (Phase 2A, Messaging.lean)
+
+Architect-approved Messaging-only slice. The five `send`/`inject` enqueue sites
+each carried an identical ~37-line proof of the three occurrence-identity fields
+(`occ_fresh` / `occ_nodup` / `occ_disjoint`). Because that proof reads only the
+*occurrence* of the appended envelope — never its `source` — it is the same for
+`send` and `inject`, in both the waiter-present and waiter-absent branches. It is
+now three `private` helpers (`wf_occ_fresh_under_enqueue`,
+`wf_occ_nodup_under_enqueue`, `wf_occ_disjoint_under_enqueue`) in
+`Preservation/Messaging.lean`, each parameterized by the enqueue
+characterization (mailbox `b` gains `env` with `env.occurrence = s.nextMsgId`,
+`nextMsgId` bumps by one, other mailboxes unchanged). `Messaging.lean` drops from
+2078 to 1989 lines; the occ proof is defined once instead of five times, with the
+same theorem statements/names and unchanged axiom tiers.
+
+`mailbox_within_capacity` is **kept explicit** at every `send`/`inject` site: an
+enqueue grows a mailbox, so the bullet proves the new length stays within
+capacity from the not-full guard (`Mailbox.enqueue_length` +
+`lt_capacity_of_not_full`). It is deliberately not folded into the occ helpers —
+that is real, op-specific reasoning, not a pass-through. The dummy-op file-touch
+measurement is recorded in
+[`docs/proof-ergonomics-metrics.md`](proof-ergonomics-metrics.md); the honest
+reading is that Phase 2A is a Shape-B (lines/duplication) win, not a Shape-A
+(file-count) one. Phase 2B (`Lifecycle.lean`) is gated on a 2A review.

@@ -207,6 +207,12 @@ IGNORE = {
     "preserves_wf_", "step_preserves_", "reachable_", "bridge_", "run_preserves_",
     # RFC 062 §13 withdrawn point-update simp-set (prototyped, never shipped)
     "henret_upd",
+    # RFC 062 Phase 2A: file-private occurrence-under-enqueue helpers in
+    # Preservation/Messaging.lean. They are `private` (not exported), so an
+    # importing #check cannot see them; their names are validated by the
+    # in-tree Messaging.lean build itself (renaming breaks the call sites).
+    "wf_occ_fresh_under_enqueue", "wf_occ_nodup_under_enqueue",
+    "wf_occ_disjoint_under_enqueue",
 }
 
 NAME_RE = re.compile(r"`([A-Za-z][A-Za-z0-9_.']*)`")
