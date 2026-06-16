@@ -112,6 +112,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [090](done/090-drained-permanence.md) | Drained Permanence (Frozen invariant, RFC 057 Tier 2 payoff) | Implemented (v0.26.0) | v0.26.0 |
 | [091](done/091-actor-owned-resources.md) | Actor-Owned Resources (RFC 057 Tier 2) | Implemented (v0.27.0) | v0.27.0 |
 | [092](done/092-clean-stop-predicate.md) | Clean-Stop Predicate (stopped → Drained resolution) | Implemented (v0.28.0) | v0.28.0 |
+| [093](done/093-manual-actor-release.md) | Manual Actor-Resource Release | Implemented (v0.29.0) | v0.29.0 |
 
 ## Archive
 

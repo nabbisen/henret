@@ -668,6 +668,60 @@ def stopWhenIdle_stops_with_live_resource : BranchScenario where
     s.resources 0 == some ⟨.actor 7, .allocated⟩
   covers := ["stopWhenIdle.stops-with-live-resource"]
 
+/-! ## RFC 093 actor-resource manual-release scenarios -/
+
+def releaseActor_ok : BranchScenario where
+  name := "releaseActor_ok"
+  description := "an actor voluntarily releases its own allocated resource"
+  ops := [.spawn 7, .acquireActor 7, .releaseActor 7 0]
+  expected := [.spawned 0, .acquired 0, .ok]
+  finalCheck := fun s => s.resources 0 == some ⟨.actor 7, .released⟩
+  covers := ["releaseActor.owner-allocated-ok"]
+
+def releaseActor_wrong_actor_invalid : BranchScenario where
+  name := "releaseActor_wrong_actor_invalid"
+  description := "an actor cannot release another actor's resource"
+  ops := [.spawn 7, .acquireActor 7, .releaseActor 8 0]
+  expected := [.spawned 0, .acquired 0, .invalid]
+  finalCheck := fun s => s.resources 0 == some ⟨.actor 7, .allocated⟩
+  covers := ["releaseActor.wrong-actor-invalid"]
+  negative := true
+
+def releaseActor_on_task_resource_invalid : BranchScenario where
+  name := "releaseActor_on_task_resource_invalid"
+  description := "releaseActor cannot release a task-owned resource"
+  ops := [.spawn 7, .schedule, .acquire 0, .releaseActor 7 0]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .invalid]
+  finalCheck := fun s => s.resources 0 == some ⟨.task 0, .allocated⟩
+  covers := ["releaseActor.task-owned-invalid"]
+  negative := true
+
+def releaseActor_double_invalid : BranchScenario where
+  name := "releaseActor_double_invalid"
+  description := "double-release of an actor-owned resource is rejected"
+  ops := [.spawn 7, .acquireActor 7, .releaseActor 7 0, .releaseActor 7 0]
+  expected := [.spawned 0, .acquired 0, .ok, .invalid]
+  finalCheck := fun s => s.resources 0 == some ⟨.actor 7, .released⟩
+  covers := ["releaseActor.released-invalid"]
+  negative := true
+
+def releaseActor_enables_drained_stop : BranchScenario where
+  name := "releaseActor_enables_drained_stop"
+  description := "releaseActor drains an actor resource so stopWhenDrained succeeds (no closeActor needed)"
+  ops := [.spawn 7, .acquireActor 7, .schedule, .complete 0, .releaseActor 7 0, .stopWhenDrained]
+  expected := [.spawned 0, .acquired 0, .scheduled 0, .ok, .ok, .ok]
+  finalCheck := fun s => s.runtimeStatus == .stopped && s.resources 0 == some ⟨.actor 7, .released⟩
+  covers := ["releaseActor.enables-drained-stop"]
+
+def releaseActor_not_running_invalid : BranchScenario where
+  name := "releaseActor_not_running_invalid"
+  description := "releaseActor is rejected once the runtime is stopped (control-plane, running-gated)"
+  ops := [.spawn 7, .acquireActor 7, .schedule, .complete 0, .stopWhenIdle, .releaseActor 7 0]
+  expected := [.spawned 0, .acquired 0, .scheduled 0, .ok, .ok, .invalid]
+  finalCheck := fun s => s.runtimeStatus == .stopped && s.resources 0 == some ⟨.actor 7, .allocated⟩
+  covers := ["releaseActor.not-running-invalid"]
+  negative := true
+
 
 /-- The full branch-coverage suite. -/
 def branchScenarios : List BranchScenario :=
@@ -707,7 +761,10 @@ def branchScenarios : List BranchScenario :=
     stopWhenDrained_blocked_by_actor_allocated_resource,
     stopWhenDrained_blocked_by_actor_closing_resource,
     stopWhenDrained_succeeds_after_actor_resource_finalized,
-    stopWhenIdle_stops_with_live_resource ]
+    stopWhenIdle_stops_with_live_resource,
+    releaseActor_ok, releaseActor_wrong_actor_invalid,
+    releaseActor_on_task_resource_invalid, releaseActor_double_invalid,
+    releaseActor_enables_drained_stop, releaseActor_not_running_invalid ]
 
 def branchAllPass : Bool := branchScenarios.all checkBranch
 

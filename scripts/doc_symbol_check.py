@@ -196,6 +196,10 @@ IGNORE = {
     "stopWhenDrained_succeeds_after_actor_resource_finalized",
     # RFC 092 contrast scenario
     "stopWhenIdle_stops_with_live_resource",
+    # RFC 093 manual-actor-release scenarios
+    "releaseActor_ok", "releaseActor_wrong_actor_invalid",
+    "releaseActor_on_task_resource_invalid", "releaseActor_double_invalid",
+    "releaseActor_enables_drained_stop", "releaseActor_not_running_invalid",
     # RFC 058 SchedulingPolicy field referenced bare (dotted form is checked)
     "choose_sound",
 }

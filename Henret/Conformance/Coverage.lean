@@ -125,7 +125,13 @@ def coverageRegistry : List CoverageEntry :=
     { op := "stopWhenDrained", branchId := "stopWhenDrained.blocked-by-actor-allocated", scenario := "stopWhenDrained_blocked_by_actor_allocated_resource" },
     { op := "stopWhenDrained", branchId := "stopWhenDrained.blocked-by-actor-closing",   scenario := "stopWhenDrained_blocked_by_actor_closing_resource" },
     { op := "stopWhenDrained", branchId := "stopWhenDrained.succeeds-after-actor-finalize", scenario := "stopWhenDrained_succeeds_after_actor_resource_finalized" },
-    { op := "stopWhenIdle", branchId := "stopWhenIdle.stops-with-live-resource", scenario := "stopWhenIdle_stops_with_live_resource" } ]
+    { op := "stopWhenIdle", branchId := "stopWhenIdle.stops-with-live-resource", scenario := "stopWhenIdle_stops_with_live_resource" },
+    { op := "releaseActor", branchId := "releaseActor.owner-allocated-ok",     scenario := "releaseActor_ok" },
+    { op := "releaseActor", branchId := "releaseActor.wrong-actor-invalid",    scenario := "releaseActor_wrong_actor_invalid" },
+    { op := "releaseActor", branchId := "releaseActor.task-owned-invalid",     scenario := "releaseActor_on_task_resource_invalid" },
+    { op := "releaseActor", branchId := "releaseActor.released-invalid",       scenario := "releaseActor_double_invalid" },
+    { op := "releaseActor", branchId := "releaseActor.enables-drained-stop",   scenario := "releaseActor_enables_drained_stop" },
+    { op := "releaseActor", branchId := "releaseActor.not-running-invalid",    scenario := "releaseActor_not_running_invalid" } ]
 
 /-- The names of every available golden scenario (trace + branch). -/
 def allScenarioNames : List String :=

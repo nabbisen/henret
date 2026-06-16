@@ -207,6 +207,8 @@ open Henret Henret.Native Henret.Bridge
 #print axioms preserves_wf_finalize
 #print axioms preserves_wf_acquireActor
 #print axioms bridge_acquireActor
+#print axioms preserves_wf_releaseActor
+#print axioms bridge_releaseActor
 #print axioms closeActor_marks_actor_resources_closing
 #print axioms markActorResourcesClosing_eq_of_drained
 #print axioms step_preserves_actor_exists

@@ -2,7 +2,7 @@
 
 # RuntimeOp operation grammar
 
-Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Scheduler/Op.lean` (28 constructors).
+Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Scheduler/Op.lean` (29 constructors).
 
 | # | Constructor | Since | Category | Summary |
 |---|---|---|---|---|
@@ -30,7 +30,8 @@ Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Scheduler/Op.l
 | 22 | `stopWhenDrained` | RFC 087 | shutdown | stop the runtime if quiescent and resources drained |
 | 23 | `acquire` | RFC 057 | resource | running task allocates a fresh resource |
 | 24 | `acquireActor` | RFC 091 | resource | actor allocates a fresh actor-owned resource |
-| 25 | `release` | RFC 057 | resource | owning task releases an allocated resource |
-| 26 | `finalize` | RFC 057 | resource | environment reclaims a closing resource |
-| 27 | `setPriority` | RFC 059 | metadata | set a spawned task's scheduling priority |
-| 28 | `setDeadline` | RFC 059 | metadata | set a spawned task's logical deadline |
+| 25 | `releaseActor` | RFC 093 | resource | actor voluntarily releases an allocated actor-owned resource |
+| 26 | `release` | RFC 057 | resource | owning task releases an allocated resource |
+| 27 | `finalize` | RFC 057 | resource | environment reclaims a closing resource |
+| 28 | `setPriority` | RFC 059 | metadata | set a spawned task's scheduling priority |
+| 29 | `setDeadline` | RFC 059 | metadata | set a spawned task's logical deadline |

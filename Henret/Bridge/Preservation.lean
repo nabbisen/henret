@@ -650,6 +650,16 @@ theorem bridge_acquireActor (s : RuntimeState) (a : ActorId) (wqs : WorkerQueues
   apply bridge_stable hbs
   simp only [step]; (repeat' split) <;> rfl
 
+/-- **`bridge_releaseActor`** (RFC 093) — actor-owned release changes the resource
+    ledger but never a worker queue, so the queue-projection bridge is stable
+    (`toQOps = []`). -/
+theorem bridge_releaseActor (s : RuntimeState) (a : ActorId) (r : ResourceId) (wqs : WorkerQueues)
+    (hbs : BridgeState s wqs) :
+    BridgeState (step s (.releaseActor a r)).1 (applyQOps wqs (toQOps s (.releaseActor a r))) := by
+  rw [show toQOps s (.releaseActor a r) = [] from rfl, applyQOps_nil]
+  apply bridge_stable hbs
+  simp only [step]; (repeat' split) <;> rfl
+
 /-- **`bridge_step_single_worker`** — For any `RuntimeOp`, if `BridgeState` holds
     before the step, it holds after, with the translated queue effects applied.
     This is the central single-worker bridge theorem (RFC 036). -/
@@ -699,6 +709,7 @@ theorem bridge_step_single_worker (s : RuntimeState) (op : RuntimeOp) (wqs : Wor
     apply bridge_stable hbs
     simp only [step]; (repeat' split) <;> rfl
   | .acquireActor a => exact bridge_acquireActor s a wqs hbs
+  | .releaseActor a r => exact bridge_releaseActor s a r wqs hbs
   | .release t r =>
     rw [show toQOps s (.release t r) = [] from rfl, applyQOps_nil]
     apply bridge_stable hbs

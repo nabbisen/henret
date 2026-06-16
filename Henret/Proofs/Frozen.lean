@@ -56,6 +56,7 @@ theorem step_preserves_frozen {s : RuntimeState} (h_wf : WellFormed s)
   | restartOne p c a => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hrun, hready, htimers, hstatus]
   | acquire t => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hrun, hready, htimers, hstatus]
   | acquireActor a => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hstatus, hrun, hready, htimers]
+  | releaseActor a r => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hstatus, hrun, hready, htimers]
   | release t r => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hrun, hready, htimers, hstatus]
   | receiveUntil t d => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hrun, hready, htimers, hstatus]
   | receiveByOccurrence t o => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hrun, hready, htimers, hstatus]

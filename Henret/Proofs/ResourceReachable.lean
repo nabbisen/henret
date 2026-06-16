@@ -141,6 +141,9 @@ theorem step_resources_eq_of_released {s : RuntimeState} (h_wf : WellFormed s)
       intro he; rw [he, h_wf.resource_fresh _ (Nat.le_refl _)] at hrr
       exact absurd hrr (by simp)
     simp only [step]; (repeat' split) <;> first | rfl | exact upd_ne _ _ hrne
+  | releaseActor a rOp =>
+    simp only [step]; (repeat' split) <;>
+      first | rfl | exact upd_ne _ _ (by intro he; subst he; cases rr; simp_all)
   | release t rOp =>
     simp only [step]; (repeat' split) <;>
       first | rfl | exact upd_ne _ _ (by intro he; subst he; cases rr; simp_all)

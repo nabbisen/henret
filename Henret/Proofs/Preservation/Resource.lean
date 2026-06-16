@@ -133,4 +133,31 @@ theorem preserves_wf_acquireActor (h : WellFormed s) (a : ActorId) :
           · rw [upd_ne _ _ hrn] at hrr; exact h.closing_owner_closed r rr hrr hclr
   · simpa [step, hrun] using h
 
+/-- `releaseActor` (RFC 093) flips an actor-owned `allocated` resource to
+`released` while the runtime is running. The flip discharges the live-owner
+obligation; the owner is unchanged so existence is preserved. -/
+theorem preserves_wf_releaseActor (h : WellFormed s) (a : ActorId) (r : ResourceId) :
+    WellFormed ((step s (.releaseActor a r)).1) := by
+  by_cases hrun : s.runtimeStatus = .running
+  · cases hres : s.resources r with
+    | none => simpa [step, hrun, hres] using h
+    | some rec =>
+      obtain ⟨o, rst⟩ := rec
+      cases o with
+      | task t => cases rst <;> simpa [step, hrun, hres] using h
+      | actor a' =>
+        cases rst with
+        | allocated =>
+          by_cases ha : a' = a
+          · subst ha
+            have hstep : (step s (.releaseActor a' r)).1
+                = { s with resources := upd s.resources r (some ⟨.actor a', .released⟩) } := by
+              simp [step, hrun, hres]
+            rw [hstep]
+            exact wf_flip_to_released h hres
+          · simpa [step, hrun, hres, ha] using h
+        | released => simpa [step, hrun, hres] using h
+        | closing => simpa [step, hrun, hres] using h
+  · simpa [step, hrun] using h
+
 end Henret

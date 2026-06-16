@@ -130,6 +130,12 @@ inductive RuntimeOp where
       the actor is closed (`closeActor`). Invalid if the runtime is not
       running, the actor is closed, or `a` has no mailbox. -/
   | acquireActor (a : ActorId) : RuntimeOp
+  /-- Actor `a` voluntarily releases its `allocated` actor-owned resource `r`
+      (RFC 093). Control-plane and running-gated, symmetric with `acquireActor`.
+      Invalid if the runtime is not running, `r` is not owned by `.actor a`, or
+      `r` is not `allocated`. A closed actor's resources are `closing`, not
+      `allocated`, so this only applies to a live actor's handle. -/
+  | releaseActor (a : ActorId) (r : ResourceId) : RuntimeOp
   /-- Running task `t` releases its live resource `r` (RFC 057). -/
   | release (t : TaskId) (r : ResourceId) : RuntimeOp
   /-- The environment reclaims a `closing` resource `r` (RFC 057). -/

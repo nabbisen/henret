@@ -2,7 +2,7 @@
 
 # RFC index
 
-93 RFCs: 74 implemented, 18 proposed/in-wave, 1 archived. Generated from RFC front matter.
+94 RFCs: 75 implemented, 18 proposed/in-wave, 1 archived. Generated from RFC front matter.
 
 ## Implemented (`done/`)
 
@@ -82,6 +82,7 @@
 | [90](done/090-drained-permanence.md) | Drained Permanence (Frozen invariant, RFC 057 Tier 2 payoff) | v0.26.0 | model-semantics |
 | [91](done/091-actor-owned-resources.md) | Actor-Owned Resources (RFC 057 Tier 2) | v0.27.0 | model-semantics |
 | [92](done/092-clean-stop-predicate.md) | Clean-Stop Predicate (stopped → Drained resolution) | v0.28.0 | model-semantics |
+| [93](done/093-manual-actor-release.md) | Manual Actor-Resource Release | v0.29.0 | model-semantics |
 
 ## Proposed / in-wave (`proposed/`)
 

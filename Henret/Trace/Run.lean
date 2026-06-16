@@ -200,6 +200,12 @@ def traceEvents (s : RuntimeState) (op : RuntimeOp) : List TraceEvent :=
           | some _ => [.noEffect op (.acquired s.nextResourceId)]
           | none   => [.invalid op]
       else [.invalid op]
+  | .releaseActor a r =>
+      if s.runtimeStatus = .running then
+        match s.resources r with
+        | some ⟨.actor a', .allocated⟩ => if a' = a then [.noEffect op .ok] else [.invalid op]
+        | _ => [.invalid op]
+      else [.invalid op]
   | .release t r =>
       if s.running = some t then
         match s.taskState t with

@@ -366,6 +366,7 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
   | stopWhenDrained => exact ⟨st, by simp only [step]; split <;> simp [h]⟩
   | acquire t => exact ⟨st, by simp only [step] <;> (repeat' split) <;> simp [h]⟩
   | acquireActor a => exact ⟨st, by simp only [step] <;> (repeat' split) <;> simp [h]⟩
+  | releaseActor a r => exact ⟨st, by simp only [step] <;> (repeat' split) <;> simp [h]⟩
   | release t r => exact ⟨st, by simp only [step] <;> (repeat' split) <;> simp [h]⟩
   | finalize r => exact ⟨st, by simp only [step] <;> (repeat' split) <;> simp [h]⟩
   | setPriority t p => exact ⟨st, by simp only [step] <;> (repeat' split) <;> simp [h]⟩
@@ -695,6 +696,7 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
   | stopWhenDrained => simp only [step]; split <;> simp <;> exact h
   | acquire t => simp only [step] <;> (repeat' split) <;> simp <;> exact h
   | acquireActor a => simp only [step] <;> (repeat' split) <;> simp <;> exact h
+  | releaseActor a r => simp only [step] <;> (repeat' split) <;> simp <;> exact h
   | release t r => simp only [step] <;> (repeat' split) <;> simp <;> exact h
   | finalize r => simp only [step] <;> (repeat' split) <;> simp <;> exact h
   | setPriority t p => simp only [step] <;> (repeat' split) <;> simp <;> exact h
@@ -973,6 +975,7 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
     · simp [step, hq]
   | acquire t => simp only [step] at h ⊢ <;> (repeat' split at h) <;> simp_all
   | acquireActor a => simp only [step] at h ⊢ <;> (repeat' split at h) <;> simp_all
+  | releaseActor a r => simp only [step] at h ⊢ <;> (repeat' split at h) <;> simp_all
   | release t r => simp only [step] at h ⊢ <;> (repeat' split at h) <;> simp_all
   | finalize r => simp only [step] at h ⊢ <;> (repeat' split at h) <;> simp_all
   | setPriority t p => simp only [step] at h ⊢ <;> (repeat' split at h) <;> simp_all

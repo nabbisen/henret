@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.29.0 — Manual Actor-Resource Release (RFC 093)
+
+Adds `releaseActor`, the voluntary-release counterpart to RFC 091's
+`acquireActor`, completing the actor-resource lifecycle symmetry. Additive, zero
+`sorry`, no new axiom kinds. First Wave 1 item of the prioritized roadmap.
+
+- **New op `releaseActor a r`** (RuntimeOp 28 → 29): control-plane, running-gated
+  (symmetric with `acquireActor`). Flips actor `a`'s own `allocated` resource to
+  `released`. Invalid for a task-owned resource, the wrong actor, an already-
+  released resource, or a non-running runtime. `release t r` (the task release)
+  remains invalid for actor-owned resources.
+- **Proofs.** `preserves_wf_releaseActor` (the flip discharges the live-owner
+  obligation; owner unchanged → existence preserved); `bridge_releaseActor`
+  (queue-stable). The drain/frozen spine carries `releaseActor` with no new
+  hypotheses — it writes only an already-`allocated` slot and is running-gated.
+- **Conformance.** Six scenarios incl. `releaseActor_enables_drained_stop`
+  (release gives a drain route that does not need `closeActor` + `finalize`).
+- **Docs.** resource-lifetime manual-release section; proof-index RFC 093; matrix
+  227–229; RuntimeOp count 28 → 29.
+
 ## v0.28.0 — Clean-Stop Predicate (RFC 092 / stopped → Drained resolution)
 
 Resolves the last deferred RFC 057 Tier 2 question — whether `.stopped` should

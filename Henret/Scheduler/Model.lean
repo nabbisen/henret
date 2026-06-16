@@ -650,6 +650,17 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
               nextResourceId := s.nextResourceId + 1 }, .acquired s.nextResourceId)
         | none => (s, .invalid)
     else (s, .invalid)
+  | .releaseActor a r =>
+    -- Control-plane voluntary release of an actor-owned resource (RFC 093);
+    -- running-gated, symmetric with `acquireActor`.
+    if s.runtimeStatus = .running then
+      match s.resources r with
+      | some ⟨.actor a', .allocated⟩ =>
+        if a' = a then
+          ({ s with resources := upd s.resources r (some ⟨.actor a, .released⟩) }, .ok)
+        else (s, .invalid)
+      | _ => (s, .invalid)
+    else (s, .invalid)
   | .release t r =>
     -- The owning running task releases a live resource (RFC 057).
     if s.running = some t then

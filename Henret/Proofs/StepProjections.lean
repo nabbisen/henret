@@ -123,7 +123,7 @@ variable (s : RuntimeState) (t : TaskId) (a : ActorId)
   | .send _ _ _ | .receive _ | .inject _ _ | .sleep _ _ | .tick _ | .wake _
   | .receiveUntil _ _ | .receiveByOccurrence _ _ | .receiveFrom _ _ | .fail _
   | .acquire _ | .release _ _ | .finalize _ | .setPriority _ _ | .setDeadline _ _
-  | .acquireActor _ =>
+  | .acquireActor _ | .releaseActor _ _ =>
       simp only [step]
       (repeat' split) <;> simp [upd]
   | .closeActor _ | .shutdown | .stopWhenIdle | .stopWhenDrained =>

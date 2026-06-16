@@ -863,3 +863,26 @@ predicates (`Henret/Proofs/CleanStop.lean`): `Stopped` (status only),
 durable permanence is stated at the `Frozen` level, not the exact label.
 Behaviour is pinned by the conformance pair `stopWhenIdle_stops_with_live_resource`
 (stops while undrained) and the existing `stopWhenDrained_*` scenarios.
+
+### RFC 093 — Manual Actor-Resource Release
+
+Adds `releaseActor a r` (RuntimeOp 28 → 29): a control-plane, running-gated op
+(symmetric with `acquireActor`) that flips actor `a`'s own `allocated` resource
+to `released`. `release t r` (the task release) stays invalid for actor-owned
+resources. Completes the actor-resource lifecycle symmetry (acquire → release
+mirrors the task path) and gives a drain route that does not require
+`closeActor` + `finalize`.
+
+| Theorem | Statement |
+|---|---|
+| `preserves_wf_releaseActor` | `releaseActor` preserves all 33 `WellFormed` fields (flip discharges the live-owner obligation; owner unchanged) |
+| `bridge_releaseActor` | actor release is queue-stable (`toQOps = []`) |
+
+The drain/frozen spine is unaffected: `releaseActor` writes only an already-`some
+allocated` slot (never `none`, never a `released` record), and is running-gated,
+so `step_resources_none_run_none`, `step_resources_eq_of_released`,
+`drained_step_drained`, and `step_preserves_frozen` carry it without new
+hypotheses. Behaviour is pinned by six conformance scenarios (`releaseActor_ok`,
+`releaseActor_wrong_actor_invalid`, `releaseActor_on_task_resource_invalid`,
+`releaseActor_double_invalid`, `releaseActor_enables_drained_stop`,
+`releaseActor_not_running_invalid`).

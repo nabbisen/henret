@@ -2,7 +2,7 @@
 
 # Public theorem index
 
-The 154 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 156 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
@@ -62,6 +62,7 @@ The 154 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.preserves_wf_cancelTree`
 - `Henret.preserves_wf_finalize`
 - `Henret.preserves_wf_release`
+- `Henret.preserves_wf_releaseActor`
 - `Henret.preserves_wf_setDeadline`
 - `Henret.preserves_wf_setPriority`
 - `Henret.preserves_wf_stopWhenDrained`
@@ -140,6 +141,7 @@ The 154 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 
 - `Henret.Bridge.bridge_acquireActor`
 - `Henret.Bridge.bridge_cancelTree`
+- `Henret.Bridge.bridge_releaseActor`
 - `Henret.Bridge.bridge_run_general`
 - `Henret.Bridge.bridge_run_tracks_single_worker`
 - `Henret.Bridge.bridge_step_single_worker`

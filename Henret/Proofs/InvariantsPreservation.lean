@@ -129,6 +129,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
   | stopWhenDrained => exact preserves_wf_stopWhenDrained h
   | acquire t => exact preserves_wf_acquire h t
   | acquireActor a => exact preserves_wf_acquireActor h a
+  | releaseActor a r => exact preserves_wf_releaseActor h a r
   | release t r => exact preserves_wf_release h t r
   | finalize r => exact preserves_wf_finalize h r
   | setPriority t p => exact preserves_wf_setPriority h t p

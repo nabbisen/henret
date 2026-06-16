@@ -122,6 +122,9 @@ ALLOWLIST = {
     # RFC 091: actor-owned resources
     "Henret.preserves_wf_acquireActor":               (set(), STD),
     "Henret.Bridge.bridge_acquireActor":              (set(), STD),
+    # RFC 093: manual actor release
+    "Henret.preserves_wf_releaseActor":               (set(), STD),
+    "Henret.Bridge.bridge_releaseActor":              (set(), STD),
     "Henret.closeActor_marks_actor_resources_closing": (set(), STD),
     "Henret.markActorResourcesClosing_eq_of_drained": (set(), STD),
     "Henret.step_preserves_actor_exists":             (set(), STD),

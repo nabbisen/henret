@@ -167,6 +167,8 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
     simp only [step] <;> (repeat' split) <;> exact Nat.le_refl _
   | acquireActor a =>
     simp only [step] <;> (repeat' split) <;> exact Nat.le_refl _
+  | releaseActor a r =>
+    simp only [step] <;> (repeat' split) <;> exact Nat.le_refl _
   | release t r =>
     simp only [step] <;> (repeat' split) <;> exact Nat.le_refl _
   | finalize r =>
@@ -251,6 +253,7 @@ theorem step_preserves_sorted {s : RuntimeState}
   | stopWhenDrained => simp only [step] <;> (try split) <;> exact h
   | acquire t => simp only [step] <;> (repeat' split) <;> exact h
   | acquireActor a => simp only [step] <;> (repeat' split) <;> exact h
+  | releaseActor a r => simp only [step] <;> (repeat' split) <;> exact h
   | release t r => simp only [step] <;> (repeat' split) <;> exact h
   | finalize r => simp only [step] <;> (repeat' split) <;> exact h
   | setPriority t p => simp only [step] <;> (repeat' split) <;> exact h

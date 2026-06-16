@@ -96,9 +96,14 @@ statements via `WellFormed.allocated_owner_nonterminal` /
   when its owning actor closes: `closeActor a` marks actor-`a`-owned `allocated`
   resources `closing` (`closeActor_marks_actor_resources_closing`), and
   `finalize` reclaims them as usual.
-* **No manual actor release (Tier 1).** `release t r` is invalid for an
-  actor-owned resource (the guard requires owner `= .task t`). A future RFC may
-  add `releaseActor`.
+* **Manual release (RFC 093).** `releaseActor a r` is a control-plane,
+  running-gated op (symmetric with `acquireActor`): while the runtime is
+  running, actor `a` voluntarily flips its own `allocated` resource to
+  `released`. `release t r` (the *task* release) remains invalid for actor-owned
+  resources — the guard requires owner `= .task t`. A closed actor's resources
+  are `closing`, not `allocated`, so `releaseActor` only ever applies to a live
+  actor's handle; the `closeActor` → `finalize` path remains the cleanup route
+  for a closing actor.
 * **Unified drain.** `Drained` quantifies all resources, so `stopWhenDrained`
   is blocked while an actor-owned resource is `allocated` or `closing`, and
-  succeeds once it is finalized.
+  succeeds once it is released (via `releaseActor`) or finalized.

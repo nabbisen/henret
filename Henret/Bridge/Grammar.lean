@@ -191,6 +191,7 @@ def toQOps (s : RuntimeState) (op : RuntimeOp) : List QOp :=
   | .stopWhenDrained => []
   | .acquire _ => []
   | .acquireActor _ => []
+  | .releaseActor _ _ => []
   | .release _ _ => []
   | .finalize _ => []
   | .setPriority _ _ => []
