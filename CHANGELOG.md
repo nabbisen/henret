@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.19.1 — RFC 057 cleanup: branch theorems, conformance & docs
+
+Completes the items deferred from v0.19.0. No model or invariant changes; this
+release is purely additive proofs, executable scenarios, and documentation.
+Still **zero `sorry` and zero project axioms**.
+
+- **Per-branch behavioural theorems** (`Henret/Proofs/ResourceBranch.lean`):
+  `acquire_running_allocates`, `acquire_not_running_invalid`,
+  `acquire_non_running_state_invalid`, `release_owner_allocated_ok`,
+  `release_non_owner_invalid`, `release_released_invalid`,
+  `release_closing_invalid`, `finalize_closing_ok`,
+  `finalize_allocated_invalid`, `finalize_released_invalid`. Each pins the exact
+  `StepResult` and ledger record for its branch; all in the axiom audit.
+- **Conformance §17** — ten executable `resource_*` scenarios in
+  `Henret/Conformance/Branch.lean` (acquire/release happy path, fresh-id
+  allocation, non-owner / double-release / wrong-state rejections, terminal
+  closing via cancel/fail/complete, closing→released finalize, non-running
+  acquire). All kernel-checked under `branch_suite_passes`; each branch is
+  registered in `coverage_complete`.
+- **Documentation** — new `docs/migration/v0.18-to-v0.19.md` and
+  `docs/resource-lifetime.md` (lifecycle diagram, proved/trusted/tested split,
+  native-finalizer trust boundary, and the Tier-1 scope boundaries:
+  no liveness/timeliness, `stopped` ≠ resource-drained, task-owned only,
+  restart = fresh ids). `proof-index.md` and `proof-trust-test-matrix.md`
+  (claims 182–191) extended.
+- **Still deferred** — `released_resource_never_live` (the
+  "released is a terminal ledger state" reachability theorem); its per-op
+  index-inequality automation needs a cleaner structured proof and is tracked
+  for a later patch. The property holds by construction (the ledger only moves
+  records forward) and is exercised by the `resource_*` scenarios; only the
+  closed-form theorem is outstanding.
+
 ## v0.19.0 — Resource Lifetime & Finalization Ledger (RFC 057, Tier 1)
 
 The model now tracks **task-owned resources** through a two-path lifecycle:

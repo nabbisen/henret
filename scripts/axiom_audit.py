@@ -130,6 +130,17 @@ ALLOWLIST = {
     "Henret.fail_marks_owned_resource_closing":     (set(), STD),
     "Henret.cancelTree_marks_descendant_resource_closing": (set(), STD),
     "Henret.full_has_resourceLifetime": (set(), STD),
+    # RFC 057: per-branch behavioural theorems
+    "Henret.acquire_running_allocates":          (set(), STD),
+    "Henret.acquire_not_running_invalid":        (set(), STD),
+    "Henret.acquire_non_running_state_invalid":  (set(), STD),
+    "Henret.release_owner_allocated_ok":         (set(), STD),
+    "Henret.release_non_owner_invalid":          (set(), STD),
+    "Henret.release_released_invalid":           (set(), STD),
+    "Henret.release_closing_invalid":            (set(), STD),
+    "Henret.finalize_closing_ok":                (set(), STD),
+    "Henret.finalize_allocated_invalid":         (set(), STD),
+    "Henret.finalize_released_invalid":          (set(), STD),
 }
 
 text = sys.stdin.read()

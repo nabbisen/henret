@@ -425,6 +425,107 @@ def full_mailbox_with_waiter_send_backpressured : BranchScenario where
   covers := ["send.full-with-waiter-backpressured"]
   initial := capInit 7 1
 
+/-! ## RFC 057 resource-lifetime scenarios -/
+
+/-- An initial state pre-seeded with resource `0` owned by `owner` in state
+`st` (counter advanced past it). Used by the non-owner / wrong-state cases
+that cannot arise from a single running task. -/
+def resInit (owner : TaskId) (st : ResourceState) : RuntimeState :=
+  { RuntimeState.init with
+      resources := upd RuntimeState.init.resources 0 (some ⟨owner, st⟩)
+      nextResourceId := 1 }
+
+def resource_acquire_release_ok : BranchScenario where
+  name := "resource_acquire_release_ok"
+  description := "a running task acquires then releases its own resource"
+  ops := [.spawn 7, .schedule, .acquire 0, .release 0 0]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .ok]
+  finalCheck := fun s => s.resources 0 == some ⟨0, .released⟩ && s.nextResourceId == 1
+  covers := ["acquire.running-allocates", "release.owner-allocated-ok"]
+
+def resource_acquire_returns_fresh_id : BranchScenario where
+  name := "resource_acquire_returns_fresh_id"
+  description := "two acquires return distinct, monotonically-increasing ids"
+  ops := [.spawn 7, .schedule, .acquire 0, .acquire 0]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .acquired 1]
+  finalCheck := fun s =>
+    s.resources 0 == some ⟨0, .allocated⟩ && s.resources 1 == some ⟨0, .allocated⟩ &&
+    s.nextResourceId == 2
+  covers := ["acquire.fresh-id"]
+
+def resource_release_non_owner_invalid : BranchScenario where
+  name := "resource_release_non_owner_invalid"
+  description := "a running task cannot release a resource owned by another task"
+  ops := [.spawn 7, .schedule, .release 0 0]
+  expected := [.spawned 0, .scheduled 0, .invalid]
+  finalCheck := fun s => s.resources 0 == some ⟨5, .allocated⟩
+  covers := ["release.non-owner-invalid"]
+  negative := true
+  initial := resInit 5 .allocated
+
+def resource_release_after_release_invalid : BranchScenario where
+  name := "resource_release_after_release_invalid"
+  description := "double-release of the same resource is rejected"
+  ops := [.spawn 7, .schedule, .acquire 0, .release 0 0, .release 0 0]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .ok, .invalid]
+  finalCheck := fun s => s.resources 0 == some ⟨0, .released⟩
+  covers := ["release.released-invalid"]
+  negative := true
+
+def resource_finalize_allocated_invalid : BranchScenario where
+  name := "resource_finalize_allocated_invalid"
+  description := "finalizing an allocated (not closing) resource is rejected"
+  ops := [.spawn 7, .schedule, .acquire 0, .finalize 0]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .invalid]
+  finalCheck := fun s => s.resources 0 == some ⟨0, .allocated⟩
+  covers := ["finalize.allocated-invalid"]
+  negative := true
+
+def resource_cancel_marks_closing : BranchScenario where
+  name := "resource_cancel_marks_closing"
+  description := "cancelling an owner moves its allocated resource to closing"
+  ops := [.spawn 7, .schedule, .acquire 0, .cancel 0]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .ok]
+  finalCheck := fun s =>
+    s.resources 0 == some ⟨0, .closing⟩ && (s.taskState 0).any (·.isTerminal)
+  covers := ["cancel.marks-owned-closing"]
+
+def resource_fail_marks_closing : BranchScenario where
+  name := "resource_fail_marks_closing"
+  description := "failing an owner moves its allocated resource to closing"
+  ops := [.spawn 7, .schedule, .acquire 0, .fail 0]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .ok]
+  finalCheck := fun s =>
+    s.resources 0 == some ⟨0, .closing⟩ && (s.taskState 0).any (·.isTerminal)
+  covers := ["fail.marks-owned-closing"]
+
+def resource_complete_marks_closing : BranchScenario where
+  name := "resource_complete_marks_closing"
+  description := "completing an owner moves its allocated resource to closing"
+  ops := [.spawn 7, .schedule, .acquire 0, .complete 0]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .ok]
+  finalCheck := fun s =>
+    s.resources 0 == some ⟨0, .closing⟩ && (s.taskState 0).any (·.isTerminal)
+  covers := ["complete.marks-owned-closing"]
+
+def resource_finalize_closing_released : BranchScenario where
+  name := "resource_finalize_closing_released"
+  description := "a closing resource (after cancel) is finalized to released"
+  ops := [.spawn 7, .schedule, .acquire 0, .cancel 0, .finalize 0]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .ok, .ok]
+  finalCheck := fun s => s.resources 0 == some ⟨0, .released⟩
+  covers := ["finalize.closing-ok"]
+
+def resource_acquire_not_running_invalid : BranchScenario where
+  name := "resource_acquire_not_running_invalid"
+  description := "a non-running (merely ready) task cannot acquire"
+  ops := [.spawn 7, .acquire 0]
+  expected := [.spawned 0, .invalid]
+  finalCheck := fun s => s.resources 0 == none && s.nextResourceId == 0
+  covers := ["acquire.not-running-invalid"]
+  negative := true
+
+
 /-- The full branch-coverage suite. -/
 def branchScenarios : List BranchScenario :=
   [ receiveUntil_timeout_fast_path, receiveUntil_park_future_deadline,
@@ -445,7 +546,12 @@ def branchScenarios : List BranchScenario :=
     bounded_inject_full_backpressured, capacity_zero_send_backpressured,
     capacity_zero_inject_backpressured, unbounded_send_never_backpressured,
     full_mailbox_with_waiter_inject_backpressured,
-    full_mailbox_with_waiter_send_backpressured ]
+    full_mailbox_with_waiter_send_backpressured,
+    resource_acquire_release_ok, resource_acquire_returns_fresh_id,
+    resource_release_non_owner_invalid, resource_release_after_release_invalid,
+    resource_finalize_allocated_invalid, resource_cancel_marks_closing,
+    resource_fail_marks_closing, resource_complete_marks_closing,
+    resource_finalize_closing_released, resource_acquire_not_running_invalid ]
 
 def branchAllPass : Bool := branchScenarios.all checkBranch
 

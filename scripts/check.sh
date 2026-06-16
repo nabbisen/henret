@@ -216,6 +216,16 @@ open Henret Henret.Native Henret.Bridge
 #print axioms fail_marks_owned_resource_closing
 #print axioms cancelTree_marks_descendant_resource_closing
 #print axioms full_has_resourceLifetime
+#print axioms acquire_running_allocates
+#print axioms acquire_not_running_invalid
+#print axioms acquire_non_running_state_invalid
+#print axioms release_owner_allocated_ok
+#print axioms release_non_owner_invalid
+#print axioms release_released_invalid
+#print axioms release_closing_invalid
+#print axioms finalize_closing_ok
+#print axioms finalize_allocated_invalid
+#print axioms finalize_released_invalid
 LEAN
   lake env lean "$A" | python3 scripts/axiom_audit.py
   rc=$?

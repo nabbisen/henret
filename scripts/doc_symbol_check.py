@@ -173,6 +173,15 @@ IGNORE = {
     "capacity_zero_inject_backpressured", "unbounded_send_never_backpressured",
     "full_mailbox_with_waiter_send_backpressured",
     "full_mailbox_with_waiter_inject_backpressured",
+    # RFC 057 WellFormed fields referenced bare (dotted WellFormed.X is checked)
+    "resource_fresh", "resource_owner_spawned",
+    "allocated_owner_nonterminal", "closing_owner_terminal",
+    # RFC 057 conformance scenario defs (Henret.Conformance namespace, not theorems)
+    "resource_acquire_release_ok", "resource_acquire_returns_fresh_id",
+    "resource_release_non_owner_invalid", "resource_release_after_release_invalid",
+    "resource_finalize_allocated_invalid", "resource_cancel_marks_closing",
+    "resource_fail_marks_closing", "resource_complete_marks_closing",
+    "resource_finalize_closing_released", "resource_acquire_not_running_invalid",
 }
 
 NAME_RE = re.compile(r"`([A-Za-z][A-Za-z0-9_.']*)`")

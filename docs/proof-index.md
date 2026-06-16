@@ -641,3 +641,37 @@ Conformance (`Henret/Conformance/Branch.lean`, under `branch_suite_passes`):
 `unbounded_send_never_backpressured`, and
 `full_mailbox_with_waiter_{send,inject}_backpressured`. Option B (park-policy /
 blocking senders) is out of scope; see `docs/migration/v0.17-to-v0.18.md`.
+
+### RFC 057 — Resource Lifetime & Finalization Ledger (Tier 1)
+
+`RuntimeOp` gained `acquire` / `release` / `finalize` (24 constructors);
+`StepResult` gained `.acquired` (10 constructors); `RuntimeState` gained
+`resources` and `nextResourceId`. `WellFormed` gained fields **30–33**
+(`resource_fresh`, `resource_owner_spawned`, `allocated_owner_nonterminal`,
+`closing_owner_terminal`). A resource is task-owned and moves only forward:
+`allocated → released` (synchronous `release`) or `allocated → closing →
+released` (terminal transition then `finalize`). See
+`docs/resource-lifetime.md`.
+
+| Theorem | Statement |
+|---|---|
+| `preserves_wf_acquire`, `preserves_wf_release`, `preserves_wf_finalize` | all 33 `WellFormed` fields preserved across the three ledger operations |
+| `reachable_resource_fresh` | ids `≥ nextResourceId` are unallocated in every reachable state |
+| `reachable_resource_owner_spawned` | every reachable resource is owned by a spawned task |
+| `reachable_allocated_owner_nonterminal` | an `allocated` resource's owner is live |
+| `reachable_closing_owner_terminal` | a `closing` resource's owner is terminal |
+| `nextResourceId_monotone_step`, `nextResourceId_monotone_run` | the allocation counter never decreases (ids never reused) |
+| `complete_marks_owned_resource_closing`, `cancel_marks_owned_resource_closing`, `fail_marks_owned_resource_closing` | a terminal transition moves the owner's `allocated` resources to `closing` |
+| `cancelTree_marks_descendant_resource_closing` | a cascade cancel closes a reached descendant's resources |
+| `acquire_running_allocates`, `acquire_not_running_invalid`, `acquire_non_running_state_invalid` | per-branch `acquire` behaviour (result + ledger effect) |
+| `release_owner_allocated_ok`, `release_non_owner_invalid`, `release_released_invalid`, `release_closing_invalid` | per-branch `release` behaviour |
+| `finalize_closing_ok`, `finalize_allocated_invalid`, `finalize_released_invalid` | per-branch `finalize` behaviour |
+| `full_has_resourceLifetime` | the `full` profile carries the `resourceLifetime` feature |
+
+Conformance (`Henret/Conformance/Branch.lean`, under `branch_suite_passes`):
+`resource_acquire_release_ok`, `resource_acquire_returns_fresh_id`,
+`resource_release_non_owner_invalid`, `resource_release_after_release_invalid`,
+`resource_finalize_allocated_invalid`, `resource_{cancel,fail,complete}_marks_closing`,
+`resource_finalize_closing_released`, and `resource_acquire_not_running_invalid`.
+The native finalizer is a trust boundary; liveness/timeliness, drain-before-stop,
+actor-owned resources, and restart resource-transfer are out of scope for Tier 1.

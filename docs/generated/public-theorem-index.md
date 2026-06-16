@@ -2,10 +2,13 @@
 
 # Public theorem index
 
-The 82 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 92 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
+- `Henret.acquire_non_running_state_invalid`
+- `Henret.acquire_not_running_invalid`
+- `Henret.acquire_running_allocates`
 - `Henret.actor_le_full`
 - `Henret.cancelTree_cancels_task`
 - `Henret.cancelTree_marks_descendant_resource_closing`
@@ -18,6 +21,9 @@ The 82 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_a
 - `Henret.core_le_actor`
 - `Henret.core_le_full`
 - `Henret.fail_marks_owned_resource_closing`
+- `Henret.finalize_allocated_invalid`
+- `Henret.finalize_closing_ok`
+- `Henret.finalize_released_invalid`
 - `Henret.full_has_resourceLifetime`
 - `Henret.inject_full_backpressured`
 - `Henret.inject_stamps_none`
@@ -51,6 +57,10 @@ The 82 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_a
 - `Henret.receive_blocked_parks`
 - `Henret.receive_empty_parks`
 - `Henret.receive_only_own`
+- `Henret.release_closing_invalid`
+- `Henret.release_non_owner_invalid`
+- `Henret.release_owner_allocated_ok`
+- `Henret.release_released_invalid`
 - `Henret.restart_preserves_parent_acyclicity`
 - `Henret.restarted_task_has_owner`
 - `Henret.run_preserves_wf`

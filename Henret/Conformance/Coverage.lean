@@ -97,7 +97,19 @@ def coverageRegistry : List CoverageEntry :=
     { op := "inject", branchId := "inject.capacity-zero-reject-all",   scenario := "capacity_zero_inject_backpressured" },
     { op := "send",   branchId := "send.unbounded-never-backpressured", scenario := "unbounded_send_never_backpressured" },
     { op := "inject", branchId := "inject.full-with-waiter-backpressured", scenario := "full_mailbox_with_waiter_inject_backpressured" },
-    { op := "send",   branchId := "send.full-with-waiter-backpressured",   scenario := "full_mailbox_with_waiter_send_backpressured" } ]
+    { op := "send",   branchId := "send.full-with-waiter-backpressured",   scenario := "full_mailbox_with_waiter_send_backpressured" },
+    -- resource lifetime & finalization ledger (RFC 057)
+    { op := "acquire",  branchId := "acquire.running-allocates",    scenario := "resource_acquire_release_ok" },
+    { op := "acquire",  branchId := "acquire.fresh-id",             scenario := "resource_acquire_returns_fresh_id" },
+    { op := "acquire",  branchId := "acquire.not-running-invalid",  scenario := "resource_acquire_not_running_invalid" },
+    { op := "release",  branchId := "release.owner-allocated-ok",   scenario := "resource_acquire_release_ok" },
+    { op := "release",  branchId := "release.non-owner-invalid",    scenario := "resource_release_non_owner_invalid" },
+    { op := "release",  branchId := "release.released-invalid",     scenario := "resource_release_after_release_invalid" },
+    { op := "finalize", branchId := "finalize.closing-ok",          scenario := "resource_finalize_closing_released" },
+    { op := "finalize", branchId := "finalize.allocated-invalid",   scenario := "resource_finalize_allocated_invalid" },
+    { op := "complete", branchId := "complete.marks-owned-closing", scenario := "resource_complete_marks_closing" },
+    { op := "cancel",   branchId := "cancel.marks-owned-closing",   scenario := "resource_cancel_marks_closing" },
+    { op := "fail",     branchId := "fail.marks-owned-closing",     scenario := "resource_fail_marks_closing" } ]
 
 /-- The names of every available golden scenario (trace + branch). -/
 def allScenarioNames : List String :=
