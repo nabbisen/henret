@@ -103,7 +103,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [081](done/081-package-boundary-and-evidence-ledger.md) | Package Boundary and Evidence Ledger | Implemented (v0.17.3) | — |
 | [082](done/082-preservation-proof-ergonomics-v2.md) | Preservation Proof Ergonomics v2 (supersedes 042) | Implemented (v0.17.6) | — |
 | [083](done/083-golden-conformance-coverage-expansion.md) | Golden Conformance Coverage Expansion | Implemented (v0.17.5) | — |
-| [084](proposed/084-model-to-documentation-extraction-implementation.md) | Model-to-Documentation Extraction Implementation | — | P1 |
+| [084](done/084-model-to-documentation-extraction-implementation.md) | Model-to-Documentation Extraction Implementation | Implemented (v0.17.7) | — |
 | [085](done/085-rfc-metadata-normalization.md) | RFC Metadata Normalization | Implemented (v0.17.1) | — |
 | [086](done/086-warning-hygiene-and-public-lemma-tightening.md) | Warning Hygiene and Public Lemma Tightening | Implemented (v0.17.4) | — |
 

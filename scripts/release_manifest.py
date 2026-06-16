@@ -53,7 +53,8 @@ gates = [json.loads(l) for l in Path(records_path).read_text().splitlines() if l
 
 POLICY = ["check.sh", "check_selftest.py", "axiom_audit.py", "doc_symbol_check.py",
           "doc_count_check.py", "rfc_metadata_check.py", "forbidden_claim_check.py",
-          "warning_budget.py", "helper_usage_check.py"]
+          "warning_budget.py", "helper_usage_check.py", "extract_model_docs.py",
+          "extract_theorem_docs.py", "extract_rfc_index.py"]
 gate_policy = {
     s.replace(".", "_").replace("-", "_") + "_sha256": sha256_file("scripts/" + s)
     for s in POLICY

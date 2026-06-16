@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.17.7 — Model-to-Documentation Extraction (RFC 084 full, implements RFC 075)
+
+The recurrently-drifting documentation tables are now generated from a single
+checked source and diffed in the gate suite, removing the whole drift class
+(the `doc_count_check.py` stopgap shipped earlier in v0.17.2 stays as a
+hand-written-doc guard).
+
+- **`Henret/Meta/Docs.lean`** (new `HenretMeta` lib, import-cheap per 084-5) is
+  the checked descriptor source: `ConstructorDoc`/`FieldDoc` lists for the 21
+  `RuntimeOp`s, 10 `TaskState`s, 8 `StepResult`s, and 28 `WellFormed` fields.
+- **`scripts/extract_model_docs.py`** validates each metadata list against the
+  real Lean declarations — every name resolves to an actual constructor/field,
+  names are duplicate-free, the metadata count equals the real count (084-1) —
+  before emitting any table.
+- **`scripts/extract_theorem_docs.py`** emits the public-theorem index and the
+  axiom budget from the gate-validated audit allowlist (62 theorems: 42 STD, 19
+  STD_C, 1 native; the public-theorem source of truth, 084-4).
+- **`scripts/extract_rfc_index.py`** emits the RFC index from RFC 085 front
+  matter.
+- **Committed `docs/generated/`** (seven files): the four model tables, the
+  public-theorem index, the axiom budget, and the RFC index. Gate 7 regenerates
+  and diffs them; divergence fails (084-2). All three generators are in the
+  release manifest's policy hashes.
+
 ## v0.17.6 — Preservation Proof Ergonomics v2 (RFC 082, supersedes RFC 042)
 
 Realises the goal RFC 042 set but did not finish: the eight `wf_*_pass`

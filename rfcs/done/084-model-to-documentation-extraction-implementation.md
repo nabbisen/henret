@@ -1,8 +1,8 @@
 ---
 rfc: 84
 title: Model-to-Documentation Extraction Implementation
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.17.7
 supersedes: []
 superseded_by: []
 depends_on: [85]
@@ -14,9 +14,20 @@ category: documentation
 
 ## Status
 
-Proposed strategic RFC. Created in the v0.17.0 audit review follow-up
-(item A6, decision **A+B**) as the concrete implementation plan for the
-strategic **RFC 075 (Model-to-Documentation Extraction)**. Priority **P1**.
+Implemented in **v0.17.7** (full generator); the `doc_count_check.py` stopgap
+shipped earlier (folded into v0.17.2). Created in the v0.17.0 audit review
+follow-up (item A6, decision **A+B**) as the concrete implementation plan for
+the strategic **RFC 075 (Model-to-Documentation Extraction)**. Priority **P1**;
+final-pass amendments 084-1..5 applied.
+
+The checked descriptor source is `Henret/Meta/Docs.lean` (the `HenretMeta`
+lib — import-cheap, 084-5). Three generators emit `docs/generated/`:
+`extract_model_docs.py` (operation/state/result/WellFormed tables, validated
+against the real declarations — 084-1), `extract_theorem_docs.py` (public
+theorem index + axiom budget from the gate-validated audit allowlist, 084-4),
+and `extract_rfc_index.py` (RFC index from RFC 085 front matter). The gate
+suite (gate 7) regenerates and diffs the committed files; divergence fails.
+`doc_count_check.py` excludes `docs/generated/` (084-3).
 
 ## Summary
 

@@ -9,7 +9,7 @@ open Lake DSL
 -- Toolchain: leanprover/lean4:v4.15.0 (see lean-toolchain).
 package henret where
   -- Conservative versioning until RFC 052 (see docs/release-policy.md).
-  version := v!"0.17.6"
+  version := v!"0.17.7"
 
 /-- Lean-only core.  `import Henret` brings in Model + Proofs + Refinement
     (RFC 025; examples are opt-in via `Henret.Examples.Basic`).
@@ -43,3 +43,10 @@ lean_lib HenretExplore where
 
 lean_exe «henret-explore» where
   root := `Explore
+
+/-- Documentation-metadata descriptors (RFC 084 / RFC 075).
+    Build:  lake build HenretMeta
+    The checked source of truth for the generated model tables; import-cheap
+    (no model/proof dependency). See `scripts/extract_model_docs.py`. -/
+lean_lib HenretMeta where
+  globs := #[.submodules `Henret.Meta]

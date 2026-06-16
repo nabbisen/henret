@@ -59,7 +59,7 @@ print(json.dumps({"id":int(sys.argv[1]),"name":sys.argv[2],"command":sys.argv[3]
 # ---------------------------------------------------------------- gate bodies
 gate_selftest() { python3 scripts/check_selftest.py; }
 
-gate_build_libs() { lake build Henret HenretNative HenretExplore; }
+gate_build_libs() { lake build Henret HenretNative HenretExplore HenretMeta; }
 
 gate_demo() { lake build && lake exe henret-demo; }
 
@@ -224,6 +224,11 @@ gate_doc_consistency() {
   python3 scripts/forbidden_claim_check.py || return 1
   # Preservation-helper adoption gate (RFC 082)
   python3 scripts/helper_usage_check.py || return 1
+  # Generated-doc drift gate (RFC 084 full): regenerate the model tables,
+  # theorem index, axiom budget, and RFC index and diff the committed copies.
+  python3 scripts/extract_model_docs.py --check || return 1
+  python3 scripts/extract_theorem_docs.py --check || return 1
+  python3 scripts/extract_rfc_index.py --check || return 1
   echo "docs consistency ok"
 }
 
