@@ -203,6 +203,14 @@ def traceEvents (s : RuntimeState) (op : RuntimeOp) : List TraceEvent :=
       match s.resources r with
       | some ⟨_, .closing⟩ => [.noEffect op .ok]
       | _ => [.invalid op]
+  | .setPriority t _ =>
+      match s.taskState t with
+      | some _ => [.noEffect op .ok]
+      | none => [.invalid op]
+  | .setDeadline t _ =>
+      match s.taskState t with
+      | some _ => [.noEffect op .ok]
+      | none => [.invalid op]
 
 /-- One step, with its event ledger.  State and result are *exactly*
     `step s op`; only the third component is new. -/

@@ -167,7 +167,10 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
     simp only [step] <;> (repeat' split) <;> exact Nat.le_refl _
   | finalize r =>
     simp only [step] <;> (repeat' split) <;> exact Nat.le_refl _
-
+  | setPriority t p =>
+    simp only [step] <;> (repeat' split) <;> exact Nat.le_refl _
+  | setDeadline t d =>
+    simp only [step] <;> (repeat' split) <;> exact Nat.le_refl _
 /-- Every operation preserves timer-queue sortedness. -/
 theorem step_preserves_sorted {s : RuntimeState}
     (h : Timer.Sorted s.timers) (op : RuntimeOp) :
@@ -244,6 +247,8 @@ theorem step_preserves_sorted {s : RuntimeState}
   | acquire t => simp only [step] <;> (repeat' split) <;> exact h
   | release t r => simp only [step] <;> (repeat' split) <;> exact h
   | finalize r => simp only [step] <;> (repeat' split) <;> exact h
+  | setPriority t p => simp only [step] <;> (repeat' split) <;> exact h
+  | setDeadline t d => simp only [step] <;> (repeat' split) <;> exact h
 
 /-- Whole-program corollary: the queue is sorted in every reachable state. -/
 theorem run_preserves_sorted {s : RuntimeState}

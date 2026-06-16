@@ -1,3 +1,4 @@
+import Henret.Proofs.Metadata
 import Henret.Proofs.Preservation.Lifecycle
 import Henret.Proofs.Ownership
 import Henret.Proofs.Preservation.Messaging
@@ -64,6 +65,8 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
   | acquire t => exact preserves_wf_acquire h t
   | release t r => exact preserves_wf_release h t r
   | finalize r => exact preserves_wf_finalize h r
+  | setPriority t p => exact preserves_wf_setPriority h t p
+  | setDeadline t d => exact preserves_wf_setDeadline h t d
 
 /-- Whole-program invariant preservation. -/
 theorem run_preserves_wf {s : RuntimeState} (h : WellFormed s) :

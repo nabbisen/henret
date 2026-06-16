@@ -1,8 +1,8 @@
 ---
 rfc: 59
 title: Deadline and Priority Semantics
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.22.0
 supersedes: []
 superseded_by: []
 depends_on: []
@@ -14,7 +14,8 @@ category: model-semantics
 
 ## Status
 
-Proposed.
+Implemented (v0.22.0). Policy soundness and `priority_policy_selects_max` are
+proved; the EDF ordering-optimality theorem is a tracked closeout follow-up.
 
 ## Summary
 

@@ -2,7 +2,7 @@
 
 # RFC index
 
-87 RFCs: 67 implemented, 19 proposed/in-wave, 1 archived. Generated from RFC front matter.
+87 RFCs: 68 implemented, 18 proposed/in-wave, 1 archived. Generated from RFC front matter.
 
 ## Implemented (`done/`)
 
@@ -66,6 +66,7 @@
 | [56](done/056-bounded-mailboxes-and-backpressure.md) | Bounded Mailboxes and Backpressure | v0.18.0 | model-semantics |
 | [57](done/057-resource-lifetime-and-finalization-ledger.md) | Resource Lifetime and Finalization Ledger | v0.19.0 | model-semantics |
 | [58](done/058-scheduling-policy-layer.md) | Scheduling Policy Layer | v0.21.0 | model-semantics |
+| [59](done/059-deadline-and-priority-semantics.md) | Deadline and Priority Semantics | v0.22.0 | model-semantics |
 | [64](done/064-fault-model-and-failure-taxonomy.md) | Fault Model and Failure Taxonomy | v0.20.0 | theory |
 | [75](done/075-model-to-documentation-extraction.md) | Model-to-Documentation Extraction | v0.17.7 | documentation |
 | [80](done/080-release-gate-integrity-and-evidence-manifest.md) | Release Gate Integrity and Evidence Manifest | v0.17.2 | release-process |
@@ -80,7 +81,6 @@
 
 | RFC | Title | Status | Category |
 |---|---|---|---|
-| [59](proposed/059-deadline-and-priority-semantics.md) | Deadline and Priority Semantics | Proposed | model-semantics |
 | [60](proposed/060-trace-based-refinement-certification.md) | Trace-Based Refinement Certification | Proposed | refinement |
 | [61](proposed/061-runtime-adapter-contract.md) | Runtime Adapter Contract | Proposed | integration |
 | [62](proposed/062-proof-ergonomics-library.md) | Proof Ergonomics Library | Proposed | proofs |

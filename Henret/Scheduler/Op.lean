@@ -124,6 +124,10 @@ inductive RuntimeOp where
   | release (t : TaskId) (r : ResourceId) : RuntimeOp
   /-- The environment reclaims a `closing` resource `r` (RFC 057). -/
   | finalize (r : ResourceId) : RuntimeOp
+  /-- Set spawned task `t`'s scheduling priority to `p` (RFC 059). -/
+  | setPriority (t : TaskId) (p : Nat) : RuntimeOp
+  /-- Set spawned task `t`'s logical deadline to `d` (RFC 059). -/
+  | setDeadline (t : TaskId) (d : Nat) : RuntimeOp
 deriving Repr, DecidableEq
 
 end Henret

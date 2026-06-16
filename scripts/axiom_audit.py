@@ -161,6 +161,16 @@ ALLOWLIST = {
     "Henret.policy_does_not_create_task": (set(), STD),
     "Henret.fifo_policy_equiv_schedule": (set(), STD),
     "Henret.schedule_preserves_nextId":  (set(), STD),
+    # RFC 059: deadline & priority semantics
+    "Henret.wf_taskMeta_only":          (set(), STD),
+    "Henret.preserves_wf_setPriority":  (set(), STD),
+    "Henret.preserves_wf_setDeadline":  (set(), STD),
+    "Henret.setPriority_meta_of_spawned": (set(), STD),
+    "Henret.setDeadline_meta_of_spawned": (set(), STD),
+    "Henret.pickBy_mem":                (set(), STD),
+    "Henret.foldl_best_mem":            (set(), STD),
+    "Henret.foldl_best_ge":             (set(), STD),
+    "Henret.priority_policy_selects_max": (set(), STD),
 }
 
 text = sys.stdin.read()

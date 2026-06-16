@@ -620,7 +620,7 @@ Named profiles `Profile.core` / `actor` / `full` carry kernel-proven `nodup` (no
 
 `StepResult` gained `.backpressured` (9 constructors); `RuntimeState` gained
 `mailboxPolicy : ActorId → MailboxPolicy` (default `fun _ => .unbounded`);
-`RuntimeOp` is unchanged (24 constructors). `WellFormed` gained field **29**,
+`RuntimeOp` is unchanged by this RFC. `WellFormed` gained field **29**,
 `mailbox_within_capacity`. `send`/`inject` consult the policy *after* every
 validity guard; a delivery to a full mailbox is rejected with a no-op
 `.backpressured` and consumes no occurrence id.
@@ -716,3 +716,26 @@ never the set of runnable tasks.
 
 No change to the core scheduler, no new `RuntimeOp`, no fairness claim (RFC 058
 non-goals).
+
+### RFC 059 — Deadline & Priority Semantics
+
+Optional per-task `TaskMeta` (priority + logical deadline) with two operations
+(`setPriority`, `setDeadline`, guarded on spawned tasks) and three
+metadata-driven policies on the RFC 058 layer. `taskMeta` is deliberately **not**
+in `WellFormed` (optional-metadata non-goal), so the metadata ops preserve the
+invariant trivially. Deadlines are logical-time ordering only — **no real-time
+claim** (`docs/deadline-priority.md`).
+
+| Theorem | Statement |
+|---|---|
+| `preserves_wf_setPriority`, `preserves_wf_setDeadline` | the metadata ops preserve all 33 `WellFormed` fields (they touch only `taskMeta`) |
+| `wf_taskMeta_only` | overwriting `taskMeta` preserves `WellFormed` (no field mentions it; zero axioms) |
+| `setPriority_meta_of_spawned`, `setDeadline_meta_of_spawned` | the ops are no-ops on unspawned tasks (metadata only attaches to spawned tasks) |
+| `pickBy_mem`, `foldl_best_mem` | the metadata selector always returns a task in the queue — soundness for all three policies via `choose_sound` |
+| `priority_policy_selects_max` | `priorityPolicy` chooses a ready task whose priority is ≥ every ready task's |
+| `foldl_best_ge` | the underlying max-fold optimality lemma |
+
+`priorityPolicy` / `edfPolicy` / `hybridPolicy` are sound `SchedulingPolicy`
+values, so each inherits `policyStep_preserves_wf` (RFC 058). EDF
+ordering-optimality (the EDF analogue of priority_policy_selects_max) is a tracked
+closeout follow-up; no theorem claims a deadline is *met* (that needs liveness).

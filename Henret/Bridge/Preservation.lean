@@ -687,6 +687,14 @@ theorem bridge_step_single_worker (s : RuntimeState) (op : RuntimeOp) (wqs : Wor
     rw [show toQOps s (.finalize r) = [] from rfl, applyQOps_nil]
     apply bridge_stable hbs
     simp only [step]; (repeat' split) <;> rfl
+  | .setPriority t p =>
+    rw [show toQOps s (.setPriority t p) = [] from rfl, applyQOps_nil]
+    apply bridge_stable hbs
+    simp only [step]; (repeat' split) <;> rfl
+  | .setDeadline t d =>
+    rw [show toQOps s (.setDeadline t d) = [] from rfl, applyQOps_nil]
+    apply bridge_stable hbs
+    simp only [step]; (repeat' split) <;> rfl
 
 /-! ## applyQOps append lemma -/
 

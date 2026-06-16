@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.22.0 — Deadline & Priority Semantics (RFC 059)
+
+Adds optional per-task scheduling metadata and metadata-driven policies on the
+RFC 058 layer. Deadlines are **logical-time ordering only** — no real-time
+claim, and no theorem asserts a deadline is met. Zero `sorry`, zero new axiom
+kinds.
+
+- **Model**: `TaskMeta { priority : Nat, deadline : Option Nat }`
+  (`Henret/Actor/Meta.lean`) and a `taskMeta : TaskId → Option TaskMeta` field
+  on `RuntimeState` (absent ⇒ `defaultMeta`). Two operations, `setPriority` and
+  `setDeadline` (`RuntimeOp` 24 → 26), guarded on the task being spawned.
+- **Design choice**: `taskMeta` is deliberately **not** part of `WellFormed`
+  (the optional-metadata non-goal rules out "every spawned task has metadata"),
+  so the metadata ops preserve all 33 invariant fields trivially.
+- **Proofs** (`Henret/Proofs/Metadata.lean`): `wf_taskMeta_only` (zero axioms),
+  `preserves_wf_setPriority`, `preserves_wf_setDeadline`, and
+  `setPriority_meta_of_spawned` / `setDeadline_meta_of_spawned` (the ops no-op
+  on unspawned tasks).
+- **Policies** (`Henret/Scheduler/MetaPolicy.lean`): `priorityPolicy` (highest
+  priority), `edfPolicy` (earliest deadline, missing-deadline-last), and
+  `hybridPolicy` (priority then deadline). All three are **sound** (`pickBy_mem`
+  → `choose_sound`) and inherit `policyStep_preserves_wf` from RFC 058.
+- **Optimality** (`Henret/Proofs/MetaPolicy.lean`): `priority_policy_selects_max`
+  (the chosen task has maximal priority among ready tasks) via `foldl_best_ge`.
+  The EDF ordering-optimality analogue is a tracked closeout follow-up.
+- **Downstream**: every exhaustive `RuntimeOp` match updated for the two new
+  ops (`step`, the WF dispatcher, projections, bridge grammar/preservation,
+  trace, stable theorems, model docs).
+- **Docs**: new `docs/deadline-priority.md` (with the real-time warning and a
+  negative "deadline can be missed" example); proof-index and matrix (claims
+  199–202) extended.
+
 ## v0.21.0 — Scheduling Policy Layer (RFC 058)
 
 Adds a policy-parametric scheduling layer **on top of** the unchanged core

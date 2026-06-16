@@ -191,6 +191,8 @@ def toQOps (s : RuntimeState) (op : RuntimeOp) : List QOp :=
   | .acquire _ => []
   | .release _ _ => []
   | .finalize _ => []
+  | .setPriority _ _ => []
+  | .setDeadline _ _ => []
 
 /-! ## Direct-effect lemmas -/
 

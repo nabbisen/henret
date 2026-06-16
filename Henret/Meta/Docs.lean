@@ -29,7 +29,7 @@ structure FieldDoc where
   summary : String
 deriving Repr
 
-/-- `RuntimeOp` — the 24-operation grammar (`Henret/Scheduler/Op.lean`). -/
+/-- `RuntimeOp` — the 26-operation grammar (`Henret/Scheduler/Op.lean`). -/
 def runtimeOpDocs : List ConstructorDoc :=
   [ { name := "spawn",              since := "RFC 004", category := "lifecycle",   summary := "create a root task owned by an actor" },
     { name := "schedule",           since := "RFC 004", category := "lifecycle",   summary := "select the ready-queue head to run" },
@@ -54,7 +54,9 @@ def runtimeOpDocs : List ConstructorDoc :=
     { name := "stopWhenIdle",       since := "RFC 055", category := "shutdown",    summary := "stop the runtime if quiescent" },
     { name := "acquire",            since := "RFC 057", category := "resource",    summary := "running task allocates a fresh resource" },
     { name := "release",            since := "RFC 057", category := "resource",    summary := "owning task releases an allocated resource" },
-    { name := "finalize",           since := "RFC 057", category := "resource",    summary := "environment reclaims a closing resource" } ]
+    { name := "finalize",           since := "RFC 057", category := "resource",    summary := "environment reclaims a closing resource" },
+    { name := "setPriority",        since := "RFC 059", category := "metadata",    summary := "set a spawned task's scheduling priority" },
+    { name := "setDeadline",        since := "RFC 059", category := "metadata",    summary := "set a spawned task's logical deadline" } ]
 
 /-- `TaskState` — the 10 task lifecycle states (`Henret/Actor/Task.lean`). -/
 def taskStateDocs : List ConstructorDoc :=

@@ -78,7 +78,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [056](done/056-bounded-mailboxes-and-backpressure.md) | Bounded Mailboxes and Backpressure | Implemented (v0.18.0) | — |
 | [057](done/057-resource-lifetime-and-finalization-ledger.md) | Resource Lifetime and Finalization Ledger | Implemented (v0.19.0) | v0.19.0 |
 | [058](done/058-scheduling-policy-layer.md) | Scheduling Policy Layer | Implemented (v0.21.0) | v0.21.0 |
-| [059](proposed/059-deadline-and-priority-semantics.md) | Deadline and Priority Semantics | — | — |
+| [059](done/059-deadline-and-priority-semantics.md) | Deadline and Priority Semantics | Implemented (v0.22.0) | v0.22.0 |
 | [060](proposed/060-trace-based-refinement-certification.md) | Trace-Based Refinement Certification | — | — |
 | [061](proposed/061-runtime-adapter-contract.md) | Runtime Adapter Contract | — | — |
 | [062](proposed/062-proof-ergonomics-library.md) | Proof Ergonomics Library | — | — |

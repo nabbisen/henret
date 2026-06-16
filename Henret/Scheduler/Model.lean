@@ -1,6 +1,7 @@
 import Henret.Core.Id
 import Henret.Core.Result
 import Henret.Actor.Task
+import Henret.Actor.Meta
 import Henret.Actor.Mailbox
 import Henret.Scheduler.Op
 import Henret.Scheduler.Timer
@@ -81,6 +82,10 @@ structure RuntimeState where
   resources : ResourceId → Option ResourceRecord
   /-- Fresh-resource counter (RFC 057); monotone, never reused. -/
   nextResourceId : Nat
+  /-- Optional per-task scheduling metadata (RFC 059): priority and logical
+      deadline. `none` = task uses `defaultMeta`. Metadata is only ever
+      attached to spawned tasks (`reachable_metadata_spawned`). -/
+  taskMeta : TaskId → Option TaskMeta
 
 namespace RuntimeState
 
@@ -105,6 +110,7 @@ def init : RuntimeState where
   mailboxPolicy  := fun _ => .unbounded
   resources      := fun _ => none
   nextResourceId := 0
+  taskMeta       := fun _ => none
 
 /-- Is actor `b`'s mailbox `mb` at or over its configured capacity? (RFC 056)
     Always `false` for an unbounded policy. `send`/`inject` consult this only
@@ -624,6 +630,20 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
     | some ⟨o, .closing⟩ =>
       ({ s with resources := upd s.resources r (some ⟨o, .released⟩) }, .ok)
     | _ => (s, .invalid)
+  | .setPriority t p =>
+    -- Set priority on a spawned task, keeping any existing deadline (RFC 059).
+    match s.taskState t with
+    | some _ =>
+      let m := (s.taskMeta t).getD defaultMeta
+      ({ s with taskMeta := upd s.taskMeta t (some { m with priority := p }) }, .ok)
+    | none => (s, .invalid)
+  | .setDeadline t d =>
+    -- Set deadline on a spawned task, keeping any existing priority (RFC 059).
+    match s.taskState t with
+    | some _ =>
+      let m := (s.taskMeta t).getD defaultMeta
+      ({ s with taskMeta := upd s.taskMeta t (some { m with deadline := some d }) }, .ok)
+    | none => (s, .invalid)
 
 /-- Run a list of operations, ignoring results (RFC 005). Invalid
 operations are no-ops by construction of `step`. -/

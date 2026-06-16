@@ -6,6 +6,7 @@ import Henret.Scheduler.Op
 import Henret.Scheduler.Timer
 import Henret.Scheduler.Model
 import Henret.Scheduler.Policy
+import Henret.Scheduler.MetaPolicy
 import Henret.Scheduler.Driver
 
 /-!

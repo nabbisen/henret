@@ -2,7 +2,7 @@
 
 # Public theorem index
 
-The 109 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 118 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
@@ -29,6 +29,8 @@ The 109 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.finalize_allocated_invalid`
 - `Henret.finalize_closing_ok`
 - `Henret.finalize_released_invalid`
+- `Henret.foldl_best_ge`
+- `Henret.foldl_best_mem`
 - `Henret.full_has_resourceLifetime`
 - `Henret.full_has_schedulingPolicy`
 - `Henret.inject_full_backpressured`
@@ -39,12 +41,16 @@ The 109 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.nextResourceId_monotone_step`
 - `Henret.ok_not_fault`
 - `Henret.parent_chain_terminates`
+- `Henret.pickBy_mem`
 - `Henret.policyStep_preserves_wf`
 - `Henret.policy_does_not_create_task`
 - `Henret.preserves_wf_acquire`
 - `Henret.preserves_wf_cancelTree`
 - `Henret.preserves_wf_finalize`
 - `Henret.preserves_wf_release`
+- `Henret.preserves_wf_setDeadline`
+- `Henret.preserves_wf_setPriority`
+- `Henret.priority_policy_selects_max`
 - `Henret.reachable_allocated_owner_nonterminal`
 - `Henret.reachable_closing_owner_terminal`
 - `Henret.reachable_mailbox_within_capacity`
@@ -82,6 +88,8 @@ The 109 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.send_full_backpressured`
 - `Henret.send_stamps_source`
 - `Henret.send_unbounded_not_backpressured`
+- `Henret.setDeadline_meta_of_spawned`
+- `Henret.setPriority_meta_of_spawned`
 - `Henret.shutdown_rejects_spawn`
 - `Henret.shutdown_sets_status`
 - `Henret.step_backpressured_unchanged`
@@ -92,6 +100,7 @@ The 109 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.stopWhenIdle_sets_stopped`
 - `Henret.timedOut_not_fault`
 - `Henret.timedOut_not_invalid_class`
+- `Henret.wf_taskMeta_only`
 
 ## Henret.Bridge
 

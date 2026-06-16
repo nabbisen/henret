@@ -96,7 +96,7 @@ theorem step_preserves_parent {s : RuntimeState} {op : RuntimeOp} {u : TaskId}
   | .spawn _ | .schedule | .yield _ | .complete _ | .cancel _
   | .send _ _ _ | .receive _ | .receiveUntil _ _ | .receiveByOccurrence _ _ | .receiveFrom _ _
   | .inject _ _ | .sleep _ _ | .tick _ | .wake _ | .fail _
-  | .acquire _ | .release _ _ | .finalize _ =>
+  | .acquire _ | .release _ _ | .finalize _ | .setPriority _ _ | .setDeadline _ _ =>
       simp only [step]
       (repeat' split) <;> simp [upd, hu]
   | .spawnChild _ _ | .restartOne _ _ _ =>

@@ -128,6 +128,12 @@ theorem step_resources_eq_of_released {s : RuntimeState} (h_wf : WellFormed s)
   | finalize rOp =>
     simp only [step]; (repeat' split) <;>
       first | rfl | exact upd_ne _ _ (by intro he; subst he; cases rr; simp_all)
+  | setPriority t p =>
+    simp only [step]; (repeat' split) <;>
+      first | rfl | exact upd_ne _ _ (by intro he; subst he; cases rr; simp_all)
+  | setDeadline t d =>
+    simp only [step]; (repeat' split) <;>
+      first | rfl | exact upd_ne _ _ (by intro he; subst he; cases rr; simp_all)
   | complete t =>
     simp only [step]; (repeat' split) <;>
       first | rfl | exact markClosingIf_eq_of_released (p := (· == t)) hrr hrel

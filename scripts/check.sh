@@ -243,6 +243,15 @@ open Henret Henret.Native Henret.Bridge
 #print axioms policy_does_not_create_task
 #print axioms fifo_policy_equiv_schedule
 #print axioms schedule_preserves_nextId
+#print axioms wf_taskMeta_only
+#print axioms preserves_wf_setPriority
+#print axioms preserves_wf_setDeadline
+#print axioms setPriority_meta_of_spawned
+#print axioms setDeadline_meta_of_spawned
+#print axioms pickBy_mem
+#print axioms foldl_best_mem
+#print axioms foldl_best_ge
+#print axioms priority_policy_selects_max
 LEAN
   lake env lean "$A" | python3 scripts/axiom_audit.py
   rc=$?
