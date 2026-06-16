@@ -92,6 +92,10 @@ open Henret Henret.Native Henret.Bridge
 #check @preserves_wf_restartOne
 #check @bridge_fail
 #check @bridge_restartOne
+-- RFC 054 semantic profile inclusion chain
+#print axioms core_le_actor
+#print axioms actor_le_full
+#print axioms core_le_full
 LEAN
 lake env lean "$AUDIT" | python3 scripts/axiom_audit.py
 rm -f "$AUDIT"

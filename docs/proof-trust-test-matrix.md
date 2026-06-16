@@ -2,6 +2,12 @@
 
 Every material claim Henret makes is classified here (RFC 009).
 
+For the **minimum semantic profile** each headline theorem requires
+(core / actor / full, RFC 054), see
+[`docs/profile-index.md`](profile-index.md); profiles are kept in a
+dedicated index rather than as a column here, to avoid duplicating this
+table.
+
 | Class | Meaning |
 |---|---|
 | PROVEN | Checked by the Lean kernel (no `sorry`; only `propext` / `Quot.sound`) |
@@ -289,3 +295,13 @@ zero-assumption core.
 | 157 | Renderers cover ready/waiting/sleeping/running/completed/cancelled/failed tasks | TESTED | `Render.taskLocation`, `Render.stateWord` |
 | 158 | Mermaid output is valid for Markdown preview tools | DOCUMENTED | `docs/observability.md` (rendered parent tree) |
 | 159 | Renderers add no theorems and do not affect the axiom budget | PROVEN (by construction) | pure `String` functions; `import Henret` axiom audit unchanged |
+
+## v0.16.0 claims (semantic profiles, RFC 054)
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 160 | Named profiles (`core`/`actor`/`full`) have no duplicate features | PROVEN | `Profile.core/actor/full` `nodup` field (`by decide`) |
+| 161 | Profile inclusion forms the chain `core ≤ actor ≤ full` | PROVEN | `core_le_actor`, `actor_le_full`, `core_le_full` |
+| 162 | Profile inclusion is a preorder (reflexive, transitive) | PROVEN | `SemanticProfile.le_refl`, `SemanticProfile.le_trans` |
+| 163 | Each headline theorem is classified by its minimum profile | DOCUMENTED | `docs/profile-index.md` |
+| 164 | Profiles are metadata only — no existing theorem or `step`/`run` behavior changes | PROVEN (by construction) | `Henret/Profile.lean` adds no model dependency; `import Henret` behavior additive |

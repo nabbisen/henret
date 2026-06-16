@@ -178,6 +178,23 @@ mapping, Mesa-semantics requirements, trust boundary, and versioning
 policy). See `examples/10_integration_contract.lean` for a worked
 consumer trace.
 
+## Which Henret profile should I use?
+
+Henret's semantics are grouped into named **profiles** (RFC 054) so you
+can say which subset you depend on:
+
+- **core** — bare task lifecycle (spawn, schedule, yield, complete,
+  cancel).
+- **actor** — core plus actor messaging, parking on empty receive, and
+  message occurrence identity.
+- **full** — every implemented feature: actor plus timers, supervision
+  (fail/restart), and the bridge.
+
+Profiles are metadata, not a build flag — `import Henret` always brings in
+the full model. The inclusion chain `core ≤ actor ≤ full` is
+kernel-proven. See [`docs/profile-index.md`](docs/profile-index.md) for
+the theorem-to-profile mapping.
+
 ## Design notes
 
 - **One mutation primitive.** Every per-id map change goes through

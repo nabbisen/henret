@@ -566,3 +566,18 @@ Step-local lemmas (`step_*`), preservation lemmas (`preserves_wf_*`),
 projections (`StepProjections`), irrelevance helpers (`*_irrel`), and
 `run_preserves_*` threading lemmas. Consumers should depend on the
 Stable headlines, not these.
+
+---
+
+### RFC 054 — Semantic Profiles
+
+Profile vocabulary in `Henret/Profile.lean` (metadata; does not change any theorem or `step`/`run`).
+
+| Theorem | Statement |
+|---|---|
+| `core_le_actor` | `Profile.core ≤ Profile.actor` (feature inclusion) |
+| `actor_le_full` | `Profile.actor ≤ Profile.full` |
+| `core_le_full` | `Profile.core ≤ Profile.full` (by transitivity) |
+| `SemanticProfile.le_refl`, `SemanticProfile.le_trans` | profile inclusion is a preorder |
+
+Named profiles `Profile.core` / `actor` / `full` carry kernel-proven `nodup` (no duplicate features). All depend only on `propext`. The theorem-to-profile mapping is in `docs/profile-index.md`.

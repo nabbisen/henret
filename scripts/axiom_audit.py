@@ -63,6 +63,10 @@ ALLOWLIST = {
     "Henret.reachable_restart_parent_consistent":  (set(), STD_C),
     "Henret.restart_preserves_parent_acyclicity":  (set(), STD_C),
     "Henret.restarted_task_has_owner":             (set(), STD_C),
+    # RFC 054 semantic profile inclusion chain (kernel decide, propext only)
+    "Henret.core_le_actor":                        (set(), STD),
+    "Henret.actor_le_full":                        (set(), STD),
+    "Henret.core_le_full":                         (set(), STD),
     # RFC 046 fairness / conditional liveness
     "Henret.Progress.ready_eventually_scheduled_under_bounded_fairness": (set(), STD),
     "Henret.Progress.schedule_schedules_head":  (set(), STD),

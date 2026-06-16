@@ -103,6 +103,9 @@ IGNORE = {
     "bridge_restartOne", "restartOf_irrel", "run_preserves_restart_wf",
     "restart_wf_of_restartOf_stable", "restart_wf_restartOne", "supervision",
     "isTerminal_failed", "TaskState.failed",
+    # RFC 054 semantic profiles
+    "SemanticFeature", "SemanticProfile", "Subset", "Has", "nodup",
+    "Profile.core", "Profile.actor", "Profile.full",
     # RFC 050 observability / visualization (pure renderers)
     "render", "traceTable", "stateWord", "taskLocation", "locationMap",
     "mailboxView", "stateRender", "readyIndex", "waitingActor",

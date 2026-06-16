@@ -2,6 +2,46 @@
 
 # Changelog
 
+## v0.16.0 — Semantic Profiles and Capability Sets (RFC 054)
+
+A semantic-profile vocabulary so a consumer can name the subset of
+Henret's semantics it depends on, and a theorem can be labelled with the
+minimum profile it requires. **Profiles are metadata** — they change no
+existing theorem and no `step`/`run` behavior.
+
+### Profile vocabulary (kernel-proven)
+
+New `Henret/Profile.lean` defines `SemanticFeature` (nine features,
+including reserved `schedulingPolicy`/`resourceLifetime` for future
+RFCs), `SemanticProfile` (a duplicate-free feature set), and the named
+profiles `Profile.core` ⊂ `Profile.actor` ⊂ `Profile.full`. The
+inclusion chain is kernel-proven — `core_le_actor`, `actor_le_full`,
+`core_le_full`, plus `SemanticProfile.le_refl`/`le_trans` — and each
+named profile carries a `by decide` `nodup` proof. All depend only on
+`propext` (kernel `decide`, no `Classical.choice`, no `native_decide`).
+
+### Documentation
+
+New `docs/profile-index.md` maps the headline theorems to their minimum
+profile (core / actor / full) and the examples to their profiles. The
+README gains a "Which Henret profile should I use?" section; the
+proof/trust/test matrix points to the profile index rather than carrying
+a per-row column (avoiding duplication). `examples/15_semantic_profiles.lean`
+demonstrates the vocabulary and discharges the inclusion chain.
+
+### Import behavior
+
+`import Henret` now additively includes the profile vocabulary. No
+existing theorem statement or model behavior changes; the profile facts
+are an independent namespace.
+
+### Axiom budget
+
+The three inclusion theorems are added to the audit allowlist (propext
+only). Otherwise unchanged.
+
+---
+
 ## v0.15.4 — Assurance Case and External Review Playbook (RFC 053)
 
 A reviewability release. **No new semantics, no new theorems, axiom

@@ -6,6 +6,7 @@ import Henret.Trace
 import Henret.Conformance
 import Henret.Progress
 import Henret.Render
+import Henret.Profile
 
 /-!
 # Henret
