@@ -215,6 +215,8 @@ gate_doc_consistency() {
   fi
   # Source-of-truth count check (RFC 084 stopgap)
   python3 scripts/doc_count_check.py || return 1
+  # Evidence-ledger validation + forbidden-claim gate (RFC 081)
+  python3 scripts/forbidden_claim_check.py || return 1
   echo "docs consistency ok"
 }
 

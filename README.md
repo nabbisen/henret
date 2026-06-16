@@ -156,7 +156,7 @@ open Henret
 - **Occurrence identity** (v0.7.0) — every envelope delivered by `send` or
   `inject` is stamped with a globally unique `MessageId` allocated from
   `nextMsgId`. Three new `WellFormed` fields (`occ_fresh`, `occ_nodup`,
-  `occ_disjoint`, 19 total) guarantee that no two envelopes in any reachable
+  `occ_disjoint`) guarantee that no two envelopes in any reachable
   mailboxes share an occurrence id (`reachable_occurrence_unique`).
 - **Backend contract** — both reference mailbox backends satisfy the
   `MailboxBackend` refinement contract (`listBackend`, `mailboxBackend`);
@@ -165,6 +165,13 @@ open Henret
 See [`docs/proof-index.md`](docs/proof-index.md) for the full theorem list and
 [`docs/proof-trust-test-matrix.md`](docs/proof-trust-test-matrix.md) for what
 is merely tested or explicitly out of scope.
+
+Every claim also records *where* its evidence lives, machine-readably, in
+[`docs/evidence-ledger.yaml`](docs/evidence-ledger.yaml). This package verifies
+only its in-tree model proofs and in-tree executable checks; the concurrent
+runtime harnesses (differential, linearizability, stress) live in a separately
+versioned sibling package and are **not** verified by this tarball's gates. See
+[`docs/package-boundary.md`](docs/package-boundary.md) for the split.
 
 ## Learning path
 

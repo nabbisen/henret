@@ -1,8 +1,8 @@
 ---
 rfc: 81
 title: Package Boundary and Evidence Ledger
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.17.3
 supersedes: []
 superseded_by: []
 depends_on: [80]
@@ -14,9 +14,16 @@ category: governance
 
 ## Status
 
-Proposed strategic RFC. Approved in the v0.17.0 audit review (item A5,
+Implemented in **v0.17.3**. Approved in the v0.17.0 audit review (item A5,
 decision **A — intended split**, priority **P0 — blocks public ledger
-claims**); amendments 081-A..C applied from the RFCs 080-086 review.
+claims**); amendments 081-A..C and the v2-review final-pass amendments
+081-1..4 applied. Delivered: `docs/evidence-ledger.yaml` (machine-readable
+source of truth), its generated `docs/evidence-ledger.md`,
+`docs/package-boundary.md`, the evidence-location columns on the proof matrix,
+the honesty-ledger wording in the README, and
+`scripts/forbidden_claim_check.py` (ledger validation + forbidden-claim gate)
+wired into the RFC 080 doc-consistency gate. The RFC 080 manifest's
+`runtime_package` block now references the ledger.
 
 ## Summary
 

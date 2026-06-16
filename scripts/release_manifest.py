@@ -52,7 +52,8 @@ else:
 gates = [json.loads(l) for l in Path(records_path).read_text().splitlines() if l.strip()]
 
 POLICY = ["check.sh", "check_selftest.py", "axiom_audit.py", "doc_symbol_check.py",
-          "doc_count_check.py", "rfc_metadata_check.py", "warning_budget.py"]
+          "doc_count_check.py", "rfc_metadata_check.py", "forbidden_claim_check.py",
+          "warning_budget.py"]
 gate_policy = {
     s.replace(".", "_").replace("-", "_") + "_sha256": sha256_file("scripts/" + s)
     for s in POLICY
@@ -80,7 +81,10 @@ manifest = {
     "runtime_package": {
         "included": False,
         "version_or_commit": None,
-        "evidence": "out-of-tree; populated by RFC 081 evidence ledger",
+        "verified_by_this_tarball": False,
+        "evidence_ledger": "docs/evidence-ledger.yaml",
+        "evidence": "Out-of-tree sibling package; runtime claims carry "
+                    "verified_by_this_tarball=false in the evidence ledger (RFC 081).",
     },
 }
 print(json.dumps(manifest, indent=2))

@@ -1,0 +1,204 @@
+# docs/evidence-ledger.yaml — Henret evidence ledger (RFC 081).
+#
+# SOURCE OF TRUTH (081-1). docs/evidence-ledger.md is a generated rendering;
+# never edit the .md by hand. scripts/forbidden_claim_check.py validates this
+# file and regenerates/diffs the .md as an RFC 080 gate.
+#
+# Closed vocabulary (081-B):
+#   tier:              PROVEN | TRUSTED | TESTED | OUTSCOPE | PLANNED
+#   evidence_location: in_tree_model_proof | in_tree_model_test
+#                      | sibling_runtime_package | external_artifact | planned
+#   verified_by_this_tarball / verified_by_ci: true | false
+#
+# Rules enforced by the checker:
+#   - claim_id is stable and namespaced  (081-3)
+#   - in_tree_* locations => verified_by_this_tarball: true
+#   - out-of-tree (sibling/external) => immutable coordinates + verified_by_ci,
+#     OR an explicit null posture (external_version: null, verified_by_ci: false,
+#     plus notes)                         (081-2)
+#   - TRUSTED and TESTED are never collapsed (081-B)
+
+# --- In-tree model proofs (kernel-checked, present in this tarball) ----------
+- claim_id: model.reachable_wf
+  claim: Every reachable scheduler state satisfies the 28-field WellFormed invariant
+  tier: PROVEN
+  evidence_location: in_tree_model_proof
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: reachable_wf in Henret/Proofs/InvariantsPreservation.lean
+
+- claim_id: model.occurrence_unique
+  claim: Equal message occurrence ids across any two reachable mailboxes imply the same envelope in the same mailbox
+  tier: PROVEN
+  evidence_location: in_tree_model_proof
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: reachable_occurrence_unique in Henret/Proofs/Occurrence.lean
+
+- claim_id: model.parent_acyclic
+  claim: Parent chains are strictly decreasing and therefore terminate
+  tier: PROVEN
+  evidence_location: in_tree_model_proof
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: reachable_parent_lt, parent_chain_terminates in Henret/Proofs/Parenthood.lean
+
+- claim_id: model.owner_exactness
+  claim: Every spawned task has an immutable owner and every owned task is spawned
+  tier: PROVEN
+  evidence_location: in_tree_model_proof
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: reachable_spawned_has_owner, reachable_owner_spawned (RFC 038)
+
+- claim_id: model.bridge_single_worker
+  claim: The single-worker queue projection is preserved by every RuntimeOp
+  tier: PROVEN
+  evidence_location: in_tree_model_proof
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: bridge_step_single_worker in Henret/Bridge/Preservation.lean
+
+- claim_id: model.bridge_multi
+  claim: Every reachable state admits a multi-worker BridgeState witness
+  tier: PROVEN
+  evidence_location: in_tree_model_proof
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: reachable_multi_bridge in Henret/Bridge/MultiState.lean (RFC 043)
+
+- claim_id: model.profile_chain
+  claim: The semantic profiles form an inclusion chain core <= actor <= full
+  tier: PROVEN
+  evidence_location: in_tree_model_proof
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: core_le_actor, actor_le_full, core_le_full (RFC 054)
+
+- claim_id: model.restart_safety
+  claim: Supervision restart preserves parent acyclicity and owner consistency
+  tier: PROVEN
+  evidence_location: in_tree_model_proof
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: restart_preserves_parent_acyclicity, restarted_task_has_owner (RFC 049)
+
+- claim_id: model.shutdown_safety
+  claim: Closed actors reject send/inject and a shutdown runtime rejects spawn
+  tier: PROVEN
+  evidence_location: in_tree_model_proof
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: closed_actor_rejects_send/inject, shutdown_rejects_spawn (RFC 055)
+
+- claim_id: model.fairness_liveness
+  claim: Under bounded fairness every ready task is eventually scheduled
+  tier: PROVEN
+  evidence_location: in_tree_model_proof
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: ready_eventually_scheduled_under_bounded_fairness (RFC 046)
+
+- claim_id: model.trace_sound
+  claim: The execution-trace ledger reproduces step state and result exactly
+  tier: PROVEN
+  evidence_location: in_tree_model_proof
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: stepTrace_state_eq_step, runTraceLedger_state_eq_run (RFC 045)
+
+# --- Trusted boundary (axioms declared + audited in-tree; C impl out-of-tree)
+- claim_id: native.deque_axioms
+  claim: The Chase-Lev deque satisfies its six sequential-specification axioms
+  tier: TRUSTED
+  evidence_location: in_tree_model_proof
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: Six NativeDeque axioms in Henret/Native/Assumptions.lean; audited as exactly six. The C implementation they trust is out-of-tree.
+
+- claim_id: native.race_freedom
+  claim: C11-atomic data-race freedom and RC discipline of the native deque
+  tier: OUTSCOPE
+  evidence_location: planned
+  verified_by_this_tarball: false
+  verified_by_ci: false
+  external_version: null
+  notes: Requires Iris-style concurrent separation logic; outside the logic's reach and not claimed.
+
+# --- In-tree executable checks (present in this tarball) ---------------------
+- claim_id: test.demo_scenarios
+  claim: The demo regression scenarios run to the expected outcomes
+  tier: TESTED
+  evidence_location: in_tree_model_test
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: lake exe henret-demo (release-mode gate stage 2)
+
+- claim_id: test.conformance
+  claim: The golden-trace conformance suite passes and reports first mismatch on failure
+  tier: TESTED
+  evidence_location: in_tree_model_test
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: lake exe henret-conformance; conformance_suite_passes also PROVEN
+
+- claim_id: test.explorer
+  claim: The bounded model checker enumerates op sequences and shrinks counterexamples
+  tier: TESTED
+  evidence_location: in_tree_model_test
+  verified_by_this_tarball: true
+  verified_by_ci: true
+  external_version: null
+  notes: lake exe henret-explore
+
+# --- Out-of-tree runtime evidence (NOT present in this tarball) --------------
+# Explicit null posture (081-2): no immutable coordinates, verified_by_ci false.
+- claim_id: runtime.differential
+  claim: The concrete machine matches the pure model on identical op sequences
+  tier: TESTED
+  evidence_location: sibling_runtime_package
+  verified_by_this_tarball: false
+  verified_by_ci: false
+  external_version: null
+  notes: lean-runtime-workspace differential harness; not present in the model-package tarball.
+
+- claim_id: runtime.linearizability
+  claim: Concurrent histories pass the Wing-Gong linearizability checker
+  tier: TESTED
+  evidence_location: sibling_runtime_package
+  verified_by_this_tarball: false
+  verified_by_ci: false
+  external_version: null
+  notes: lean-runtime-workspace linearizability checker; not present in the model-package tarball.
+
+- claim_id: runtime.stress_partition
+  claim: Stress rounds preserve the partition invariant pushed = popped + stolen
+  tier: TESTED
+  evidence_location: sibling_runtime_package
+  verified_by_this_tarball: false
+  verified_by_ci: false
+  external_version: null
+  notes: lean-runtime-workspace stress harness; not present in the model-package tarball.
+
+- claim_id: runtime.executor
+  claim: Cooperative executor futures run to completion in the expected order
+  tier: TESTED
+  evidence_location: sibling_runtime_package
+  verified_by_this_tarball: false
+  verified_by_ci: false
+  external_version: null
+  notes: lean-runtime-workspace executor harness; not present in the model-package tarball.

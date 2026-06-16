@@ -95,7 +95,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [078](proposed/078-security-and-robustness-interpretation.md) | Security and Robustness Interpretation | — | — |
 | [079](proposed/079-publication-and-community-review-plan.md) | Publication and Community Review Plan | — | — |
 | [080](done/080-release-gate-integrity-and-evidence-manifest.md) | Release Gate Integrity and Evidence Manifest | Implemented (v0.17.2) | — |
-| [081](proposed/081-package-boundary-and-evidence-ledger.md) | Package Boundary and Evidence Ledger | — | P0 |
+| [081](done/081-package-boundary-and-evidence-ledger.md) | Package Boundary and Evidence Ledger | Implemented (v0.17.3) | — |
 | [082](proposed/082-preservation-proof-ergonomics-v2.md) | Preservation Proof Ergonomics v2 (supersedes 042) | — | P1 |
 | [083](proposed/083-golden-conformance-coverage-expansion.md) | Golden Conformance Coverage Expansion | — | P1 |
 | [084](proposed/084-model-to-documentation-extraction-implementation.md) | Model-to-Documentation Extraction Implementation | — | P1 |

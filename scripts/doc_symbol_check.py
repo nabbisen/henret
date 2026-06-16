@@ -158,6 +158,10 @@ IGNORE = {
     "drivePopB",
     # RFC 035 BridgeState field names (not standalone theorems)
     "queue_eq", "other_empty",
+    # RFC 081 evidence-ledger vocabulary (documentation terms, not theorems)
+    "in_tree_model_proof", "in_tree_model_test", "sibling_runtime_package",
+    "external_artifact", "verified_by_this_tarball", "verified_by_ci",
+    "evidence_location", "claim_id", "external_version", "external_commit",
 }
 
 NAME_RE = re.compile(r"`([A-Za-z][A-Za-z0-9_.']*)`")

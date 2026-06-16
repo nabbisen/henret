@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.17.3 — Package Boundary and Evidence Ledger (RFC 081)
+
+Non-semantic release: documentation, governance, and tooling only. No Lean
+model, proof, or axiom-budget change.
+
+- **`docs/evidence-ledger.yaml`** — machine-readable source of truth (081-1)
+  for every headline claim, recording its `tier`, `evidence_location`,
+  `verified_by_this_tarball`, and `verified_by_ci` over a closed vocabulary
+  (081-B). In-tree model proofs/tests are marked verified-here; the
+  out-of-tree runtime harnesses (differential, linearizability, stress,
+  executor) carry `evidence_location: sibling_runtime_package` and
+  `verified_by_this_tarball: false` with an explicit null posture (081-2).
+  `TRUSTED` (the FFI axioms) and `TESTED` are never collapsed.
+- **`scripts/forbidden_claim_check.py`** — validates the ledger schema
+  (namespaced stable `claim_id`s, in-tree⇔verified-here, out-of-tree
+  coordinates-or-null), regenerates and diffs `docs/evidence-ledger.md`
+  (081-1), and runs the forbidden-claim gate: a phrase list + allowed-context
+  patterns + ledger validation (081-4) that rejects any live-doc claim
+  implying this tarball verifies the out-of-tree runtime tests (081-C). Wired
+  into the RFC 080 doc-consistency gate.
+- **`docs/package-boundary.md`** — enumerates the model package and the
+  sibling runtime package, their evidence locations, and the shared-toolchain
+  link.
+- **`docs/proof-trust-test-matrix.md`** — every row now carries an
+  evidence-location and verified-here column; a legend note clarifies that
+  `TESTED` here means in-tree checks, not the out-of-tree runtime harnesses.
+- **`README.md`** — honesty-ledger wording points to the evidence ledger and
+  package boundary and states the in-tree/out-of-tree posture; removed a
+  stale running field-count.
+- **`scripts/release_manifest.py`** — the manifest `runtime_package` block now
+  references the evidence ledger, and `forbidden_claim_check.py` joins the
+  hashed gate policy.
+
 ## v0.17.2 — Release Gate Integrity (RFC 080) + doc count-check stopgap (RFC 084)
 
 Non-semantic release: tooling, gates, CI, and documentation only. No Lean
