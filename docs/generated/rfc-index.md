@@ -2,7 +2,7 @@
 
 # RFC index
 
-88 RFCs: 69 implemented, 18 proposed/in-wave, 1 archived. Generated from RFC front matter.
+89 RFCs: 70 implemented, 18 proposed/in-wave, 1 archived. Generated from RFC front matter.
 
 ## Implemented (`done/`)
 
@@ -77,6 +77,7 @@
 | [85](done/085-rfc-metadata-normalization.md) | RFC Metadata Normalization | v0.17.1 | governance |
 | [86](done/086-warning-hygiene-and-public-lemma-tightening.md) | Warning Hygiene and Public Lemma Tightening | v0.17.4 | tooling |
 | [87](done/087-resource-drain-discipline.md) | Resource Drain Discipline (RFC 057 Tier 2) | v0.23.0 | model-semantics |
+| [88](done/088-drained-state-persistence.md) | Drained-State Persistence (RFC 057 Tier 2) | v0.24.0 | model-semantics |
 
 ## Proposed / in-wave (`proposed/`)
 

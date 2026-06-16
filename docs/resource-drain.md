@@ -59,6 +59,41 @@ is refused (`.invalid`, runtime stays running) — the live resource blocks the
 drained stop. Both paths are pinned as conformance scenarios
 (`stopWhenDrained_drained_stops`, `stopWhenDrained_live_resource_invalid`).
 
+## Drained-state persistence (RFC 088)
+
+`stopWhenDrained_stops_drained` is a guarantee about the *instant* of stopping.
+RFC 088 closes the one-step gap that follows: from a drained state with no
+running task, **no single operation can leak a resource**.
+
+```lean
+theorem drained_step_drained (h_wf : WellFormed s)
+    (h_run : s.running = none) (h_d : Drained s) (op : RuntimeOp) :
+    Drained (step s op).1
+```
+
+The argument is structural rather than per-op: an already-present resource is
+`released` and stays so under any operation (RFC 057's
+`step_resources_eq_of_released`), and the only operation that writes a fresh
+resource slot is `acquire`, which needs a running task — blocked by `h_run`
+(the new lemma `step_resources_none_run_none`). Composing with the stop:
+
+```lean
+theorem stopWhenDrained_then_step_drained (h_wf : WellFormed s)
+    (h : (step s .stopWhenDrained).2 = .ok) (op : RuntimeOp) :
+    Drained (step (step s .stopWhenDrained).1 op).1
+```
+
+A successful `stopWhenDrained` keeps `running = none` and the ledger unchanged,
+so the next operation cannot leak. Pinned by the conformance scenario
+`stopWhenDrained_then_acquire_stays_drained` (a post-stop `acquire` is
+`.invalid` and the ledger stays drained).
+
+> **Single-step only.** Multi-step permanence — *stays* drained across an
+> arbitrary op sequence — needs `running = none` preserved across the whole run,
+> which requires ruling out a `wake` re-populating `readyQ`. That depends on a
+> `sleeping → timer` invariant (the converse of `timers_sleep`) the model does
+> not yet carry; it is deferred to a later Tier-2 slice.
+
 ## Scope (deferred to later Tier-2 slices)
 
 - A **breaking** global `stopped → Drained` invariant (would require

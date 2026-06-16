@@ -762,3 +762,20 @@ additive `stopWhenDrained` operation (RuntimeOp 27) stops only when quiescent
 `stopWhenIdle` is unchanged; the drained stop is additive. The breaking global
 `stopped → Drained` invariant, actor-owned resources, and wall-clock liveness
 are deferred to later Tier-2 slices.
+
+### RFC 088 — Drained-State Persistence (RFC 057 Tier 2)
+
+Closes the one-step gap after a drained stop
+(`Henret/Proofs/DrainedPersistence.lean`): from a drained state with no running
+task, no single operation can leak a resource. Structural argument — existing
+resources stay `released` (RFC 057's `step_resources_eq_of_released`) and no new
+one appears because `acquire` needs a running task.
+
+| Theorem | Statement |
+|---|---|
+| `step_resources_none_run_none` | with `running = none`, no operation writes a resource at a previously-empty slot (only `acquire` allocates, and it needs a running task) |
+| `drained_step_drained` | one step from a drained, non-running state stays drained |
+| `stopWhenDrained_then_step_drained` | composition with RFC 087: immediately after a successful `stopWhenDrained`, the next operation preserves `Drained` |
+
+Single-step only; multi-step permanence needs a `sleeping → timer` invariant the
+model does not yet carry, and is deferred (see `docs/resource-drain.md`).

@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.24.0 — Drained-State Persistence (RFC 088 / RFC 057 Tier 2)
+
+Closes the one-step gap that RFC 087 left open. RFC 087 proved a drained stop is
+drained *at the instant of stopping*; this proves the no-leak property survives
+the next operation. Additive, no model change, no `sorry`, no new axiom kinds.
+
+- **Single-step persistence** (`Henret/Proofs/DrainedPersistence.lean`):
+  `drained_step_drained` — from a drained state with `running = none`, every
+  operation preserves `Drained`. The argument is structural: existing resources
+  are `released` and stay so (RFC 057's `step_resources_eq_of_released`), and no
+  new resource appears because `acquire` requires a running task
+  (`step_resources_none_run_none`).
+- **Composition with RFC 087**: `stopWhenDrained_then_step_drained` — a
+  successful `stopWhenDrained` keeps `running = none` and the ledger unchanged,
+  so the next operation cannot leak a resource.
+- **Conformance**: `stopWhenDrained_then_acquire_stays_drained` — a post-stop
+  `acquire` is `.invalid` and the ledger stays drained.
+- **Docs**: `docs/resource-drain.md` persistence section; proof-index and matrix
+  (claims 207–209).
+- **Deferred**: multi-step permanence needs a `sleeping → timer` invariant (the
+  converse of `timers_sleep`) the model does not yet carry; also still deferred
+  are the breaking global `stopped → Drained` invariant, actor-owned resources,
+  and wall-clock liveness.
+
 ## v0.23.0 — Resource Drain Discipline (RFC 087 / RFC 057 Tier 2)
 
 The first Tier-2 slice of the resource ledger, on the safety/possibility axis.

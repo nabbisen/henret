@@ -181,6 +181,10 @@ ALLOWLIST = {
     "Henret.stopWhenDrained_noop":     (set(), STD),
     "Henret.preserves_wf_stopWhenDrained": (set(), STD),
     "Henret.Bridge.bridge_stopWhenDrained": (set(), STD),
+    # RFC 088 — drained-state persistence (RFC 057 Tier 2)
+    "Henret.step_resources_none_run_none": (set(), STD),
+    "Henret.drained_step_drained":     (set(), STD),
+    "Henret.stopWhenDrained_then_step_drained": (set(), STD),
 }
 
 text = sys.stdin.read()
