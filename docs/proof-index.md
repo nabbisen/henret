@@ -779,3 +779,22 @@ one appears because `acquire` needs a running task.
 
 Single-step only; multi-step permanence needs a `sleeping → timer` invariant the
 model does not yet carry, and is deferred (see `docs/resource-drain.md`).
+
+### RFC 089 — Sleeping-Timer Coherence (RFC 057 Tier 2 groundwork)
+
+Closes a gap in the model's coherence reasoning
+(`Henret/Proofs/SleepingTimer.lean`): a `WellFormed` state recorded only that a
+timer's task is sleeping-or-waiting-timed (the timers_sleep field), never the
+converse. This invariant supplies the converse — every sleeping task has a
+registered timer — so an empty timer queue now rules out sleeping tasks.
+
+| Theorem | Statement |
+|---|---|
+| `sleepingHasTimer_init` | the initial state has no sleeping tasks |
+| `step_preserves_sleepingHasTimer` | every operation preserves "sleeping ⟹ has timer" |
+| `reachable_sleepingHasTimer` | the invariant holds in every reachable state |
+| `quiescent_no_sleeping` | a quiescent runtime has no sleeping tasks |
+
+Proven as a standalone reachable invariant (not a `WellFormed` field), mirroring
+RFC 057. `quiescent_no_sleeping` is the fact that unblocks multi-step drained
+permanence and a "stopped stays quiescent" result (next slice).

@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.25.0 — Sleeping-Timer Coherence (RFC 089 / RFC 057 Tier 2 groundwork)
+
+Closes the coherence gap that capped RFC 088 at a single step. Additive,
+no model change, no `sorry`, all STD.
+
+- **The invariant** (`Henret/Proofs/SleepingTimer.lean`): `SleepingHasTimer s`
+  — every sleeping task has a registered timer — proven preserved by all 27
+  operations (`step_preserves_sleepingHasTimer`) and in every reachable state
+  (`reachable_sleepingHasTimer`). The model's `WellFormed` previously recorded
+  only the converse (a timer's task is sleeping/waiting-timed), so an empty
+  timer queue could not rule out a sleeping task.
+- **Payoff**: `quiescent_no_sleeping` — a quiescent runtime (empty timer queue)
+  has no sleeping tasks. This is the fact that unblocks multi-step drained
+  permanence and a "stopped stays quiescent" result.
+- Proven as a standalone reachable invariant (not a 34th `WellFormed` field),
+  keeping the change off every preservation file, mirroring RFC 057.
+- **Docs**: proof-index RFC 089; matrix claims 210–212.
+- **Deferred (next slice)**: the `Frozen` bundle invariant giving multi-step
+  permanence / stopped-stays-quiescent; also still deferred — actor-owned
+  resources, the breaking global `stopped → Drained` invariant, wall-clock
+  liveness.
+
 ## v0.24.0 — Drained-State Persistence (RFC 088 / RFC 057 Tier 2)
 
 Closes the one-step gap that RFC 087 left open. RFC 087 proved a drained stop is

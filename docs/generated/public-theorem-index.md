@@ -2,7 +2,7 @@
 
 # Public theorem index
 
-The 131 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 136 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
@@ -57,6 +57,7 @@ The 131 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.preserves_wf_setPriority`
 - `Henret.preserves_wf_stopWhenDrained`
 - `Henret.priority_policy_selects_max`
+- `Henret.quiescent_no_sleeping`
 - `Henret.reachable_allocated_owner_nonterminal`
 - `Henret.reachable_closing_owner_terminal`
 - `Henret.reachable_mailbox_within_capacity`
@@ -73,6 +74,7 @@ The 131 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.reachable_restart_old_failed`
 - `Henret.reachable_restart_parent_consistent`
 - `Henret.reachable_runnable_is_queued`
+- `Henret.reachable_sleepingHasTimer`
 - `Henret.reachable_spawned_has_owner`
 - `Henret.reachable_waiter_actor_unique`
 - `Henret.reachable_waiters_exact`
@@ -90,6 +92,7 @@ The 131 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.resourceDrained_drained`
 - `Henret.restart_preserves_parent_acyclicity`
 - `Henret.restarted_task_has_owner`
+- `Henret.run_preserves_sleepingHasTimer`
 - `Henret.run_preserves_wf`
 - `Henret.schedule_preserves_nextId`
 - `Henret.send_full_backpressured`
@@ -99,9 +102,11 @@ The 131 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.setPriority_meta_of_spawned`
 - `Henret.shutdown_rejects_spawn`
 - `Henret.shutdown_sets_status`
+- `Henret.sleepingHasTimer_init`
 - `Henret.step_backpressured_unchanged`
 - `Henret.step_clock_monotone`
 - `Henret.step_invalid_unchanged`
+- `Henret.step_preserves_sleepingHasTimer`
 - `Henret.step_preserves_terminal`
 - `Henret.step_resources_none_run_none`
 - `Henret.stopWhenDrained_noop`

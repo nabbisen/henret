@@ -185,6 +185,12 @@ ALLOWLIST = {
     "Henret.step_resources_none_run_none": (set(), STD),
     "Henret.drained_step_drained":     (set(), STD),
     "Henret.stopWhenDrained_then_step_drained": (set(), STD),
+    # RFC 089 — sleeping-timer coherence (RFC 057 Tier 2 groundwork)
+    "Henret.sleepingHasTimer_init":    (set(), STD),
+    "Henret.step_preserves_sleepingHasTimer": (set(), STD),
+    "Henret.run_preserves_sleepingHasTimer":  (set(), STD),
+    "Henret.reachable_sleepingHasTimer": (set(), STD),
+    "Henret.quiescent_no_sleeping":    (set(), STD),
 }
 
 text = sys.stdin.read()

@@ -2,7 +2,7 @@
 
 # RFC index
 
-89 RFCs: 70 implemented, 18 proposed/in-wave, 1 archived. Generated from RFC front matter.
+90 RFCs: 71 implemented, 18 proposed/in-wave, 1 archived. Generated from RFC front matter.
 
 ## Implemented (`done/`)
 
@@ -78,6 +78,7 @@
 | [86](done/086-warning-hygiene-and-public-lemma-tightening.md) | Warning Hygiene and Public Lemma Tightening | v0.17.4 | tooling |
 | [87](done/087-resource-drain-discipline.md) | Resource Drain Discipline (RFC 057 Tier 2) | v0.23.0 | model-semantics |
 | [88](done/088-drained-state-persistence.md) | Drained-State Persistence (RFC 057 Tier 2) | v0.24.0 | model-semantics |
+| [89](done/089-sleeping-timer-coherence.md) | Sleeping-Timer Coherence (RFC 057 Tier 2 groundwork) | v0.25.0 | model-semantics |
 
 ## Proposed / in-wave (`proposed/`)
 
