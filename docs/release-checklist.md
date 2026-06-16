@@ -4,11 +4,16 @@ Every item must pass before an archive is cut. The mechanical gates are
 bundled into a single command:
 
 ```bash
-bash scripts/check.sh
+bash scripts/check.sh --fast      # local developer pre-check (skips the demo)
+bash scripts/check.sh --release   # full suite + hashed manifest (CI-authoritative)
 ```
 
-which runs the build, the demo, all examples, the conformance suite, the
-strict axiom audit, the stale-phrase gate, and the doc-symbol checker. The
+`--fast` runs the gate-suite self-test, the build, examples, conformance,
+doc-symbol, axiom audit, doc-consistency, and RFC-metadata gates. `--release`
+additionally runs the demo and emits `release/release-verification.json` (a
+hashed, non-manual evidence manifest) plus `release/GATE-RUN.md`. Per RFC 080,
+authoritative release evidence comes from **CI** running `--release` on the
+exact release commit/tag; a local `--release` is a pre-check only. The
 remaining items are reviewed by hand.
 
 ## Automated gates (`scripts/check.sh`)

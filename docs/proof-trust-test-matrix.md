@@ -200,7 +200,7 @@ zero-assumption core.
 | 102 | `tick t` wakes both `.sleeping` and `.waitingTimed` expired timers; both classes appended to `readyQ` | PROVEN | `preserves_wf_tick`, `bridge_tick` (updated for RFC 040) |
 | 103 | `send`/`inject` fall through to timed waiters when `mailboxWaiters` is empty | PROVEN | `preserves_wf_send`, `preserves_wf_inject` (timed-waiter branches) |
 | 104 | `BridgeState` preserved by `receiveUntil` (emits `[]`; no readyQ effect) | PROVEN | `bridge_step_single_worker` (receiveUntil case) |
-| 105 | `bridge_step_single_worker` now covers all 14 RuntimeOps including `receiveUntil` | PROVEN | `Henret.Bridge.bridge_step_single_worker` |
+| 105 | `bridge_step_single_worker` covers every `RuntimeOp` (universally quantified) including `receiveUntil` | PROVEN | `Henret.Bridge.bridge_step_single_worker` |
 
 ## v0.11.1 claims (selective receive, RFC 041)
 

@@ -1,34 +1,94 @@
 #!/usr/bin/env bash
-# Henret release gate (RFC 017, extended through RFC 051).
-# All gates must pass before an archive is cut.  This is the single
-# command referenced by docs/release-checklist.md.
+# Henret release gate (RFC 017, extended through RFC 080).
+#
+# Modes (RFC 080-A):
+#   check.sh --fast      local/constrained developer mode (default).
+#                        Skips the heavyweight demo; emits NO manifest.
+#                        NEVER valid as release evidence.
+#   check.sh --release   full gate suite incl. the demo; emits a hashed,
+#                        non-manual verification manifest. Required for release.
+#
+# Authoritative release evidence comes from CI running --release on the exact
+# release commit/tag (RFC 080-D); a local --release is a pre-check only.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "== gate 1/10: lake build (Lean-only core + demo) =="
-lake build
+MODE="${1:---fast}"
+case "$MODE" in
+  --fast|--release) ;;
+  *) echo "usage: check.sh [--fast|--release]"; exit 2 ;;
+esac
 
-echo "== gate 2/10: lake build HenretNative (optional native layer) =="
-lake build HenretNative
+RECORDS="$(mktemp /tmp/henret-records-XXXX.jsonl)"
+LOGDIR="$(mktemp -d /tmp/henret-gatelogs-XXXX)"
+: > "$RECORDS"
+cleanup() { rm -rf "$LOGDIR" "$RECORDS"; }
+trap cleanup EXIT
 
-echo "== gate 3/10: lake build HenretExplore (optional model checker) =="
-lake build HenretExplore
+# run_gate <id> <name> <gate-fn> : run a gate, capture/time/hash its output,
+# append a manifest record, fail-fast on error. (The declaration form
+# `run_gate <id> "<name>"` is what check_selftest.py parses.)
+run_gate() {
+  local id="$1" name="$2"; shift 2
+  local outf="$LOGDIR/gate-$id.out" errf="$LOGDIR/gate-$id.err"
+  local start end ms rc status
+  echo "== gate $id ($MODE): $name =="
+  start=$(date +%s%3N)
+  set +e
+  "$@" >"$outf" 2>"$errf"
+  rc=$?
+  set -e
+  end=$(date +%s%3N); ms=$((end - start))
+  [ "$rc" -eq 0 ] && status=pass || status=fail
+  sed 's/^/    /' "$outf"
+  [ -s "$errf" ] && sed 's/^/    [stderr] /' "$errf" || true
+  local osha esha
+  osha=$(sha256sum "$outf" | cut -c1-64)
+  esha=$(sha256sum "$errf" | cut -c1-64)
+  python3 -c 'import json,sys
+print(json.dumps({"id":int(sys.argv[1]),"name":sys.argv[2],"command":sys.argv[3],
+"status":sys.argv[4],"duration_ms":int(sys.argv[5]),
+"stdout_log":sys.argv[6],"stdout_sha256":sys.argv[7],
+"stderr_log":sys.argv[8],"stderr_sha256":sys.argv[9]}))' \
+    "$id" "$name" "$name" "$status" "$ms" \
+    "release/logs/gate-$id.out" "$osha" "release/logs/gate-$id.err" "$esha" >> "$RECORDS"
+  echo "   -> $status (${ms}ms)"
+  if [ "$status" = fail ]; then echo "FAIL: gate $id ($name)"; exit 1; fi
+}
 
-echo "== gate 4/10: demo regression scenarios =="
-lake exe henret-demo
+# ---------------------------------------------------------------- gate bodies
+gate_selftest() { python3 scripts/check_selftest.py; }
 
-echo "== gate 5/10: all examples compile =="
-for f in examples/[0-9][0-9]_*.lean; do
-  echo "  - $f"
-  lake env lean "$f" > /dev/null
-done
+gate_build_libs() { lake build Henret HenretNative HenretExplore; }
 
-echo "== gate 6/10: golden-trace conformance (RFC 047) =="
-lake exe henret-conformance
+gate_demo() { lake build && lake exe henret-demo; }
 
-echo "== gate 7/10: strict axiom audit (RFC 020) =="
-AUDIT=$(mktemp /tmp/henret-audit-XXXX.lean)
-cat > "$AUDIT" << 'LEAN'
+gate_examples() {
+  for f in examples/[0-9][0-9]_*.lean; do
+    echo "  - $f"
+    lake env lean "$f" > /dev/null || return 1
+  done
+}
+
+gate_conformance() {
+  # RFC 047 golden conformance; RFC 083 will add the branch-coverage gate here.
+  lake exe henret-conformance
+}
+
+gate_doc_symbol() {
+  local f; f="$LOGDIR/docsym.lean"
+  python3 scripts/doc_symbol_check.py > "$f"
+  if ! lake env lean "$f" > /dev/null 2>&1; then
+    echo "FAIL: a backticked theorem name in docs does not resolve:"
+    lake env lean "$f" 2>&1 | grep "unknown" | head -10
+    return 1
+  fi
+  echo "doc symbols ok"
+}
+
+gate_axiom_audit() {
+  local A rc; A="$LOGDIR/audit.lean"
+  cat > "$A" << 'LEAN'
 import Henret
 import Henret.Native.DequeModel
 import Henret.Native.Assumptions
@@ -130,43 +190,93 @@ open Henret Henret.Native Henret.Bridge
 #print axioms Trace.event_timerWoke_sound
 #print axioms Trace.event_spawnChild_sound
 LEAN
-lake env lean "$AUDIT" | python3 scripts/axiom_audit.py
-rm -f "$AUDIT"
+  lake env lean "$A" | python3 scripts/axiom_audit.py
+  rc=$?
+  return $rc
+}
 
-echo "== gate 8/10: documentation consistency (RFC 021 + RFC 037) =="
-if grep -rn "five scenarios\|rfcs/proposed/010\|RFC 010 (proposed)\|remains in proposed\|send_preserves_tasks\|receive_preserves_tasks\|10-operation\|six-field reachability\|nine-field reachability\|\`send a m\`\|\`receive a\`\|five .#eval" \
-     README.md docs/ examples/ CHANGELOG.md Henret/ Main.lean 2>/dev/null \
-     | grep -v "\.lake" | grep -v "docs/reviews/" | grep -v "rfcs/done/" | grep -v "docs/handoff-"; then
-  echo "FAIL: stale documentation phrase found (v0.2.x/v0.3.x era)"; exit 1
-fi
-# v0.8.0 review stale phrases (RFC 037)
-if grep -rn "six scenarios\|field 15 of 16\|all 16 fields\|carries no source actor\|requires an envelope or occurrence identity\|neither touches task state\|RFC 035.*Connecting" \
-     README.md docs/ examples/ CHANGELOG.md Henret/ Main.lean 2>/dev/null \
-     | grep -v "\.lake" | grep -v "docs/reviews/" | grep -v "rfcs/done/" | grep -v "docs/handoff-"; then
-  echo "FAIL: stale v0.8.0 phrase found (RFC 037 gates)"; exit 1
-fi
-# Bridge claim rule + grammar-count drift (RFC 052 governance)
-if grep -rn "complete bridge preservation\|all 12 RuntimeOps\|12-operation\|the bridge is complete\|18 RuntimeOps\|18-operation" \
-     README.md docs/ examples/ CHANGELOG.md Henret/ Main.lean 2>/dev/null \
-     | grep -v "\.lake" | grep -v "docs/reviews/" | grep -v "rfcs/done/" | grep -v "docs/handoff-"; then
-  echo "FAIL: bridge-claim-rule / stale grammar-count phrase found (RFC 052 gates)"; exit 1
-fi
-echo "docs consistency ok"
-echo "== gate 9/10: doc-symbol checker (RFC 026) =="
-DOCSYM=$(mktemp /tmp/henret-docsym-XXXX.lean)
-python3 scripts/doc_symbol_check.py > "$DOCSYM"
-if ! lake env lean "$DOCSYM" > /dev/null 2>&1; then
-  echo "FAIL: a backticked theorem name in docs does not resolve:"
-  lake env lean "$DOCSYM" 2>&1 | grep "unknown" | head -10
-  exit 1
-fi
-rm -f "$DOCSYM"
-echo "doc symbols ok"
+gate_doc_consistency() {
+  local targets="README.md docs/ examples/ CHANGELOG.md Henret/ Main.lean"
+  local filt='\.lake\|docs/reviews/\|rfcs/done/\|docs/handoff-'
+  # v0.2.x/v0.3.x era stale phrases (RFC 021)
+  if grep -rn "five scenarios\|rfcs/proposed/010\|RFC 010 (proposed)\|remains in proposed\|send_preserves_tasks\|receive_preserves_tasks\|10-operation\|six-field reachability\|nine-field reachability\|\`send a m\`\|\`receive a\`\|five .#eval" \
+       $targets 2>/dev/null | grep -v "$filt"; then
+    echo "FAIL: stale documentation phrase found (v0.2.x/v0.3.x era)"; return 1
+  fi
+  # v0.8.0 review stale phrases (RFC 037)
+  if grep -rn "six scenarios\|field 15 of 16\|all 16 fields\|carries no source actor\|requires an envelope or occurrence identity\|neither touches task state\|RFC 035.*Connecting" \
+       $targets 2>/dev/null | grep -v "$filt"; then
+    echo "FAIL: stale v0.8.0 phrase found (RFC 037 gates)"; return 1
+  fi
+  # Bridge claim rule + grammar-count drift (RFC 052 governance)
+  if grep -rn "complete bridge preservation\|all 12 RuntimeOps\|12-operation\|the bridge is complete\|18 RuntimeOps\|18-operation" \
+       $targets 2>/dev/null | grep -v "$filt"; then
+    echo "FAIL: bridge-claim-rule / stale grammar-count phrase found (RFC 052 gates)"; return 1
+  fi
+  # Source-of-truth count check (RFC 084 stopgap)
+  python3 scripts/doc_count_check.py || return 1
+  echo "docs consistency ok"
+}
 
-echo "== gate 10/10: RFC metadata schema (RFC 085) =="
-if ! python3 scripts/rfc_metadata_check.py; then
-  echo "FAIL: RFC front-matter metadata check failed (RFC 085)"
-  exit 1
+gate_rfc_metadata() { python3 scripts/rfc_metadata_check.py; }
+
+gate_warning_budget() {
+  # RFC 086 fills this stage. Until then the stage is wired but the detector
+  # is a documented stub (the framework-with-stubbed-stages pattern, RFC 080).
+  if [ -f scripts/warning_budget.py ]; then
+    python3 scripts/warning_budget.py
+  else
+    echo "warning budget: gate wired; detector deferred to RFC 086"
+  fi
+}
+
+# --------------------------------------------------------------------- stages
+run_gate 0 "gate-suite self-test"            gate_selftest
+run_gate 1 "build libraries"                 gate_build_libs
+if [ "$MODE" = "--release" ]; then
+  run_gate 2 "demo regression scenarios"     gate_demo
+else
+  echo "== gate 2 (--fast): demo regression scenarios SKIPPED (release-only) =="
+fi
+run_gate 3 "examples compile + eval"         gate_examples
+run_gate 4 "golden conformance suite"        gate_conformance
+run_gate 5 "doc-symbol checker"              gate_doc_symbol
+run_gate 6 "strict axiom audit"              gate_axiom_audit
+run_gate 7 "documentation consistency"       gate_doc_consistency
+run_gate 8 "RFC metadata schema"             gate_rfc_metadata
+run_gate 9 "linter warning budget"           gate_warning_budget
+
+# ----------------------------------------------------- release manifest (080-B)
+if [ "$MODE" = "--release" ]; then
+  echo "== assembling release manifest =="
+  mkdir -p release/logs
+  cp "$LOGDIR"/gate-*.out "$LOGDIR"/gate-*.err release/logs/ 2>/dev/null || true
+  VERSION=$(grep -oE 'v!"[0-9]+\.[0-9]+\.[0-9]+"' lakefile.lean | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+  TARBALL="release/henret-v${VERSION}.tar.gz"
+  # Source archive EXCLUDING release/ (080-1: not self-referential) and build dirs.
+  tar --exclude='./.lake' --exclude='./release' --exclude='./.git' \
+      --exclude='./lean-runtime-workspace/.lake' \
+      --sort=name --mtime='2020-01-01 00:00:00' --owner=0 --group=0 --numeric-owner \
+      -czf "$TARBALL" --transform 's|^\./||' -C . . 2>/dev/null
+  python3 scripts/release_manifest.py "$RECORDS" "$VERSION" "$TARBALL" > release/release-verification.json
+  python3 - << 'PY' > release/GATE-RUN.md
+import json
+m = json.load(open("release/release-verification.json"))
+print(f"# Henret release gate run - v{m['version']}\n")
+print(f"- generated_by: `{m['generated_by']}`")
+print(f"- timestamp_utc: {m['timestamp_utc']}")
+print(f"- git_commit: {m['git_commit']}  (dirty: {m['git_dirty']})")
+print(f"- tarball_sha256: `{m['tarball_sha256']}`")
+print(f"- os: {m['os']}  runner: {m['runner']}\n")
+print("| id | gate | status | ms |")
+print("|----|------|--------|----|")
+for g in m["gates"]:
+    print(f"| {g['id']} | {g['name']} | {g['status']} | {g['duration_ms']} |")
+PY
+  echo "wrote release/release-verification.json + release/GATE-RUN.md"
+  if [ "$(python3 -c 'import json;print(json.load(open("release/release-verification.json"))["git_dirty"])')" = "True" ]; then
+    echo "FAIL: --release on a dirty source tree (080-4)"; exit 1
+  fi
 fi
 
-echo "== all gates green =="
+echo "== all gates green ($MODE) =="

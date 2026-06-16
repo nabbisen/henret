@@ -94,7 +94,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [077](proposed/077-minimal-verified-actor-patterns.md) | Minimal Verified Actor Patterns | — | — |
 | [078](proposed/078-security-and-robustness-interpretation.md) | Security and Robustness Interpretation | — | — |
 | [079](proposed/079-publication-and-community-review-plan.md) | Publication and Community Review Plan | — | — |
-| [080](proposed/080-release-gate-integrity-and-evidence-manifest.md) | Release Gate Integrity and Evidence Manifest | — | P0 |
+| [080](done/080-release-gate-integrity-and-evidence-manifest.md) | Release Gate Integrity and Evidence Manifest | Implemented (v0.17.2) | — |
 | [081](proposed/081-package-boundary-and-evidence-ledger.md) | Package Boundary and Evidence Ledger | — | P0 |
 | [082](proposed/082-preservation-proof-ergonomics-v2.md) | Preservation Proof Ergonomics v2 (supersedes 042) | — | P1 |
 | [083](proposed/083-golden-conformance-coverage-expansion.md) | Golden Conformance Coverage Expansion | — | P1 |

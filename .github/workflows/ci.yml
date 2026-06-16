@@ -1,18 +1,48 @@
-name: CI
+name: release-gate
+
+# RFC 080: CI is the authoritative source of release evidence. Pull requests
+# run the fast gate; pushes/tags run the full --release gate on a runner that
+# builds the demo without OOM, and upload the hashed verification manifest.
+
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
 
 jobs:
-  check:
+  gate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install elan (pinned toolchain from lean-toolchain)
+
+      - name: Install elan + Lean toolchain
         run: |
           curl -sSfL https://github.com/leanprover/elan/releases/latest/download/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
-          ./elan-init -y --default-toolchain none
+          ./elan-init -y --default-toolchain "$(cat lean-toolchain)"
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-      - name: Release gate
-        run: ./scripts/check.sh
+
+      - name: Cache Lake build
+        uses: actions/cache@v4
+        with:
+          path: .lake
+          key: lake-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}
+
+      - name: Fast gate (pull requests)
+        if: github.event_name == 'pull_request'
+        run: bash scripts/check.sh --fast
+
+      - name: Release gate (push / tag - authoritative)
+        if: github.event_name == 'push'
+        run: bash scripts/check.sh --release
+
+      - name: Upload release evidence
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-verification
+          path: |
+            release/release-verification.json
+            release/GATE-RUN.md
+            release/logs/
+          if-no-files-found: error

@@ -1,2 +1,5 @@
 # cache and other artifacts produced by Lean's Lake build tool
 .lake/
+
+# generated release evidence (RFC 080); CI regenerates and uploads
+release/

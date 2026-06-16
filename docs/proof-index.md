@@ -177,7 +177,7 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 | `parent_chain_terminates` | `Henret/Proofs/Parenthood.lean` | Chains terminate (acyclicity) |
 | `reachable_owner_spawned` | `Henret/Proofs/Parenthood.lean` | Every owned task has a `taskState` (RFC 038, from `WellFormed.owner_spawned`) |
 | `reachable_parent_child_spawned` | `Henret/Proofs/Parenthood.lean` | Every task with a parent has a `taskState` (RFC 038, from `WellFormed.parent_child_spawned`) |
-| `preserves_wf_spawnChild` | `Henret/Proofs/Preservation/Lifecycle.lean` | 21-field WF preservation |
+| `preserves_wf_spawnChild` | `Henret/Proofs/Preservation/Lifecycle.lean` | 28-field WF preservation |
 
 `WellFormed` extended to **twenty-one fields** in RFC 038 (+2 over RFC 033's nineteen):
 - `owner_spawned` (field 20) — every task with a `taskOwner` has a `taskState`.

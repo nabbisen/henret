@@ -1,8 +1,8 @@
 ---
 rfc: 80
 title: Release Gate Integrity and Evidence Manifest
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.17.2
 supersedes: []
 superseded_by: []
 depends_on: [85, 84]
@@ -14,9 +14,15 @@ category: release-process
 
 ## Status
 
-Proposed strategic RFC. Approved in the v0.17.0 audit review (item A7,
+Implemented in **v0.17.2**. Approved in the v0.17.0 audit review (item A7,
 decision **A+B**, priority **P0 — blocks the next release**); amendments
-080-A..D applied from the RFCs 080-086 review.
+080-A..D and the v2-review final-pass amendments 080-1..5 applied. The gate
+framework is delivered: `--fast`/`--release` modes, a stage-0 self-test, the
+`run_gate` capture/time/hash wrapper, the non-self-referential hashed manifest
+with gate-policy hashes, dirty-tree handling, and the CI workflow. Per the
+wave sequencing note, the later stages remain documented stubs until their
+RFCs land: stage 4's coverage gate (RFC 083) and stage 9's warning budget
+(RFC 086).
 
 ## Summary
 

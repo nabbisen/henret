@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.17.2 — Release Gate Integrity (RFC 080) + doc count-check stopgap (RFC 084)
+
+Non-semantic release: tooling, gates, CI, and documentation only. No Lean
+model, proof, or axiom-budget change; the kernel-proven build, the strict
+axiom audit (60 theorems), and the golden conformance suite are unaffected.
+
+**RFC 080 — Release Gate Integrity and Evidence Manifest.**
+- `scripts/check.sh` rewritten with explicit `--fast` (local pre-check;
+  skips the demo; emits no manifest) and `--release` (full suite + manifest)
+  modes (080-A). Every gate runs through a `run_gate` wrapper that times,
+  captures, and hashes its stdout/stderr.
+- `scripts/check_selftest.py` is gate **stage 0** (080-3): it verifies gate
+  ids are unique and named, the axiom-audit allowlist matches the
+  `#print axioms` inputs exactly (the drift that silently broke the suite
+  before v0.17.0), the doc-symbol and doc-consistency target sets are
+  non-empty, and the warning-budget gate is wired.
+- `scripts/release_manifest.py` emits `release/release-verification.json`, a
+  non-manual, hashed manifest (080-B): schema, version, git commit/dirty,
+  `tarball_sha256`, toolchain/lake hashes, `gate_policy` script hashes
+  (080-2), per-gate status/duration/log hashes, and a `runtime_package`
+  placeholder for RFC 081. The manifest is **external** to the source tarball
+  whose hash it records (080-1); `--release` fails on a dirty source tree
+  except for generated `release/` artifacts (080-4); when not in a git work
+  tree the run is marked a local pre-check (CI is authoritative, 080-D).
+- `.github/workflows/ci.yml` runs `--fast` on pull requests and `--release`
+  on pushes/tags, uploading the manifest, `release/GATE-RUN.md`, and logs.
+- Stages 4 (RFC 083 coverage) and 9 (RFC 086 warning budget) are wired as
+  documented stubs, to be filled by their own RFCs.
+
+**RFC 084 stopgap — `scripts/doc_count_check.py`.** Computes the current
+`RuntimeOp` (21), `TaskState` (10), `StepResult` (8) constructor counts and
+the `WellFormed` field count (28) from the Lean source of truth and fails the
+doc-consistency gate when a live doc states a contradicting count;
+historical-narrative lines and historical/generated files are excluded. Fixed
+three live drift sites it found (`README.md` 19→28, `docs/proof-index.md`
+`preserves_wf_spawnChild` 21→28-field, and a proof-matrix entry reworded to
+"every `RuntimeOp`"). Partial RFC 084; the full generator remains deferred.
+
 ## v0.17.1 — RFC Metadata Normalization (RFC 085)
 
 Non-semantic tooling/documentation release. No Lean model, proof, or
