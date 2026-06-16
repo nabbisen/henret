@@ -305,3 +305,19 @@ zero-assumption core.
 | 162 | Profile inclusion is a preorder (reflexive, transitive) | PROVEN | `SemanticProfile.le_refl`, `SemanticProfile.le_trans` |
 | 163 | Each headline theorem is classified by its minimum profile | DOCUMENTED | `docs/profile-index.md` |
 | 164 | Profiles are metadata only — no existing theorem or `step`/`run` behavior changes | PROVEN (by construction) | `Henret/Profile.lean` adds no model dependency; `import Henret` behavior additive |
+
+## v0.17.0 claims (structured cancellation / shutdown, RFC 055)
+
+All claims here are **safety-only**: no fairness, liveness, or guaranteed-quiescence claim is made.
+
+| # | Claim | Class | Evidence |
+|---:|---|---|---|
+| 165 | Closing an actor with a mailbox sets its status to `.closed` | PROVEN | `closeActor_sets_closed` |
+| 166 | Closing never deletes or alters any mailbox (queued messages still drain via `receive`) | PROVEN | `closeActor_preserves_mailboxes`, `closeActor_preserves_other_status` |
+| 167 | A `.closed` actor rejects every `send` and environment `inject` targeting it | PROVEN | `closed_actor_rejects_send`, `closed_actor_rejects_inject` |
+| 168 | A non-`running` runtime rejects root `spawn` and environment `inject` | PROVEN | `shutdown_rejects_spawn`, `shutdown_rejects_inject`, `shutdown_sets_status` |
+| 169 | `stopWhenIdle` reaches `.stopped` only from a quiescent state | PROVEN | `stopWhenIdle_requires_quiescent`, `stopWhenIdle_sets_stopped` |
+| 170 | The admission-status fields are `WellFormed`-irrelevant; the 28-field base contract is unchanged | PROVEN | `WellFormed.status_irrel`, `preserves_wf_{closeActor,shutdown,stopWhenIdle}` |
+| 171 | The new ops are queue-stable under the single-worker bridge | PROVEN | `bridge_closeActor`, `bridge_shutdown`, `bridge_stopWhenIdle` |
+| 172 | Subtree cancellation reuses `cancelTree` (RFC 039); no new cancellation op | DOCUMENTED | `cancelTree_cancels_task`, `cancelTree_preserves_task_state`, `docs/shutdown-semantics.md` |
+| 173 | No liveness or eventual-quiescence claim is introduced | DOCUMENTED | `docs/shutdown-semantics.md`, `examples/16_structured_shutdown.lean` |

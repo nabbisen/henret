@@ -1,8 +1,51 @@
 # Changelog
 
-# Changelog
+## v0.17.0 — Structured Cancellation and Shutdown (RFC 055)
 
-## v0.16.0 — Semantic Profiles and Capability Sets (RFC 054)
+The first true semantic-core extension since RFC 040, and deliberately
+**safety-only**: it adds orderly-shutdown *admission control* without any
+fairness, liveness, or guaranteed-quiescence claim.
+
+### New surface (additive)
+
+Two enums — `ActorStatus` (`active | closed`; `open` is a Lean keyword)
+and `RuntimeStatus` (`running | shuttingDown | stopped`) — and two
+`RuntimeState` fields, `actorStatus` and `runtimeStatus`. The operation
+grammar grows to twenty-one constructors with `closeActor`, `shutdown`,
+and `stopWhenIdle`. A computable `RuntimeQuiescent` predicate (no running
+task, empty ready queue, no pending timers) is the idle condition
+`stopWhenIdle` checks.
+
+### Admission semantics
+
+`closeActor a` flips actor `a` to `.closed` (invalid if it has no
+mailbox) and never deletes mailbox contents — closing rejects *future*
+`send`/`inject` to `a` while still allowing `receive` to drain queued
+messages. `shutdown` rejects root `spawn` and environment `inject` while
+letting in-flight work continue. `stopWhenIdle` reaches `.stopped` only
+from a quiescent state. Subtree cancellation is the existing `cancelTree`
+(RFC 039) — no new cancellation operation was added.
+
+### Proofs
+
+New `Henret/Proofs/Shutdown.lean` carries the safety theorems
+(`closeActor_sets_closed`, `closeActor_preserves_mailboxes`,
+`closed_actor_rejects_send`, `closed_actor_rejects_inject`,
+`shutdown_rejects_spawn`, `shutdown_sets_status`,
+`stopWhenIdle_requires_quiescent`, `stopWhenIdle_sets_stopped`, and
+companions), all kernel-proven on `{propext, Quot.sound}`. The new
+admission-status fields are `WellFormed`-irrelevant — the 28-field base
+safety contract is byte-for-byte unchanged via the new
+`WellFormed.status_irrel`, with `preserves_wf_{closeActor,shutdown,
+stopWhenIdle}` and an outer guard `by_cases` wrapping the three guarded
+operations' preservation. Bridge preservation (`bridge_closeActor` /
+`bridge_shutdown` / `bridge_stopWhenIdle`) is queue-stable. Trace events
+`actorClosed` / `shutdownBegun` / `stoppedWhenIdle` were added.
+
+Zero `sorry`, zero project axioms. Example `16_structured_shutdown.lean`;
+see `docs/shutdown-semantics.md` and `docs/migration/v0.16-to-v0.17.md`.
+
+
 
 A semantic-profile vocabulary so a consumer can name the subset of
 Henret's semantics it depends on, and a theorem can be labelled with the

@@ -7,6 +7,24 @@ import Henret.Scheduler.Timer
 
 namespace Henret
 
+/-- Actor admission status (RFC 055). `active` accepts sends/injects;
+    `closed` rejects new sends/injects to the actor but does **not**
+    delete existing mailbox contents (they may still be drained by
+    `receive`). (`open` is a Lean keyword, hence `active`.) -/
+inductive ActorStatus where
+  | active
+  | closed
+deriving DecidableEq, Repr, Inhabited
+
+/-- Runtime admission status (RFC 055). `running` is normal; `shuttingDown`
+    rejects new root `spawn`s and environment `inject`s; `stopped` is the
+    quiescent terminal status reached via `stopWhenIdle`. -/
+inductive RuntimeStatus where
+  | running
+  | shuttingDown
+  | stopped
+deriving DecidableEq, Repr, Inhabited
+
 /-- Complete state of the modeled runtime. -/
 structure RuntimeState where
   /-- Lifecycle state per task id; `none` = never spawned. -/
@@ -50,6 +68,10 @@ structure RuntimeState where
       `old`. `none` means `new` is not a restart replacement. Written
       exactly once, at `restartOne` time (RFC 049). -/
   restartOf : TaskId → Option TaskId
+  /-- Per-actor admission status (RFC 055). `active` by default. -/
+  actorStatus : ActorId → ActorStatus
+  /-- Runtime admission status (RFC 055). `running` by default. -/
+  runtimeStatus : RuntimeStatus
 
 namespace RuntimeState
 
@@ -69,8 +91,20 @@ def init : RuntimeState where
   nextId         := 0
   nextMsgId      := 0
   restartOf      := fun _ => none
+  actorStatus    := fun _ => .active
+  runtimeStatus  := .running
 
 end RuntimeState
+
+/-- The runtime is **quiescent**: no task is running, the ready queue is
+    empty, and no timers are pending — the computable idle condition used
+    by `stopWhenIdle` (RFC 055). Parked waiters with no sender are a
+    deadlock, not active work, and do not block quiescence. -/
+def RuntimeQuiescent (s : RuntimeState) : Prop :=
+  s.running = none ∧ s.readyQ = [] ∧ s.timers = []
+
+instance (s : RuntimeState) : Decidable (RuntimeQuiescent s) :=
+  inferInstanceAs (Decidable (_ ∧ _ ∧ _))
 
 /-- Wake one task: `sleeping → ready` or `waitingTimed → ready`; anything else is untouched.
 The guard makes timer wake-ups harmless against stale entries and
@@ -131,19 +165,21 @@ def applyCancelTree (s : RuntimeState) (toCancel : List TaskId) : RuntimeState :
 /-- One transition of the model. Total and executable. -/
 def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
   | .spawn a =>
-    let t := s.nextId
-    match s.taskState t with
-    | none =>
-      let mbs := match s.mailboxes a with
-        | some _ => s.mailboxes
-        | none   => upd s.mailboxes a (some Mailbox.empty)
-      ({ s with
-          taskState := upd s.taskState t (some .new)
-          taskOwner := upd s.taskOwner t (some a)
-          readyQ    := s.readyQ ++ [t]
-          mailboxes := mbs
-          nextId    := t + 1 }, .spawned t)
-    | some _ => (s, .invalid)
+    if s.runtimeStatus = .running then
+      let t := s.nextId
+      match s.taskState t with
+      | none =>
+        let mbs := match s.mailboxes a with
+          | some _ => s.mailboxes
+          | none   => upd s.mailboxes a (some Mailbox.empty)
+        ({ s with
+            taskState := upd s.taskState t (some .new)
+            taskOwner := upd s.taskOwner t (some a)
+            readyQ    := s.readyQ ++ [t]
+            mailboxes := mbs
+            nextId    := t + 1 }, .spawned t)
+      | some _ => (s, .invalid)
+    else (s, .invalid)
   | .schedule =>
     match s.running, s.readyQ with
     | none, t :: q =>
@@ -196,7 +232,8 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
             waitDeadline            := fun u => if u = t then none else s.waitDeadline u }, .ok)
     | none => (s, .invalid)
   | .send t b m =>
-    if s.running = some t then
+    if s.actorStatus b = .closed then (s, .invalid)
+    else if s.running = some t then
       match s.taskState t with
       | some .running =>
         match s.taskOwner t with
@@ -260,6 +297,8 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
       | _ => (s, .invalid)
     else (s, .invalid)
   | .inject a m =>
+    if s.runtimeStatus ≠ .running ∨ s.actorStatus a = .closed then (s, .invalid)
+    else
     match s.mailboxes a with
     | some mb =>
       -- Stamp envelope with occurrence id and none source (environment); wake head waiter if any (RFC 033).
@@ -478,6 +517,19 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
           | _ => (s, .invalid)
         else (s, .invalid)
       | _ => (s, .invalid)
+    else (s, .invalid)
+  | .closeActor a =>
+    -- Reject admission to actor `a`; keep existing mailbox contents (RFC 055).
+    match s.mailboxes a with
+    | some _ => ({ s with actorStatus := upd s.actorStatus a .closed }, .ok)
+    | none   => (s, .invalid)
+  | .shutdown =>
+    -- Begin runtime shutdown; idempotent (RFC 055).
+    ({ s with runtimeStatus := .shuttingDown }, .ok)
+  | .stopWhenIdle =>
+    -- Transition to stopped only if quiescent (RFC 055).
+    if s.running = none ∧ s.readyQ = [] ∧ s.timers = [] then
+      ({ s with runtimeStatus := .stopped }, .ok)
     else (s, .invalid)
 
 /-- Run a list of operations, ignoring results (RFC 005). Invalid

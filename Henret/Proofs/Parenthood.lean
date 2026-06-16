@@ -99,11 +99,13 @@ theorem step_preserves_parent {s : RuntimeState} {op : RuntimeOp} {u : TaskId}
   | .inject _ _ | .sleep _ _ | .tick _ | .wake _ | .fail _ =>
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>
-        (try split) <;> (try split) <;> simp [upd, hu]
+        (try split) <;> (try split) <;> (try split) <;> simp [upd, hu]
   | .spawnChild _ _ | .restartOne _ _ _ =>
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>
         (try split) <;> simp [upd, hu]
+  | .closeActor _ | .shutdown | .stopWhenIdle =>
+      simp only [step] <;> (try split) <;> simp [upd, hu]
   | .cancelTree _ => rfl
 
 /-! ## Headline theorems -/

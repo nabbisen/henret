@@ -68,7 +68,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [052](done/052-semantic-extension-governance.md) | Semantic Extension Governance | Implemented (v0.15.3) | — |
 | [053](done/053-assurance-case-and-external-review-playbook.md) | Assurance Case and External Review Playbook | Implemented (v0.15.4) | — |
 | [054](done/054-semantic-profiles-and-capability-sets.md) | Semantic Profiles and Capability Sets | Implemented (v0.16.0) | — |
-| [055](proposed/055-structured-cancellation-and-shutdown.md) | Structured Cancellation and Shutdown | — | — |
+| [055](done/055-structured-cancellation-and-shutdown.md) | Structured Cancellation and Shutdown | Implemented (v0.17.0) | — |
 | [056](proposed/056-bounded-mailboxes-and-backpressure.md) | Bounded Mailboxes and Backpressure | — | — |
 | [057](proposed/057-resource-lifetime-and-finalization-ledger.md) | Resource Lifetime and Finalization Ledger | — | — |
 | [058](proposed/058-scheduling-policy-layer.md) | Scheduling Policy Layer | — | — |

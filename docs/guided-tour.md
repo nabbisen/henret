@@ -15,13 +15,16 @@ outcomes.
 
 ## 2. The operation grammar — `Henret/Scheduler/Op.lean`
 
-`RuntimeOp` is the entire surface of the model — twelve operations:
+`RuntimeOp` is the entire surface of the model. The original core is:
 `spawn a`, `schedule`, `yield t`, `complete t`, `cancel t`,
 `send t b m` (the running task `t` sends to actor `b`),
 `receive t` (the running task `t` dequeues from its **own** actor's
 mailbox, derived from `taskOwner t` — never named by the caller),
 `inject a m` (task-free environment delivery),
-`sleep t deadline`, `tick now`, `wake t`.
+`sleep t deadline`, `tick now`, `wake t`. Later RFCs added actor-scoped
+`spawnChild` / `cancelTree` (RFC 032/039), failure & restart `fail` /
+`restartOne` (RFC 049), selective receives (RFC 040/041), and structured
+shutdown `closeActor` / `shutdown` / `stopWhenIdle` (RFC 055).
 
 The actor-local receive discipline is a theorem, not a convention:
 `receive_only_own` proves that any successful receive dequeues the head
@@ -64,7 +67,7 @@ separate "promotion" of `new` to `ready`.
 
 ## 6. The flagship proof — `Henret/Proofs/Lifecycle.lean`
 
-`step_preserves_terminal` walks all twelve operations and shows none of them can
+`step_preserves_terminal` walks every operation and shows none of them can
 move a task out of `completed`/`cancelled`. `run_preserves_terminal` lifts it
 to whole programs by induction. Note *why* it holds: every state write goes
 through `upd` at a guarded key, and every guard excludes terminal states.
@@ -129,10 +132,31 @@ chain with `ancestor s t (t + 1)` always reaches a root (a task with
 deliverable: supervision trees are proper trees.
 
 `WellFormed.parent_lt` and `WellFormed.parent_spawned` are the parenthood
-fields of the current 19-field invariant. Both are
-preserved by all 12 `RuntimeOp` cases; `preserves_wf_spawnChild` in
-`Lifecycle.lean` covers the new operation itself. `reachable_wf` now certifies
-all 19 fields.
+fields of the current 28-field invariant. Both are
+preserved by every `RuntimeOp` case; `preserves_wf_spawnChild` in
+`Lifecycle.lean` covers the new operation itself. `reachable_wf` certifies
+all 28 fields.
+
+## 9c. Structured shutdown (RFC 055)
+
+Three operations add orderly *admission control* — and nothing more.
+`closeActor a` marks an actor `.closed`: future `send`/`inject` to it are
+rejected (`closed_actor_rejects_send`, `closed_actor_rejects_inject`), but
+its mailbox is never touched (`closeActor_preserves_mailboxes`), so queued
+messages still drain via `receive`. `shutdown` sets the runtime
+`.shuttingDown`, after which root `spawn` and environment `inject` are
+rejected (`shutdown_rejects_spawn`) while in-flight tasks keep draining.
+`stopWhenIdle` reaches `.stopped` only from a quiescent state
+(`stopWhenIdle_requires_quiescent`).
+
+**This is safety, not liveness.** Every theorem says a transition is
+*rejected* or *only* happens from a given state. Nothing claims a
+shutting-down runtime *will* drain or reach quiescence — that needs a
+scheduling/fairness policy. The two admission-status fields are
+`WellFormed`-irrelevant (`WellFormed.status_irrel`), so the 28-field base
+contract is untouched; the safety theorems live in their own
+`Henret/Proofs/Shutdown.lean`. Subtree cancellation reuses `cancelTree`
+(RFC 039). See `docs/shutdown-semantics.md`.
 
 
 ## 10. The honesty ledger

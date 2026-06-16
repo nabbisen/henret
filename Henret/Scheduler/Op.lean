@@ -105,6 +105,18 @@ inductive RuntimeOp where
       `failedChild` (which must be `.failed` and parented by `parent`),
       owned by `actor`, recording restart provenance (RFC 049). -/
   | restartOne (parent : TaskId) (failedChild : TaskId) (actor : ActorId) : RuntimeOp
+  /-- Close actor `a` to new admission (RFC 055): subsequent `send`/`inject`
+      targeting `a` are rejected, but existing mailbox contents remain and
+      may still be drained by `receive`. Invalid if `a` has no mailbox. -/
+  | closeActor (a : ActorId) : RuntimeOp
+  /-- Begin runtime shutdown (RFC 055): subsequent root `spawn`s and
+      environment `inject`s are rejected. Existing tasks continue to drain.
+      Idempotent. -/
+  | shutdown : RuntimeOp
+  /-- Transition the runtime to `stopped` **only if** it is quiescent
+      (no running task, empty ready queue, no pending timers). Invalid
+      otherwise (RFC 055). -/
+  | stopWhenIdle : RuntimeOp
 deriving Repr, DecidableEq
 
 end Henret

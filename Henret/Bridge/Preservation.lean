@@ -191,49 +191,55 @@ private theorem send_valid_waiter_rq (s : RuntimeState) (t b w : TaskId) (m : Me
     (oa : ActorId) (mb : Mailbox) (ws : List TaskId)
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some oa) (hmb : s.mailboxes b = some mb)
+    (hac : s.actorStatus b ≠ .closed)
     (hwt : s.mailboxWaiters b = w :: ws) :
     (step s (.send t b m)).1.readyQ = s.readyQ ++ [w] := by
-  simp [step, hrt, hts, how, hmb, hwt]
+  simp [step, hac, hrt, hts, how, hmb, hwt]
 
 -- send valid without any waiter: readyQ unchanged
 private theorem send_valid_no_waiter_rq (s : RuntimeState) (t b : TaskId) (m : Message)
     (oa : ActorId) (mb : Mailbox)
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some oa) (hmb : s.mailboxes b = some mb)
+    (hac : s.actorStatus b ≠ .closed)
     (hwt : s.mailboxWaiters b = []) (htw : s.timedMailboxWaiters b = []) :
     (step s (.send t b m)).1.readyQ = s.readyQ := by
-  simp [step, hrt, hts, how, hmb, hwt, htw]
+  simp [step, hac, hrt, hts, how, hmb, hwt, htw]
 
 -- send valid with timed waiter: readyQ gets w pushed
 private theorem send_valid_timed_waiter_rq (s : RuntimeState) (t b w : TaskId) (m : Message)
     (oa : ActorId) (mb : Mailbox) (ws : List TaskId)
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some oa) (hmb : s.mailboxes b = some mb)
+    (hac : s.actorStatus b ≠ .closed)
     (hwt : s.mailboxWaiters b = []) (htws : s.timedMailboxWaiters b = w :: ws) :
     (step s (.send t b m)).1.readyQ = s.readyQ ++ [w] := by
-  simp [step, hrt, hts, how, hmb, hwt, htws]
+  simp [step, hac, hrt, hts, how, hmb, hwt, htws]
 
 -- inject valid with waiter: readyQ gets w pushed
 private theorem inject_valid_waiter_rq (s : RuntimeState) (a w : ActorId) (m : Message)
     (mb : Mailbox) (ws : List TaskId)
+    (hrs : s.runtimeStatus = .running) (hac : s.actorStatus a ≠ .closed)
     (hmb : s.mailboxes a = some mb) (hwt : s.mailboxWaiters a = w :: ws) :
     (step s (.inject a m)).1.readyQ = s.readyQ ++ [w] := by
-  simp [step, hmb, hwt]
+  simp [step, hrs, hac, hmb, hwt]
 
 -- inject valid without any waiter: readyQ unchanged
 private theorem inject_valid_no_waiter_rq (s : RuntimeState) (a : ActorId) (m : Message)
-    (mb : Mailbox) (hmb : s.mailboxes a = some mb)
+    (mb : Mailbox) (hrs : s.runtimeStatus = .running) (hac : s.actorStatus a ≠ .closed)
+    (hmb : s.mailboxes a = some mb)
     (hwt : s.mailboxWaiters a = []) (htw : s.timedMailboxWaiters a = []) :
     (step s (.inject a m)).1.readyQ = s.readyQ := by
-  simp [step, hmb, hwt, htw]
+  simp [step, hrs, hac, hmb, hwt, htw]
 
 -- inject valid with timed waiter: readyQ gets w pushed
 private theorem inject_valid_timed_waiter_rq (s : RuntimeState) (a w : ActorId) (m : Message)
     (mb : Mailbox) (ws : List TaskId)
+    (hrs : s.runtimeStatus = .running) (hac : s.actorStatus a ≠ .closed)
     (hmb : s.mailboxes a = some mb)
     (hwt : s.mailboxWaiters a = []) (htws : s.timedMailboxWaiters a = w :: ws) :
     (step s (.inject a m)).1.readyQ = s.readyQ ++ [w] := by
-  simp [step, hmb, hwt, htws]
+  simp [step, hrs, hac, hmb, hwt, htws]
 
 -- tick valid: readyQ gets woken appended
 private theorem tick_valid_rq (s : RuntimeState) (t : Nat) (h : s.now ≤ t) :
@@ -249,16 +255,19 @@ private theorem tick_valid_rq (s : RuntimeState) (t : Nat) (h : s.now ≤ t) :
 theorem bridge_spawn (s : RuntimeState) (a : ActorId) (wqs : WorkerQueues)
     (hbs : BridgeState s wqs) :
     BridgeState (step s (.spawn a)).1 (applyQOps wqs (toQOps s (.spawn a))) := by
-  cases hts : s.taskState s.nextId with
-  | some _ =>
-    rw [toQOps_spawn_invalid _ _ (by simp [hts]), applyQOps_nil]
-    exact bridge_stable hbs (by simp [step, hts])
-  | none =>
-    rw [toQOps_spawn_valid _ _ hts, applyQOps_push0]
-    have hq : (step s (.spawn a)).1.readyQ = s.readyQ ++ [s.nextId] := by simp [step, hts]
-    exact { queue_eq    := by simp [hq, hbs.queue_eq]
-            other_empty := fun w hw => by
-              simp [show w ≠ 0 from hw]; exact hbs.other_empty w hw }
+  by_cases hrs : s.runtimeStatus = .running
+  · cases hts : s.taskState s.nextId with
+    | some _ =>
+      rw [toQOps_spawn_invalid _ _ (by simp [hts]), applyQOps_nil]
+      exact bridge_stable hbs (by simp [step, hrs, hts])
+    | none =>
+      rw [toQOps_spawn_valid _ _ hrs hts, applyQOps_push0]
+      have hq : (step s (.spawn a)).1.readyQ = s.readyQ ++ [s.nextId] := by simp [step, hrs, hts]
+      exact { queue_eq    := by simp [hq, hbs.queue_eq]
+              other_empty := fun w hw => by
+                simp [show w ≠ 0 from hw]; exact hbs.other_empty w hw }
+  · rw [show toQOps s (.spawn a) = [] by simp [toQOps, hrs], applyQOps_nil]
+    exact bridge_stable hbs (by simp [step, hrs])
 
 /-- **Bridge for spawnChild** (RFC 036). -/
 theorem bridge_spawnChild (s : RuntimeState) (t : TaskId) (a : ActorId) (wqs : WorkerQueues)
@@ -403,75 +412,83 @@ theorem bridge_sleep (s : RuntimeState) (t : TaskId) (d : Nat) (wqs : WorkerQueu
 theorem bridge_send (s : RuntimeState) (t b : TaskId) (m : Message) (wqs : WorkerQueues)
     (hbs : BridgeState s wqs) :
     BridgeState (step s (.send t b m)).1 (applyQOps wqs (toQOps s (.send t b m))) := by
-  by_cases hrt : s.running = some t
-  · cases hts : s.taskState t with
-    | some st => cases st with
-      | running =>
-        cases how : s.taskOwner t with
-        | some oa =>
-          cases hmb : s.mailboxes b with
-          | some mb =>
-            cases hwt : s.mailboxWaiters b with
-            | nil =>
-              cases htw : s.timedMailboxWaiters b with
+  by_cases hcl : s.actorStatus b = .closed
+  · rw [show toQOps s (.send t b m) = [] by simp [toQOps, hcl], applyQOps_nil]
+    exact bridge_stable hbs (by simp [step, hcl])
+  · by_cases hrt : s.running = some t
+    · cases hts : s.taskState t with
+      | some st => cases st with
+        | running =>
+          cases how : s.taskOwner t with
+          | some oa =>
+            cases hmb : s.mailboxes b with
+            | some mb =>
+              cases hwt : s.mailboxWaiters b with
               | nil =>
-                rw [toQOps_send_valid_no_waiter _ _ _ _ oa mb hrt hts how hmb hwt htw, applyQOps_nil]
-                exact bridge_stable hbs (send_valid_no_waiter_rq s t b m oa mb hrt hts how hmb hwt htw)
+                cases htw : s.timedMailboxWaiters b with
+                | nil =>
+                  rw [toQOps_send_valid_no_waiter _ _ _ _ oa mb hrt hts how hmb hcl hwt htw, applyQOps_nil]
+                  exact bridge_stable hbs (send_valid_no_waiter_rq s t b m oa mb hrt hts how hmb hcl hwt htw)
+                | cons w ws =>
+                  rw [toQOps_send_valid_timed_waiter _ _ _ w _ oa mb ws hrt hts how hmb hcl hwt htw, applyQOps_push0]
+                  have hrq := send_valid_timed_waiter_rq s t b w m oa mb ws hrt hts how hmb hcl hwt htw
+                  exact { queue_eq    := by simp [hrq, hbs.queue_eq]
+                          other_empty := fun w' hw' => by
+                            simp [show w' ≠ 0 from hw']; exact hbs.other_empty w' hw' }
               | cons w ws =>
-                rw [toQOps_send_valid_timed_waiter _ _ _ w _ oa mb ws hrt hts how hmb hwt htw, applyQOps_push0]
-                have hrq := send_valid_timed_waiter_rq s t b w m oa mb ws hrt hts how hmb hwt htw
+                rw [toQOps_send_valid_waiter _ _ _ w _ oa mb ws hrt hts how hmb hcl hwt, applyQOps_push0]
+                have hrq := send_valid_waiter_rq s t b w m oa mb ws hrt hts how hmb hcl hwt
                 exact { queue_eq    := by simp [hrq, hbs.queue_eq]
                         other_empty := fun w' hw' => by
                           simp [show w' ≠ 0 from hw']; exact hbs.other_empty w' hw' }
-            | cons w ws =>
-              rw [toQOps_send_valid_waiter _ _ _ w _ oa mb ws hrt hts how hmb hwt, applyQOps_push0]
-              have hrq := send_valid_waiter_rq s t b w m oa mb ws hrt hts how hmb hwt
-              exact { queue_eq    := by simp [hrq, hbs.queue_eq]
-                      other_empty := fun w' hw' => by
-                        simp [show w' ≠ 0 from hw']; exact hbs.other_empty w' hw' }
+            | none =>
+              rw [show toQOps s (.send t b m) = [] by simp [toQOps, hcl, hrt, hts, how, hmb],
+                  applyQOps_nil]
+              exact bridge_stable hbs (by simp [step, hcl, hrt, hts, how, hmb])
           | none =>
-            rw [show toQOps s (.send t b m) = [] by simp [toQOps, hrt, hts, how, hmb],
-                applyQOps_nil]
-            exact bridge_stable hbs (by simp [step, hrt, hts, how, hmb])
-        | none =>
-          rw [show toQOps s (.send t b m) = [] by simp [toQOps, hrt, hts, how], applyQOps_nil]
-          exact bridge_stable hbs (by simp [step, hrt, hts, how])
-      | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
-        rw [show toQOps s (.send t b m) = [] by simp [toQOps, hrt, hts], applyQOps_nil]
-        exact bridge_stable hbs (by simp [step, hrt, hts])
-    | none =>
-      rw [show toQOps s (.send t b m) = [] by simp [toQOps, hrt, hts], applyQOps_nil]
-      exact bridge_stable hbs (by simp [step, hrt, hts])
-  · rw [show toQOps s (.send t b m) = [] by simp [toQOps, hrt], applyQOps_nil]
-    exact bridge_stable hbs (by simp [step, hrt])
+            rw [show toQOps s (.send t b m) = [] by simp [toQOps, hcl, hrt, hts, how], applyQOps_nil]
+            exact bridge_stable hbs (by simp [step, hcl, hrt, hts, how])
+        | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
+          rw [show toQOps s (.send t b m) = [] by simp [toQOps, hcl, hrt, hts], applyQOps_nil]
+          exact bridge_stable hbs (by simp [step, hcl, hrt, hts])
+      | none =>
+        rw [show toQOps s (.send t b m) = [] by simp [toQOps, hcl, hrt, hts], applyQOps_nil]
+        exact bridge_stable hbs (by simp [step, hcl, hrt, hts])
+    · rw [show toQOps s (.send t b m) = [] by simp [toQOps, hcl, hrt], applyQOps_nil]
+      exact bridge_stable hbs (by simp [step, hcl, hrt])
 
 /-- **Bridge for inject** (RFC 036). -/
 theorem bridge_inject (s : RuntimeState) (a : ActorId) (m : Message) (wqs : WorkerQueues)
     (hbs : BridgeState s wqs) :
     BridgeState (step s (.inject a m)).1 (applyQOps wqs (toQOps s (.inject a m))) := by
-  cases hmb : s.mailboxes a with
-  | none =>
-    rw [show toQOps s (.inject a m) = [] by simp [toQOps, hmb], applyQOps_nil]
-    exact bridge_stable hbs (by simp [step, hmb])
-  | some mb =>
-    cases hwt : s.mailboxWaiters a with
-    | nil =>
-      cases htw : s.timedMailboxWaiters a with
+  by_cases hg : s.runtimeStatus ≠ .running ∨ s.actorStatus a = .closed
+  · rw [show toQOps s (.inject a m) = [] by simp [toQOps, hg], applyQOps_nil]
+    exact bridge_stable hbs (by simp [step, hg])
+  · obtain ⟨hrs0, hac⟩ := not_or.mp hg
+    have hrs : s.runtimeStatus = .running := Decidable.of_not_not hrs0
+    cases hmb : s.mailboxes a with
+    | none =>
+      rw [show toQOps s (.inject a m) = [] by simp [toQOps, hg, hmb], applyQOps_nil]
+      exact bridge_stable hbs (by simp [step, hg, hmb])
+    | some mb =>
+      cases hwt : s.mailboxWaiters a with
       | nil =>
-        rw [toQOps_inject_valid_no_waiter s a m mb hwt hmb htw, applyQOps_nil]
-        exact bridge_stable hbs (inject_valid_no_waiter_rq s a m mb hmb hwt htw)
+        cases htw : s.timedMailboxWaiters a with
+        | nil =>
+          rw [toQOps_inject_valid_no_waiter s a m mb hrs hac hwt hmb htw, applyQOps_nil]
+          exact bridge_stable hbs (inject_valid_no_waiter_rq s a m mb hrs hac hmb hwt htw)
+        | cons w ws =>
+          rw [toQOps_inject_valid_timed_waiter s a w m mb ws hrs hac hmb hwt htw, applyQOps_push0]
+          have hrq := inject_valid_timed_waiter_rq s a w m mb ws hrs hac hmb hwt htw
+          exact { queue_eq    := by simp [hrq, hbs.queue_eq]
+                  other_empty := fun w' hw' => by
+                    simp [show w' ≠ 0 from hw']; exact hbs.other_empty w' hw' }
       | cons w ws =>
-        rw [toQOps_inject_valid_timed_waiter s a w m mb ws hmb hwt htw, applyQOps_push0]
-        have hrq := inject_valid_timed_waiter_rq s a w m mb ws hmb hwt htw
+        rw [toQOps_inject_valid_waiter s a w m mb ws hrs hac hmb hwt, applyQOps_push0]
+        have hrq := inject_valid_waiter_rq s a w m mb ws hrs hac hmb hwt
         exact { queue_eq    := by simp [hrq, hbs.queue_eq]
                 other_empty := fun w' hw' => by
                   simp [show w' ≠ 0 from hw']; exact hbs.other_empty w' hw' }
-    | cons w ws =>
-      rw [toQOps_inject_valid_waiter s a w m mb ws hmb hwt, applyQOps_push0]
-      have hrq := inject_valid_waiter_rq s a w m mb ws hmb hwt
-      exact { queue_eq    := by simp [hrq, hbs.queue_eq]
-              other_empty := fun w' hw' => by
-                simp [show w' ≠ 0 from hw']; exact hbs.other_empty w' hw' }
 
 /-- **Bridge for tick** (RFC 036).  Uses tick argument `t`, not `s.now`.
     Emits `Push 0 u` for each task woken by the tick. -/
@@ -576,6 +593,28 @@ theorem bridge_restartOne (s : RuntimeState) (t failedChild : TaskId) (a : Actor
           simp [toQOps, hrt], applyQOps_nil]
     exact bridge_stable hbs (by simp [step, hrt])
 
+/-- **Bridge for closeActor** (RFC 055).  `toQOps = []` and `readyQ` is
+    unchanged, so the bridge is stable. -/
+theorem bridge_closeActor (s : RuntimeState) (a : ActorId) (wqs : WorkerQueues)
+    (hbs : BridgeState s wqs) :
+    BridgeState (step s (.closeActor a)).1 (applyQOps wqs (toQOps s (.closeActor a))) := by
+  rw [show toQOps s (.closeActor a) = [] from rfl, applyQOps_nil]
+  exact bridge_stable hbs (by simp only [step]; split <;> rfl)
+
+/-- **Bridge for shutdown** (RFC 055). -/
+theorem bridge_shutdown (s : RuntimeState) (wqs : WorkerQueues)
+    (hbs : BridgeState s wqs) :
+    BridgeState (step s .shutdown).1 (applyQOps wqs (toQOps s .shutdown)) := by
+  rw [show toQOps s .shutdown = [] from rfl, applyQOps_nil]
+  exact bridge_stable hbs rfl
+
+/-- **Bridge for stopWhenIdle** (RFC 055). -/
+theorem bridge_stopWhenIdle (s : RuntimeState) (wqs : WorkerQueues)
+    (hbs : BridgeState s wqs) :
+    BridgeState (step s .stopWhenIdle).1 (applyQOps wqs (toQOps s .stopWhenIdle)) := by
+  rw [show toQOps s .stopWhenIdle = [] from rfl, applyQOps_nil]
+  exact bridge_stable hbs (by simp only [step]; split <;> rfl)
+
 /-- **`bridge_step_single_worker`** — For any `RuntimeOp`, if `BridgeState` holds
     before the step, it holds after, with the translated queue effects applied.
     This is the central single-worker bridge theorem (RFC 036). -/
@@ -598,6 +637,9 @@ theorem bridge_step_single_worker (s : RuntimeState) (op : RuntimeOp) (wqs : Wor
   | .cancelTree root => exact bridge_cancelTree s root wqs hbs
   | .fail t          => exact bridge_fail s t wqs hbs
   | .restartOne p c a => exact bridge_restartOne s p c a wqs hbs
+  | .closeActor a    => exact bridge_closeActor s a wqs hbs
+  | .shutdown        => exact bridge_shutdown s wqs hbs
+  | .stopWhenIdle    => exact bridge_stopWhenIdle s wqs hbs
   | .receiveUntil t d =>
     rw [show toQOps s (.receiveUntil t d) = [] from by simp [toQOps], applyQOps_nil]
     apply bridge_stable hbs

@@ -84,11 +84,15 @@ open Henret
 
 ## The model in one minute
 
-- `RuntimeOp` (`Henret/Scheduler/Op.lean`) — the operation grammar, twelve
-  operations: `spawn`, `schedule`, `yield`, `complete`, `cancel`,
-  `send`, `receive`, `inject`, `sleep`, `tick`, `wake`, `spawnChild`.
+- `RuntimeOp` (`Henret/Scheduler/Op.lean`) — the operation grammar: task
+  lifecycle (`spawn`, `spawnChild`, `schedule`, `yield`, `complete`,
+  `cancel`, `cancelTree`, `fail`, `restartOne`), messaging (`send`,
+  `receive`, `inject`, and the selective `receiveUntil` / `receiveByOccurrence`
+  / `receiveFrom`), time (`sleep`, `tick`, `wake`), and structured shutdown
+  (`closeActor`, `shutdown`, `stopWhenIdle`).
 - `RuntimeState` (`Henret/Scheduler/Model.lean`) — task states, ready queue,
-  running slot, sorted logical-time timer queue, mailboxes, fresh-id counter.
+  running slot, sorted logical-time timer queue, mailboxes, fresh-id counter,
+  and per-actor / runtime admission status (RFC 055).
 - `step : RuntimeState → RuntimeOp → RuntimeState × StepResult` — total and
   executable. Invalid operations never mutate state; they return
   `StepResult.invalid` with the state unchanged (RFC 005).

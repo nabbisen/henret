@@ -524,6 +524,33 @@ Examples `13_trace_rendering.lean`, `14_state_diagrams.lean`. See `docs/observab
 
 ---
 
+### RFC 055 — Structured Cancellation and Shutdown
+
+The first true semantic-core extension since RFC 040, and **safety-only** (no fairness or liveness claim). Two new enums `ActorStatus` (`active | closed`) / `RuntimeStatus` (`running | shuttingDown | stopped`); two new `RuntimeState` fields `actorStatus` / `runtimeStatus`; three new ops `closeActor` / `shutdown` / `stopWhenIdle` (21 ops total). Admission guards on `spawn` (running only), `send` (target actor open), `inject` (running and actor open). Subtree cancellation reuses `cancelTree` (RFC 039).
+
+**Base preservation** (`Henret/Proofs/InvariantsPreservation.lean`): `preserves_wf_closeActor` / `preserves_wf_shutdown` / `preserves_wf_stopWhenIdle`, all reducing to the new `WellFormed.status_irrel` (no `WellFormed` field mentions the admission-status fields, so the 28-field base contract is untouched). The guarded ops' existing preservation proofs are wrapped with an outer guard case-split; the reject branch is a no-op.
+
+**Safety invariants** — separate `Henret/Proofs/Shutdown.lean`, kernel-proven on `{propext, Quot.sound}`:
+
+| Theorem | Guarantee (safety-only) |
+|---|---|
+| `closeActor_sets_closed` | closing an actor with a mailbox sets its status to `.closed` |
+| `closeActor_no_mailbox_invalid` | closing a mailbox-less actor is an invalid no-op |
+| `closeActor_preserves_mailboxes` | closing never deletes or alters any mailbox (drain via `receive` still works) |
+| `closeActor_preserves_other_status` | closing `a` leaves every other actor's status unchanged |
+| `closed_actor_rejects_send` | a `.closed` actor rejects every `send` to it |
+| `closed_actor_rejects_inject` | a `.closed` actor rejects every environment `inject` to it |
+| `shutdown_sets_status` | `shutdown` sets `runtimeStatus := .shuttingDown` |
+| `shutdown_rejects_spawn` | a non-`running` runtime rejects root `spawn` |
+| `shutdown_rejects_inject` | a non-`running` runtime rejects environment `inject` |
+| `stopWhenIdle_requires_quiescent` | `stopWhenIdle` reports `.ok` only from a quiescent state |
+| `stopWhenIdle_sets_stopped` | from a quiescent state, `stopWhenIdle` reaches `.stopped` |
+| `stopWhenIdle_not_quiescent_invalid` | a non-quiescent `stopWhenIdle` is an invalid no-op |
+
+`RuntimeQuiescent` (computable: no running task, empty `readyQ`, no timers) is the idle predicate `stopWhenIdle` checks; parked waiters are a deadlock, not work, and do not block quiescence. Bridge preservation `bridge_closeActor` / `bridge_shutdown` / `bridge_stopWhenIdle` (all queue-stable; `toQOps` of the new ops is `[]`). Trace events `actorClosed` / `shutdownBegun` / `stoppedWhenIdle`. Example `16_structured_shutdown.lean`. See `docs/shutdown-semantics.md`.
+
+---
+
 ## Theorem stability
 
 Stability levels per `docs/semantic-extension-governance.md`. **Stable**
@@ -556,6 +583,7 @@ names carry no public stability.
 | `reachable_bridge`, `bridge_step_single_worker`, `bridge_run_tracks_single_worker` | bridge (single-worker projection, RFC 035/036) |
 | `reachable_multi_bridge`, `single_bridge_implies_multi_bridge` | multi-worker bridge groundwork |
 | `reachable_restart_fresh`, `reachable_restart_old_failed`, `reachable_restart_parent_consistent`, `restart_preserves_parent_acyclicity`, `restarted_task_has_owner` | supervision restart (RFC 049) |
+| `closeActor_sets_closed`, `closed_actor_rejects_send`, `closed_actor_rejects_inject`, `shutdown_rejects_spawn`, `stopWhenIdle_requires_quiescent`, `stopWhenIdle_sets_stopped` | structured shutdown, safety-only (RFC 055) |
 | `ready_eventually_scheduled_under_bounded_fairness`, `schedule_schedules_head` | progress / conditional liveness (RFC 046) |
 | `conformance_suite_passes` | golden-trace conformance (RFC 047) |
 | `event_*_sound`, `runTraceLedger_state_eq_run`, `stepTrace_state_eq_step` | trace soundness (RFC 045) |

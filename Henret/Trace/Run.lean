@@ -176,6 +176,14 @@ def traceEvents (s : RuntimeState) (op : RuntimeOp) : List TraceEvent :=
           else [.invalid op]
         | _ => [.invalid op]
       else [.invalid op]
+  | .closeActor a =>
+      match s.mailboxes a with
+      | some _ => [.actorClosed a]
+      | none   => [.invalid op]
+  | .shutdown => [.shutdownBegun]
+  | .stopWhenIdle =>
+      if s.running = none ∧ s.readyQ = [] ∧ s.timers = []
+      then [.stoppedWhenIdle] else [.invalid op]
 
 /-- One step, with its event ledger.  State and result are *exactly*
     `step s op`; only the third component is new. -/

@@ -63,12 +63,14 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
     ∃ st', ((step s op).1).taskState u = some st' := by
   cases op with
   | spawn a =>
-    cases hts : s.taskState s.nextId with
-    | some _ => exact ⟨st, by simp [step, hts, h]⟩
-    | none =>
-      by_cases hu : u = s.nextId
-      · subst hu; rw [h] at hts; cases hts
-      · exact ⟨st, by simp [step, hts, upd, hu, h]⟩
+    by_cases hrs : s.runtimeStatus = .running
+    · cases hts : s.taskState s.nextId with
+      | some _ => exact ⟨st, by simp [step, hrs, hts, h]⟩
+      | none =>
+        by_cases hu : u = s.nextId
+        · subst hu; rw [h] at hts; cases hts
+        · exact ⟨st, by simp [step, hrs, hts, upd, hu, h]⟩
+    · exact ⟨st, by simp [step, hrs, h]⟩
   | spawnChild pt pa =>
     -- step result: if all guards pass, taskState updated at nextId only; else unchanged
     have hstate : ∃ st', ((step s (.spawnChild pt pa)).1).taskState u = some st' := by
@@ -141,33 +143,35 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
         · subst hut; exact ⟨.cancelled, by simp [step, hts, hterm', upd]⟩
         · exact ⟨st, by simp [step, hts, hterm', upd, if_neg hut]; exact h⟩
   | send t' b m =>
-    by_cases hrt : s.running = some t'
-    · cases hts : s.taskState t' with
-      | none => exact ⟨st, by simp [step, hrt, hts, h]⟩
-      | some stt =>
-        cases stt with
-        | running =>
-          cases how : s.taskOwner t' with
-          | none => exact ⟨st, by simp [step, hrt, hts, how, h]⟩
-          | some o =>
-            cases hmb : s.mailboxes b with
-            | none => exact ⟨st, by simp [step, hrt, hts, how, hmb, h]⟩
-            | some mb =>
-              cases hw : s.mailboxWaiters b with
-              | cons w ws =>
-                by_cases huw : u = w
-                · subst huw; exact ⟨.ready, by simp [step, hrt, hts, how, hmb, hw, upd]⟩
-                · exact ⟨st, by simp [step, hrt, hts, how, hmb, hw, upd, huw]; exact h⟩
-              | nil =>
-                cases htw : s.timedMailboxWaiters b with
-                | nil => exact ⟨st, by simp [step, hrt, hts, how, hmb, hw, htw, upd, h]⟩
+    by_cases hcl : s.actorStatus b = .closed
+    · exact ⟨st, by simp [step, hcl, h]⟩
+    · by_cases hrt : s.running = some t'
+      · cases hts : s.taskState t' with
+        | none => exact ⟨st, by simp [step, hcl, hrt, hts, h]⟩
+        | some stt =>
+          cases stt with
+          | running =>
+            cases how : s.taskOwner t' with
+            | none => exact ⟨st, by simp [step, hcl, hrt, hts, how, h]⟩
+            | some o =>
+              cases hmb : s.mailboxes b with
+              | none => exact ⟨st, by simp [step, hcl, hrt, hts, how, hmb, h]⟩
+              | some mb =>
+                cases hw : s.mailboxWaiters b with
                 | cons w ws =>
                   by_cases huw : u = w
-                  · subst huw; exact ⟨.ready, by simp [step, hrt, hts, how, hmb, hw, htw, upd]⟩
-                  · exact ⟨st, by simp [step, hrt, hts, how, hmb, hw, htw, upd, huw]; exact h⟩
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
-          exact ⟨st, by simp [step, hrt, hts, h]⟩
-    · exact ⟨st, by simp [step, hrt, h]⟩
+                  · subst huw; exact ⟨.ready, by simp [step, hcl, hrt, hts, how, hmb, hw, upd]⟩
+                  · exact ⟨st, by simp [step, hcl, hrt, hts, how, hmb, hw, upd, huw]; exact h⟩
+                | nil =>
+                  cases htw : s.timedMailboxWaiters b with
+                  | nil => exact ⟨st, by simp [step, hcl, hrt, hts, how, hmb, hw, htw, upd, h]⟩
+                  | cons w ws =>
+                    by_cases huw : u = w
+                    · subst huw; exact ⟨.ready, by simp [step, hcl, hrt, hts, how, hmb, hw, htw, upd]⟩
+                    · exact ⟨st, by simp [step, hcl, hrt, hts, how, hmb, hw, htw, upd, huw]; exact h⟩
+          | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
+            exact ⟨st, by simp [step, hcl, hrt, hts, h]⟩
+      · exact ⟨st, by simp [step, hcl, hrt, h]⟩
   | receive t' =>
     by_cases hrt : s.running = some t'
     · cases hts : s.taskState t' with
@@ -235,21 +239,23 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
           exact ⟨st, by simp [step, hrt, hts, h]⟩
     · exact ⟨st, by simp [step, hrt, h]⟩
   | inject a m =>
-    cases hmb : s.mailboxes a with
-    | none => exact ⟨st, by simp [step, hmb, h]⟩
-    | some mb =>
-      cases hw : s.mailboxWaiters a with
-      | cons w ws =>
-        by_cases huw : u = w
-        · subst huw; exact ⟨.ready, by simp [step, hmb, hw, upd]⟩
-        · exact ⟨st, by simp [step, hmb, hw, upd, huw]; exact h⟩
-      | nil =>
-        cases htw : s.timedMailboxWaiters a with
-        | nil => exact ⟨st, by simp [step, hmb, hw, htw, upd, h]⟩
+    by_cases hg : s.runtimeStatus ≠ .running ∨ s.actorStatus a = .closed
+    · exact ⟨st, by simp [step, hg, h]⟩
+    · cases hmb : s.mailboxes a with
+      | none => exact ⟨st, by simp [step, hg, hmb, h]⟩
+      | some mb =>
+        cases hw : s.mailboxWaiters a with
         | cons w ws =>
           by_cases huw : u = w
-          · subst huw; exact ⟨.ready, by simp [step, hmb, hw, htw, upd]⟩
-          · exact ⟨st, by simp [step, hmb, hw, htw, upd, huw]; exact h⟩
+          · subst huw; exact ⟨.ready, by simp [step, hg, hmb, hw, upd]⟩
+          · exact ⟨st, by simp [step, hg, hmb, hw, upd, huw]; exact h⟩
+        | nil =>
+          cases htw : s.timedMailboxWaiters a with
+          | nil => exact ⟨st, by simp [step, hg, hmb, hw, htw, upd, h]⟩
+          | cons w ws =>
+            by_cases huw : u = w
+            · subst huw; exact ⟨.ready, by simp [step, hg, hmb, hw, htw, upd]⟩
+            · exact ⟨st, by simp [step, hg, hmb, hw, htw, upd, huw]; exact h⟩
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -348,6 +354,9 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
         | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           exact ⟨st, by simp [step, hrt, hts, h]⟩
     · exact ⟨st, by simp [step, hrt, h]⟩
+  | closeActor a => exact ⟨st, by simp only [step]; split <;> simp [upd, h]⟩
+  | shutdown => exact ⟨st, by simp [step, h]⟩
+  | stopWhenIdle => exact ⟨st, by simp only [step]; split <;> simp [h]⟩
 
 /-- One step never moves a task out of a terminal state.
 Requires `WellFormed s` because send/inject wake-one can write `.ready`
@@ -359,9 +368,11 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
   cases op with
   | spawn a =>
     simp only [step]; split
-    · next heq =>
-      have hu : u ≠ s.nextId := fun he => by subst he; rw [h] at heq; cases heq
-      simp [upd, hu, h]
+    · split
+      · next heq =>
+        have hu : u ≠ s.nextId := fun he => by subst he; rw [h] at heq; cases heq
+        simp [upd, hu, h]
+      · exact h
     · exact h
   | spawnChild pt pa =>
     by_cases hrt : s.running = some pt
@@ -459,37 +470,39 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
     split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;>
       first | (simp only [upd, if_neg hunq]; exact h) | exact h
   | send t b m =>
-    by_cases hrt : s.running = some t
-    · cases hts : s.taskState t with
-      | none => simp [step, hrt, hts]; exact h
-      | some st' =>
-        cases st' with
-        | running =>
-          cases how : s.taskOwner t with
-          | none => simp [step, hrt, hts, how]; exact h
-          | some o =>
-            cases hmb : s.mailboxes b with
-            | none => simp [step, hrt, hts, how, hmb]; exact h
-            | some mb =>
-              cases hw : s.mailboxWaiters b with
-              | cons w ws =>
-                by_cases huw : u = w
-                · subst huw
-                  have hmem : u ∈ s.mailboxWaiters b := hw ▸ List.mem_cons_self u ws
-                  rw [h_wf.waiters_waiting b u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
-                · simp [step, hrt, hts, how, hmb, hw, upd, huw]; exact h
-              | nil =>
-                cases htw : s.timedMailboxWaiters b with
-                | nil => simp [step, hrt, hts, how, hmb, hw, htw, upd]; exact h
+    by_cases hcl : s.actorStatus b = .closed
+    · simp [step, hcl]; exact h
+    · by_cases hrt : s.running = some t
+      · cases hts : s.taskState t with
+        | none => simp [step, hcl, hrt, hts]; exact h
+        | some st' =>
+          cases st' with
+          | running =>
+            cases how : s.taskOwner t with
+            | none => simp [step, hcl, hrt, hts, how]; exact h
+            | some o =>
+              cases hmb : s.mailboxes b with
+              | none => simp [step, hcl, hrt, hts, how, hmb]; exact h
+              | some mb =>
+                cases hw : s.mailboxWaiters b with
                 | cons w ws =>
                   by_cases huw : u = w
                   · subst huw
-                    have hmem : u ∈ s.timedMailboxWaiters b := htw ▸ List.mem_cons_self u ws
-                    rw [h_wf.timed_waiters_valid b u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
-                  · simp [step, hrt, hts, how, hmb, hw, htw, upd, huw]; exact h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
-          simp [step, hrt, hts]; exact h
-    · simp [step, hrt]; exact h
+                    have hmem : u ∈ s.mailboxWaiters b := hw ▸ List.mem_cons_self u ws
+                    rw [h_wf.waiters_waiting b u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
+                  · simp [step, hcl, hrt, hts, how, hmb, hw, upd, huw]; exact h
+                | nil =>
+                  cases htw : s.timedMailboxWaiters b with
+                  | nil => simp [step, hcl, hrt, hts, how, hmb, hw, htw, upd]; exact h
+                  | cons w ws =>
+                    by_cases huw : u = w
+                    · subst huw
+                      have hmem : u ∈ s.timedMailboxWaiters b := htw ▸ List.mem_cons_self u ws
+                      rw [h_wf.timed_waiters_valid b u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
+                    · simp [step, hcl, hrt, hts, how, hmb, hw, htw, upd, huw]; exact h
+          | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
+            simp [step, hcl, hrt, hts]; exact h
+      · simp [step, hcl, hrt]; exact h
   | receive t =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -563,25 +576,27 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
           simp [step, hrt, hts]; exact h
     · simp [step, hrt]; exact h
   | inject a m =>
-    cases hmb : s.mailboxes a with
-    | none => simp [step, hmb]; exact h
-    | some mb =>
-      cases hw : s.mailboxWaiters a with
-      | cons w ws =>
-        by_cases huw : u = w
-        · subst huw
-          have hmem : u ∈ s.mailboxWaiters a := hw ▸ List.mem_cons_self u ws
-          rw [h_wf.waiters_waiting a u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
-        · simp [step, hmb, hw, upd, huw]; exact h
-      | nil =>
-        cases htw : s.timedMailboxWaiters a with
-        | nil => simp [step, hmb, hw, htw, upd]; exact h
+    by_cases hg : s.runtimeStatus ≠ .running ∨ s.actorStatus a = .closed
+    · simp [step, hg]; exact h
+    · cases hmb : s.mailboxes a with
+      | none => simp [step, hg, hmb]; exact h
+      | some mb =>
+        cases hw : s.mailboxWaiters a with
         | cons w ws =>
           by_cases huw : u = w
           · subst huw
-            have hmem : u ∈ s.timedMailboxWaiters a := htw ▸ List.mem_cons_self u ws
-            rw [h_wf.timed_waiters_valid a u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
-          · simp [step, hmb, hw, htw, upd, huw]; exact h
+            have hmem : u ∈ s.mailboxWaiters a := hw ▸ List.mem_cons_self u ws
+            rw [h_wf.waiters_waiting a u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
+          · simp [step, hg, hmb, hw, upd, huw]; exact h
+        | nil =>
+          cases htw : s.timedMailboxWaiters a with
+          | nil => simp [step, hg, hmb, hw, htw, upd]; exact h
+          | cons w ws =>
+            by_cases huw : u = w
+            · subst huw
+              have hmem : u ∈ s.timedMailboxWaiters a := htw ▸ List.mem_cons_self u ws
+              rw [h_wf.timed_waiters_valid a u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
+            · simp [step, hg, hmb, hw, htw, upd, huw]; exact h
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -655,6 +670,9 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
         | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]; exact h
     · simp [step, hrt]; exact h
+  | closeActor a => simp only [step]; split <;> simp [upd]<;> exact h
+  | shutdown => simp [step]; exact h
+  | stopWhenIdle => simp only [step]; split <;> simp <;> exact h
 theorem step_preserves_completed {s : RuntimeState} {u : TaskId}
     (h_wf : WellFormed s) (h : s.taskState u = some .completed) (op : RuntimeOp) :
     ((step s op).1).taskState u = some .completed :=
@@ -703,9 +721,11 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
     (h : (step s op).2 = .invalid) : (step s op).1 = s := by
   cases op with
   | spawn a =>
-    cases hts : s.taskState s.nextId with
-    | none => simp [step, hts] at h
-    | some _ => simp [step, hts]
+    by_cases hrs : s.runtimeStatus = .running
+    · cases hts : s.taskState s.nextId with
+      | none => simp [step, hrs, hts] at h
+      | some _ => simp [step, hrs, hts]
+    · simp [step, hrs]
   | spawnChild t a =>
     by_cases hrt : s.running = some t
     · cases hts2 : s.taskState t with
@@ -749,28 +769,30 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
       · simp [step, hts, hterm]
       · simp at hterm; simp [step, hts, hterm] at h
   | send t b m =>
-    by_cases hrt : s.running = some t
-    · cases hts : s.taskState t with
-      | none => simp [step, hrt, hts]
-      | some st =>
-        cases st with
-        | running =>
-          cases how : s.taskOwner t with
-          | none => simp [step, hrt, hts, how]
-          | some o =>
-            cases hmb : s.mailboxes b with
-            | none => simp [step, hrt, hts, how, hmb]
-            | some mb =>
-              -- send always succeeds when guards pass; no invalid branch
-              cases hw : s.mailboxWaiters b with
-              | cons w ws => simp [step, hrt, hts, how, hmb, hw] at h
-              | nil =>
-                cases htw : s.timedMailboxWaiters b with
-                | nil => simp [step, hrt, hts, how, hmb, hw, htw] at h
-                | cons w ws => simp [step, hrt, hts, how, hmb, hw, htw] at h
-        | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
-          simp [step, hrt, hts]
-    · simp [step, hrt]
+    by_cases hcl : s.actorStatus b = .closed
+    · simp [step, hcl]
+    · by_cases hrt : s.running = some t
+      · cases hts : s.taskState t with
+        | none => simp [step, hcl, hrt, hts]
+        | some st =>
+          cases st with
+          | running =>
+            cases how : s.taskOwner t with
+            | none => simp [step, hcl, hrt, hts, how]
+            | some o =>
+              cases hmb : s.mailboxes b with
+              | none => simp [step, hcl, hrt, hts, how, hmb]
+              | some mb =>
+                -- send always succeeds when guards pass; no invalid branch
+                cases hw : s.mailboxWaiters b with
+                | cons w ws => simp [step, hcl, hrt, hts, how, hmb, hw] at h
+                | nil =>
+                  cases htw : s.timedMailboxWaiters b with
+                  | nil => simp [step, hcl, hrt, hts, how, hmb, hw, htw] at h
+                  | cons w ws => simp [step, hcl, hrt, hts, how, hmb, hw, htw] at h
+          | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
+            simp [step, hcl, hrt, hts]
+      · simp [step, hcl, hrt]
   | receive t =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -829,15 +851,17 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
           simp [step, hrt, hts]
     · simp [step, hrt]
   | inject a m =>
-    cases hmb : s.mailboxes a with
-    | none => simp [step, hmb]
-    | some mb =>
-      cases hw : s.mailboxWaiters a with
-      | cons w ws => simp [step, hmb, hw] at h
-      | nil =>
-        cases htw : s.timedMailboxWaiters a with
-        | nil => simp [step, hmb, hw, htw] at h
-        | cons w ws => simp [step, hmb, hw, htw] at h
+    by_cases hg : s.runtimeStatus ≠ .running ∨ s.actorStatus a = .closed
+    · simp [step, hg]
+    · cases hmb : s.mailboxes a with
+      | none => simp [step, hg, hmb]
+      | some mb =>
+        cases hw : s.mailboxWaiters a with
+        | cons w ws => simp [step, hg, hmb, hw] at h
+        | nil =>
+          cases htw : s.timedMailboxWaiters a with
+          | nil => simp [step, hg, hmb, hw, htw] at h
+          | cons w ws => simp [step, hg, hmb, hw, htw] at h
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -902,6 +926,15 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
         | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
           simp [step, hrt, hts]
     · simp [step, hrt]
+  | closeActor a =>
+    cases hm : s.mailboxes a with
+    | some _ => simp [step, hm] at h
+    | none => simp [step, hm]
+  | shutdown => simp [step] at h
+  | stopWhenIdle =>
+    by_cases hq : s.running = none ∧ s.readyQ = [] ∧ s.timers = []
+    · simp [step, hq] at h
+    · simp [step, hq]
 
 
 end Henret

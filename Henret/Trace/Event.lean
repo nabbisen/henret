@@ -57,6 +57,12 @@ inductive TraceEvent where
   /-- `restartOne`: `parent` restarted failed `old` as fresh `new` on
       actor `actor` (RFC 049). -/
   | restarted   (parent old new : TaskId) (actor : ActorId)             : TraceEvent
+  /-- Actor `a` was closed to new admission (RFC 055). -/
+  | actorClosed (a : ActorId)                                           : TraceEvent
+  /-- Runtime shutdown began (RFC 055). -/
+  | shutdownBegun                                                       : TraceEvent
+  /-- Runtime stopped because it was quiescent (RFC 055). -/
+  | stoppedWhenIdle                                                     : TraceEvent
   /-- A legal operation with no state change (carries its result). -/
   | noEffect    (op : RuntimeOp) (result : StepResult)                  : TraceEvent
 deriving Repr, DecidableEq, Inhabited

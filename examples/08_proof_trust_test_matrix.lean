@@ -22,10 +22,11 @@ open Henret
 
 -- Completed tasks never resume.  No hypothesis about reachability needed.
 #check @step_preserves_completed
--- This holds for *any* RuntimeState, even one constructed from thin air.
-example (s : RuntimeState) (h : s.taskState 0 = some .completed) :
+-- This holds for any *well-formed* RuntimeState (terminal preservation
+-- needs `WellFormed`, since send/inject wake-one can write `.ready`).
+example (s : RuntimeState) (hwf : WellFormed s) (h : s.taskState 0 = some .completed) :
     ((step s (.spawn 99)).1).taskState 0 = some .completed :=
-  step_preserves_completed h _
+  step_preserves_completed hwf h _
 
 -- Duplicate wake is invalid.
 #check @wake_twice_invalid

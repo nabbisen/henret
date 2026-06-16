@@ -209,6 +209,20 @@ theorem WellFormed.restartOf_irrel {s : RuntimeState} (f : TaskId → Option Tas
    h.parent_child_spawned, h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer,
    h.timed_is_waiter, h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive⟩
 
+/-- Changing the RFC-055 admission-status fields (`actorStatus`,
+    `runtimeStatus`) preserves `WellFormed`: no invariant field mentions
+    them, so each obligation is discharged by the corresponding projection
+    through the structure update. -/
+theorem WellFormed.status_irrel {s : RuntimeState}
+    (g : ActorId → ActorStatus) (r : RuntimeStatus) (h : WellFormed s) :
+    WellFormed { s with actorStatus := g, runtimeStatus := r } :=
+  ⟨h.readyQ_nodup, h.readyQ_queued, h.running_runs, h.timers_nodup, h.timers_sleep,
+   h.fresh_none, h.timers_sorted, h.spawned_has_owner, h.owned_has_mailbox, h.runnable_queued,
+   h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, h.parent_lt,
+   h.parent_spawned, h.occ_fresh, h.occ_nodup, h.occ_disjoint, h.owner_spawned,
+   h.parent_child_spawned, h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer,
+   h.timed_is_waiter, h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive⟩
+
 /-! ## Ownership uniqueness corollaries (RFC 004 acceptance) -/
 
 /-- A queued task is never in the running slot. -/

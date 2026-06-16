@@ -27,6 +27,9 @@ def TraceEvent.render : TraceEvent → String
   | .waiterWoke a t       => s!"waiterWoke       task {t} on actor {a}"
   | .failed t             => s!"failed           task {t}"
   | .restarted p o n a    => s!"restarted        task {o} → fresh {n} by {p} (actor {a})"
+  | .actorClosed a        => s!"actorClosed      actor {a}"
+  | .shutdownBegun        => s!"shutdownBegun"
+  | .stoppedWhenIdle      => s!"stoppedWhenIdle"
   | .noEffect op r        => s!"noEffect         {repr op} ⇒ {repr r}"
 
 end Henret.Trace

@@ -40,12 +40,12 @@ Run with:  `lake env lean examples/07_refinement_contract.lean`
 #eval listBackend.toList listBackend.empty
 -- []
 #eval listBackend.toList (listBackend.enqueue
-        (listBackend.enqueue listBackend.empty ⟨1, 10⟩) ⟨2, 20⟩)
--- [{ id := 1, payload := 10 }, { id := 2, payload := 20 }]  (FIFO: enqueue appends)
+        (listBackend.enqueue listBackend.empty ⟨1, none, ⟨1, 10⟩⟩) ⟨2, none, ⟨2, 20⟩⟩)
+-- two envelopes, bodies {id:=1,payload:=10} then {id:=2,payload:=20}  (FIFO: enqueue appends)
 
 #eval listBackend.dequeue (listBackend.enqueue
-        (listBackend.enqueue listBackend.empty ⟨1, 10⟩) ⟨2, 20⟩)
--- some ({ id := 1, payload := 10 }, [{ id := 2, payload := 20 }])
+        (listBackend.enqueue listBackend.empty ⟨1, none, ⟨1, 10⟩⟩) ⟨2, none, ⟨2, 20⟩⟩)
+-- some (head envelope with body {id:=1,payload:=10}, tail with body {id:=2,payload:=20})
 
 -- All three laws are kernel-proven fields:
 example : listBackend.toList listBackend.empty = [] :=

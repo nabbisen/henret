@@ -25,6 +25,8 @@ the path that matches you.
   (RFC 046).
 - [Supervision restart](supervision-restart.md) — failure and one-for-one
   restart (RFC 049).
+- [Shutdown semantics](shutdown-semantics.md) — actor closing, runtime
+  shutdown, quiescence (RFC 055, safety-only).
 - [Profile index](profile-index.md) — semantic profiles (core / actor /
   full) and the theorem-to-profile mapping (RFC 054).
 

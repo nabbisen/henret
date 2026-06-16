@@ -28,25 +28,25 @@ variable (s : RuntimeState) (t : TaskId) (b : ActorId) (m : Message)
     ((step s (.send t b m)).1).taskOwner = s.taskOwner := by
   simp only [step]
   split <;> (try split) <;> (try split) <;> (try split) <;>
-    (try split) <;> (try split) <;> rfl
+    (try split) <;> (try split) <;> (try split) <;> rfl
 
 @[simp] theorem send_running :
     ((step s (.send t b m)).1).running = s.running := by
   simp only [step]
   split <;> (try split) <;> (try split) <;> (try split) <;>
-    (try split) <;> (try split) <;> rfl
+    (try split) <;> (try split) <;> (try split) <;> rfl
 
 @[simp] theorem send_now :
     ((step s (.send t b m)).1).now = s.now := by
   simp only [step]
   split <;> (try split) <;> (try split) <;> (try split) <;>
-    (try split) <;> (try split) <;> rfl
+    (try split) <;> (try split) <;> (try split) <;> rfl
 
 @[simp] theorem send_nextId :
     ((step s (.send t b m)).1).nextId = s.nextId := by
   simp only [step]
   split <;> (try split) <;> (try split) <;> (try split) <;>
-    (try split) <;> (try split) <;> rfl
+    (try split) <;> (try split) <;> (try split) <;> rfl
 
 end SendProjections
 
@@ -133,7 +133,9 @@ variable (s : RuntimeState) (t : TaskId) (a : ActorId)
   | .receiveUntil _ _ | .receiveByOccurrence _ _ | .receiveFrom _ _ | .fail _ =>
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>
-        (try split) <;> (try split) <;> simp [upd, hfresh]
+        (try split) <;> (try split) <;> (try split) <;> simp [upd, hfresh]
+  | .closeActor _ | .shutdown | .stopWhenIdle =>
+      simp only [step] <;> (try split) <;> simp [upd]
   | .cancelTree _ => rfl
   | .spawnChild t a => exact absurd rfl (h t a)
   | .restartOne p c a => exact absurd rfl (h2 p c a)

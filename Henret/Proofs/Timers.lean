@@ -87,7 +87,8 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
     by_cases hle : s.now ≤ t
     · simp only [step, if_pos hle]; exact hle
     · simp [step, hle]
-  | spawn a => cases hts : s.taskState s.nextId <;> simp [step, hts]
+  | spawn a =>
+    simp only [step]; split <;> (try split) <;> exact Nat.le_refl _
   | spawnChild t a =>
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;> simp_all
@@ -120,14 +121,14 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
   | send t b m =>
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;>
-      (try split) <;> simp_all
+      (try split) <;> (try split) <;> simp_all
   | receive t =>
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;>
       (try split) <;> simp_all
   | inject a m =>
     simp only [step]
-    split <;> (try split) <;> (try split) <;> (try split) <;> simp_all
+    split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;> simp_all
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -156,13 +157,18 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;>
       (try split) <;> (try split) <;> simp_all
+  | closeActor a =>
+    simp only [step] <;> (try split) <;> exact Nat.le_refl _
+  | shutdown => exact Nat.le_refl _
+  | stopWhenIdle =>
+    simp only [step] <;> (try split) <;> exact Nat.le_refl _
 
 /-- Every operation preserves timer-queue sortedness. -/
 theorem step_preserves_sorted {s : RuntimeState}
     (h : Timer.Sorted s.timers) (op : RuntimeOp) :
     Timer.Sorted ((step s op).1).timers := by
   cases op with
-  | spawn a => simp only [step]; split <;> exact h
+  | spawn a => simp only [step]; split <;> (try split) <;> exact h
   | spawnChild t a =>
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;> simp_all
@@ -187,11 +193,11 @@ theorem step_preserves_sorted {s : RuntimeState}
   | send t b m =>
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;>
-      (try split) <;> (try split) <;> simp_all [Timer.sorted_filter]
+      (try split) <;> (try split) <;> (try split) <;> simp_all [Timer.sorted_filter]
   | receive t => simpa using h
   | inject a m =>
     simp only [step]
-    split <;> (try split) <;> (try split) <;> (try split) <;>
+    split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;>
       simp_all [Timer.sorted_filter]
   | sleep t d =>
     simp only [step]; split
@@ -229,6 +235,9 @@ theorem step_preserves_sorted {s : RuntimeState}
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;>
       (try split) <;> (try split) <;> simp_all [Timer.insertSorted_sorted]
+  | closeActor a => simp only [step] <;> (try split) <;> exact h
+  | shutdown => exact h
+  | stopWhenIdle => simp only [step] <;> (try split) <;> exact h
 
 /-- Whole-program corollary: the queue is sorted in every reachable state. -/
 theorem run_preserves_sorted {s : RuntimeState}

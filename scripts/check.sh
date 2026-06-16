@@ -35,7 +35,7 @@ import Henret.Native.Assumptions
 open Henret Henret.Native Henret.Bridge
 #print axioms step_preserves_terminal
 #print axioms step_invalid_unchanged
-#print axioms run_preserves_owner
+#print axioms run_preserves_wf
 #print axioms reachable_wf
 #print axioms reachable_spawned_has_owner
 #print axioms reachable_owner_has_mailbox
@@ -96,6 +96,39 @@ open Henret Henret.Native Henret.Bridge
 #print axioms core_le_actor
 #print axioms actor_le_full
 #print axioms core_le_full
+-- RFC 055 structured cancellation / shutdown
+#print axioms closeActor_sets_closed
+#print axioms closed_actor_rejects_send
+#print axioms closed_actor_rejects_inject
+#print axioms shutdown_rejects_spawn
+#print axioms shutdown_sets_status
+#print axioms stopWhenIdle_requires_quiescent
+#print axioms stopWhenIdle_sets_stopped
+#check @preserves_wf_closeActor
+#check @preserves_wf_shutdown
+#check @preserves_wf_stopWhenIdle
+#check @bridge_closeActor
+#check @bridge_shutdown
+#check @bridge_stopWhenIdle
+#check @closeActor_preserves_mailboxes
+-- Coverage for the remaining allowlisted headline theorems
+#print axioms reachable_occurrence_unique
+#print axioms send_stamps_source
+#print axioms inject_stamps_none
+#print axioms Bridge.reachable_multi_bridge
+#print axioms Bridge.single_bridge_implies_multi_bridge
+#print axioms Conformance.conformance_suite_passes
+#print axioms Progress.ready_eventually_scheduled_under_bounded_fairness
+#print axioms Progress.schedule_schedules_head
+#print axioms Progress.head_scheduled_within_one
+#print axioms Progress.unfairOps_not_bounded_fair_0
+#print axioms Trace.stepTrace_state_eq_step
+#print axioms Trace.stepTrace_result_eq_step
+#print axioms Trace.runTraceLedger_state_eq_run
+#print axioms Trace.event_received_sound
+#print axioms Trace.event_parked_sound
+#print axioms Trace.event_timerWoke_sound
+#print axioms Trace.event_spawnChild_sound
 LEAN
 lake env lean "$AUDIT" | python3 scripts/axiom_audit.py
 rm -f "$AUDIT"
@@ -113,7 +146,7 @@ if grep -rn "six scenarios\|field 15 of 16\|all 16 fields\|carries no source act
   echo "FAIL: stale v0.8.0 phrase found (RFC 037 gates)"; exit 1
 fi
 # Bridge claim rule + grammar-count drift (RFC 052 governance)
-if grep -rn "complete bridge preservation\|all 12 RuntimeOps\|12-operation\|the bridge is complete" \\
+if grep -rn "complete bridge preservation\|all 12 RuntimeOps\|12-operation\|the bridge is complete\|18 RuntimeOps\|18-operation\|18 operations" \\
      README.md docs/ examples/ CHANGELOG.md Henret/ Main.lean 2>/dev/null \\
      | grep -v "\.lake" | grep -v "docs/reviews/" | grep -v "rfcs/done/" | grep -v "docs/handoff-"; then
   echo "FAIL: bridge-claim-rule / stale grammar-count phrase found (RFC 052 gates)"; exit 1

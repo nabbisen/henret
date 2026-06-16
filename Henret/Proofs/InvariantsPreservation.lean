@@ -13,6 +13,28 @@ Per-operation proofs live in `Henret.Proofs.Preservation.{Lifecycle,
 Messaging,Time}`. This file assembles them into the public-surface
 theorems. -/
 
+/-- `closeActor` only flips an actor's admission status (or is a no-op
+    when the actor has no mailbox); `WellFormed` is status-irrelevant. -/
+theorem preserves_wf_closeActor {s : RuntimeState} (h : WellFormed s) (a : ActorId) :
+    WellFormed ((step s (.closeActor a)).1) := by
+  simp only [step]
+  cases hmb : s.mailboxes a with
+  | some _ => exact (WellFormed.status_irrel (upd s.actorStatus a .closed) s.runtimeStatus h)
+  | none   => simpa using h
+
+/-- `shutdown` only flips the runtime status. -/
+theorem preserves_wf_shutdown {s : RuntimeState} (h : WellFormed s) :
+    WellFormed ((step s .shutdown).1) :=
+  WellFormed.status_irrel s.actorStatus .shuttingDown h
+
+/-- `stopWhenIdle` only flips the runtime status (or is a no-op). -/
+theorem preserves_wf_stopWhenIdle {s : RuntimeState} (h : WellFormed s) :
+    WellFormed ((step s .stopWhenIdle).1) := by
+  simp only [step]
+  split
+  · exact WellFormed.status_irrel s.actorStatus .stopped h
+  · simpa using h
+
 /-- Every operation preserves well-formedness. -/
 theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
     (op : RuntimeOp) : WellFormed ((step s op).1) := by
@@ -35,6 +57,9 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
   | cancelTree root => exact preserves_wf_cancelTree h root
   | fail t => exact preserves_wf_fail h
   | restartOne p c a => exact preserves_wf_restartOne h a
+  | closeActor a => exact preserves_wf_closeActor h a
+  | shutdown => exact preserves_wf_shutdown h
+  | stopWhenIdle => exact preserves_wf_stopWhenIdle h
 
 /-- Whole-program invariant preservation. -/
 theorem run_preserves_wf {s : RuntimeState} (h : WellFormed s) :

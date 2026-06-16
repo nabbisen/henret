@@ -55,7 +55,9 @@ theorem step_restartOf_stable (s : RuntimeState) (op : RuntimeOp)
   | .fail _ | .spawnChild _ _ =>
       simp only [step]
       split <;> (try split) <;> (try split) <;> (try split) <;>
-        (try split) <;> (try split) <;> rfl
+        (try split) <;> (try split) <;> (try split) <;> rfl
+  | .closeActor _ | .shutdown | .stopWhenIdle =>
+      simp only [step] <;> (try split) <;> rfl
   | .cancelTree _ => rfl
   | .restartOne p c a => exact absurd rfl (h2 p c a)
 
@@ -184,7 +186,8 @@ theorem step_preserves_restart_wf {s : RuntimeState}
   | .spawn _ | .schedule | .yield _ | .complete _ | .cancel _
   | .send _ _ _ | .receive _ | .inject _ _ | .sleep _ _ | .tick _ | .wake _
   | .receiveUntil _ _ | .receiveByOccurrence _ _ | .receiveFrom _ _
-  | .fail _ | .spawnChild _ _ | .cancelTree _ =>
+  | .fail _ | .spawnChild _ _ | .cancelTree _
+  | .closeActor _ | .shutdown | .stopWhenIdle =>
       exact restart_wf_of_restartOf_stable h_wf hr _
         (step_restartOf_stable s _ (by rintro _ _ _ ⟨⟩))
 

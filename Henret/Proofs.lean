@@ -10,6 +10,7 @@ import Henret.Proofs.Parenthood
 import Henret.Proofs.Occurrence
 import Henret.Proofs.Supervision
 import Henret.Proofs.Restart
+import Henret.Proofs.Shutdown
 
 /-!
 # Henret.Proofs

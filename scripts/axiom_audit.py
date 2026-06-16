@@ -43,6 +43,25 @@ ALLOWLIST = {
     "Henret.reachable_occurrence_unique":       (set(), STD_C),
     "Henret.send_stamps_source":                (set(), STD),
     "Henret.inject_stamps_none":                (set(), STD),
+    # RFC 039 cascade cancel
+    "Henret.cancelTree_cancels_task":              (set(), STD),
+    "Henret.cancelTree_preserves_task_state":      (set(), STD),
+    "Henret.Bridge.bridge_cancelTree":             (set(), STD),
+    "Henret.preserves_wf_cancelTree":              (set(), STD),
+    # RFC 038 owner / parent exactness (reachable)
+    "Henret.reachable_owner_spawned":              (set(), STD_C),
+    "Henret.reachable_parent_child_spawned":       (set(), STD_C),
+    # RFC 036 single-worker bridge headline theorems
+    "Henret.Bridge.bridge_step_single_worker":         (set(), STD),
+    "Henret.Bridge.bridge_run_tracks_single_worker":   (set(), STD),
+    "Henret.Bridge.bridge_run_general":                (set(), STD),
+    # Pure native layer (model only): standard axioms.
+    "Henret.Native.qRun_tracks":                   (set(), STD),
+    "Henret.Native.driveStackB_complete":          (set(), STD),
+    # Assumed native FFI layer: exactly the six declared axioms
+    # (+ standard + Classical.choice from the opaque NonemptyType).
+    "Henret.Native.nativeDequeModel_qRun_tracks":
+        (NATIVE_SIX, NATIVE_SIX | STD | {"Classical.choice"}),
     "Henret.parent_chain_terminates":           (set(), STD_C),
     # RFC 043 multi-worker bridge
     "Henret.Bridge.reachable_multi_bridge":            (set(), STD_C),
@@ -67,6 +86,14 @@ ALLOWLIST = {
     "Henret.core_le_actor":                        (set(), STD),
     "Henret.actor_le_full":                        (set(), STD),
     "Henret.core_le_full":                         (set(), STD),
+    # RFC 055 structured cancellation / shutdown safety (pure step lemmas)
+    "Henret.closeActor_sets_closed":               (set(), STD),
+    "Henret.closed_actor_rejects_send":            (set(), STD),
+    "Henret.closed_actor_rejects_inject":          (set(), STD),
+    "Henret.shutdown_rejects_spawn":               (set(), STD),
+    "Henret.shutdown_sets_status":                 (set(), STD),
+    "Henret.stopWhenIdle_requires_quiescent":      (set(), STD),
+    "Henret.stopWhenIdle_sets_stopped":            (set(), STD),
     # RFC 046 fairness / conditional liveness
     "Henret.Progress.ready_eventually_scheduled_under_bounded_fairness": (set(), STD),
     "Henret.Progress.schedule_schedules_head":  (set(), STD),
