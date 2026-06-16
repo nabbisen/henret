@@ -1,6 +1,8 @@
 import Henret.Conformance.Scenario
 import Henret.Conformance.Golden
 import Henret.Conformance.Export
+import Henret.Conformance.Branch
+import Henret.Conformance.Coverage
 /-!
 # Henret.Conformance  (RFC 047)
 

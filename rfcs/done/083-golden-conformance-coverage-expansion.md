@@ -1,8 +1,8 @@
 ---
 rfc: 83
 title: Golden Conformance Coverage Expansion
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.17.5
 supersedes: []
 superseded_by: []
 depends_on: [80]
@@ -14,10 +14,22 @@ category: conformance
 
 ## Status
 
-Proposed strategic RFC. Approved in the v0.17.0 audit review (item A3,
-decision **A+B**, priority **P1**); amendments 083-A..E applied from the
-RFCs 080-086 review. All `*_as_designed` placeholders are now resolved
-against the **actual current model semantics** (`Henret/Scheduler/Model.lean`).
+Implemented in **v0.17.5**. Approved in the v0.17.0 audit review (item A3,
+decision **A+B**, priority **P1**); amendments 083-A..E and the v2-review
+final-pass amendments 083-1..5 applied. All `*_as_designed` placeholders are
+resolved against the **actual current model semantics**
+(`Henret/Scheduler/Model.lean`), with every expected `StepResult` sequence
+extracted from the model by evaluation.
+
+The branch suite lives in `Henret/Conformance/Branch.lean` (27 executable
+`BranchScenario` values — 17 positive incl. the Mesa re-park regression,
+10 negative/security) and the coverage registry in
+`Henret/Conformance/Coverage.lean` (44 branches across all 21 `RuntimeOp`s).
+`branch_suite_passes` and `coverage_complete` are kernel-checked by `decide`
+(no `native_decide`; `cancelTree` uses well-founded recursion that does not
+kernel-reduce, so it is runtime-checked by the executable suite). The
+conformance executable runs the trace suite, the branch suite, and the
+coverage registry, exiting non-zero on any failure — RFC 080 gate stage 6.
 
 ## Summary
 

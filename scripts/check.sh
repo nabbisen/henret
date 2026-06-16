@@ -71,7 +71,10 @@ gate_examples() {
 }
 
 gate_conformance() {
-  # RFC 047 golden conformance; RFC 083 will add the branch-coverage gate here.
+  # RFC 047 golden trace suite + RFC 083 branch-coverage suite and registry
+  # completeness. The exe exits non-zero if any trace/branch scenario fails or
+  # coverage is incomplete; branch_suite_passes and coverage_complete are also
+  # kernel-checked at build (gate 1) and axiom-audited (gate 6).
   lake exe henret-conformance
 }
 
@@ -178,6 +181,8 @@ open Henret Henret.Native Henret.Bridge
 #print axioms Bridge.reachable_multi_bridge
 #print axioms Bridge.single_bridge_implies_multi_bridge
 #print axioms Conformance.conformance_suite_passes
+#print axioms Conformance.branch_suite_passes
+#print axioms Conformance.coverage_complete
 #print axioms Progress.ready_eventually_scheduled_under_bounded_fairness
 #print axioms Progress.schedule_schedules_head
 #print axioms Progress.head_scheduled_within_one

@@ -76,6 +76,8 @@ ALLOWLIST = {
     "Henret.Trace.event_spawnChild_sound":    (set(), STD),
     # RFC 047 golden trace conformance
     "Henret.Conformance.conformance_suite_passes": (set(), STD),
+    "Henret.Conformance.branch_suite_passes": (set(), STD),
+    "Henret.Conformance.coverage_complete": (set(), STD),
     # RFC 049 supervision restart policies
     "Henret.reachable_restart_fresh":              (set(), STD_C),
     "Henret.reachable_restart_old_failed":         (set(), STD_C),
@@ -112,6 +114,10 @@ text = sys.stdin.read()
 # join wrapped lines: a block starts at 'Name' and runs to the closing ]
 blocks = re.findall(r"'([^']+)' depends on axioms: \[([^\]]*)\]",
                     text.replace("\n", " "))
+# A theorem proved without any axiom prints "... does not depend on any axioms"
+# rather than "depends on axioms: []"; record those as an empty axiom set.
+blocks += [(name, "")
+           for name in re.findall(r"'([^']+)' does not depend on any axioms", text)]
 if not blocks:
     print("AUDIT FAIL: no '#print axioms' output found")
     sys.exit(1)

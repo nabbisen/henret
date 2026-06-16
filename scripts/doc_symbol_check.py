@@ -73,6 +73,9 @@ IGNORE = {
     "GoldenScenario", "observe", "checkScenario", "scenarioReport",
     "TraceRefines", "firstMismatch", "goldenScenarios", "allPass",
     "suiteReport", "conformance_suite_passes", "renderEvent", "renderTrace",
+    "branch_suite_passes", "coverage_complete", "branchScenarios",
+    "kernelScenarios", "checkBranch", "coverageComplete", "coverageRegistry",
+    "BranchScenario", "branchAllPass", "branchReport", "coverageReport",
     "renderScenario", "renderSuite",
     # RFC 047 golden scenario names
     "spawn_schedule_complete", "yield_requeues", "sleep_tick_wakes",

@@ -259,6 +259,8 @@ zero-assumption core.
 |---:|---|---|---|---|:---:|
 | 132 | Ten golden scenarios encode Henret's canonical observable behavior (lifecycle, yield, sleep/tick, park, send/inject Mesa wake, cancel, spawnChild, occurrence uniqueness) | PROVEN | `goldenScenarios`, `conformance_suite_passes` | in_tree_model_proof | yes |
 | 133 | Every golden scenario's observed trace equals its checked-in expected trace (kernel-checked, no native_decide) | PROVEN | `conformance_suite_passes` (`by decide`) | in_tree_model_proof | yes |
+| 134 | Every kernel-reducible RFC 083 branch scenario's observed StepResult sequence and final-state predicate match (negative/security cases incl. Mesa re-park; cancelTree runtime-checked) | PROVEN | `branch_suite_passes` (`by decide`) | in_tree_model_proof | yes |
+| 135 | Every executable RuntimeOp branch is tied to an existing golden scenario and no scenario claims unregistered coverage | PROVEN | `coverage_complete` (`by decide`) | in_tree_model_proof | yes |
 | 134 | The conformance suite is executable and reports the first mismatching event on failure | TESTED | `lake exe henret-conformance`, `firstMismatch`, `scenarioReport` | in_tree_model_test | yes |
 | 135 | Trace refinement is exact equality for single-worker conformance; relaxed matching deferred until a multi-worker adapter exists | DOCUMENTED | `TraceRefines`, `docs/conformance-suite.md` | — | — |
 | 136 | External runtimes need only expose the observable event stream, not internal queues | DOCUMENTED | `docs/conformance-suite.md` adapter contract | — | — |

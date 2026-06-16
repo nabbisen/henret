@@ -447,6 +447,8 @@ A behavioral conformance suite built on the RFC 045 trace ledger. External runti
 | Theorem | Statement |
 |---|---|
 | `conformance_suite_passes` | `allPass = true` — every golden scenario's observed trace equals its checked-in expected trace. Kernel-checked by `decide` (no `native_decide`, no extra axioms). |
+| `branch_suite_passes` | `kernelScenarios.all checkBranch = true` — every kernel-reducible RFC 083 branch scenario's observed `StepResult` sequence and final-state predicate match (cancelTree is runtime-checked). Kernel-checked by `decide`. |
+| `coverage_complete` | `coverageComplete = true` — every executable `RuntimeOp` branch is tied to an existing golden scenario and every scenario's claimed coverage is a registry branch. Kernel-checked by `decide` (no axioms). |
 
 Any change to `step` or `traceEvents` that alters observable behavior breaks this proof. See `docs/conformance-suite.md` for the adapter contract.
 
@@ -586,6 +588,8 @@ names carry no public stability.
 | `closeActor_sets_closed`, `closed_actor_rejects_send`, `closed_actor_rejects_inject`, `shutdown_rejects_spawn`, `stopWhenIdle_requires_quiescent`, `stopWhenIdle_sets_stopped` | structured shutdown, safety-only (RFC 055) |
 | `ready_eventually_scheduled_under_bounded_fairness`, `schedule_schedules_head` | progress / conditional liveness (RFC 046) |
 | `conformance_suite_passes` | golden-trace conformance (RFC 047) |
+| `branch_suite_passes` | branch-coverage conformance (RFC 083) |
+| `coverage_complete` | branch-to-scenario coverage registry (RFC 083) |
 | `event_*_sound`, `runTraceLedger_state_eq_run`, `stepTrace_state_eq_step` | trace soundness (RFC 045) |
 
 ### Internal — no public stability

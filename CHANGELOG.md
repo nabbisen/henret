@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.17.5 — Golden Conformance Coverage Expansion (RFC 083)
+
+The golden conformance suite is back in line with the grammar. Alongside RFC
+047's 10 trace scenarios, an executable **branch-coverage suite** pins the
+exact `StepResult` sequence and an executable final-state predicate for every
+operation/branch added since RFC 033, and a coverage registry ties every
+executable `RuntimeOp` branch to a named scenario.
+
+- **`Henret/Conformance/Branch.lean`** — 27 `BranchScenario` values (083-3):
+  17 positive (receiveUntil ×4, selective receive ×4, fail, restartOne,
+  closeActor, shutdown, stopWhenIdle ×2, wake, cancelTree, and the **Mesa
+  re-park regression** `mesa_woken_task_can_repark`, 083-4) and 10
+  negative/security scenarios (non-running/unowned/waiting-task rejections,
+  closed-actor and shutdown rejections, cancelled-task non-schedulability,
+  stale-timer non-wake). Every expected `StepResult` sequence was extracted
+  from the model by evaluation; branch ids are stable and namespaced (083-2).
+- **`Henret/Conformance/Coverage.lean`** — the coverage source of truth in
+  Lean, not markdown (083-D): 44 branches across all 21 `RuntimeOp`s, each
+  tied to a trace scenario (pre-RFC-033 ops) or a branch scenario. Closed-actor
+  and shutdown rejections are explicit branches (083-5).
+- **Two kernel-checked gates** (`by decide`, no `native_decide`):
+  `branch_suite_passes` over the kernel-reducible scenarios and
+  `coverage_complete` over the registry. `cancelTree` uses well-founded
+  recursion that does not kernel-reduce, so it is runtime-checked by the
+  executable suite and covered by the `Supervision.lean` cascade-cancel proofs.
+  Both theorems are axiom-audited (62 allowlisted, up from 60).
+- The **conformance executable** now runs the trace suite, branch suite, and
+  coverage registry, exiting non-zero on any failure (RFC 080 gate stage 6).
+- The axiom-audit parser now recognizes axiom-free theorems
+  ("does not depend on any axioms") as an empty axiom set.
+
 ## v0.17.4 — Warning Hygiene and Public Lemma Tightening (RFC 086)
 
 The full gate-scope build now emits **zero warnings**. No project axioms were
