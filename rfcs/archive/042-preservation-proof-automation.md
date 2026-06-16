@@ -1,14 +1,20 @@
 ---
 rfc: 42
 title: Preservation Proof Automation and Maintainability
-status: Implemented
-implemented_in: v0.10.1
+status: Superseded
+implemented_in: null
 supersedes: []
-superseded_by: []
+superseded_by: [82]
 depends_on: []
 blocks: []
 category: proofs
 ---
+
+> **Superseded by [RFC 082](../done/082-preservation-proof-ergonomics-v2.md).**
+> RFC 042's `StepFields.lean` helpers shipped in v0.10.1 but eight were
+> left unused; RFC 082 (implemented in v0.17.6) adopts them, adds the
+> `helper_usage_check.py` gate so they cannot drift back to dead, and
+> records the ergonomics metrics. The helpers themselves remain in use.
 
 # RFC 042 — Preservation Proof Automation and Maintainability
 

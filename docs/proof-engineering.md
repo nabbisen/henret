@@ -239,3 +239,61 @@ RFC 042 deliberately does not:
   `waiters_waiting`; these are operation-specific and don't share structure)
 - Use Lean 4 macros or tactics requiring metaprogramming imports (not in
   `Henret`'s dependency set)
+
+---
+
+## RFC 082 — Helper adoption and ergonomics v2 (supersedes RFC 042)
+
+RFC 042 shipped the `StepFields.lean` pass-through helpers but the v0.17.0
+audit found **eight** of them used zero times. RFC 082 adopts them and adds a
+durable gate so they cannot drift back to dead.
+
+### Helper-usage gate
+
+`scripts/helper_usage_check.py` (RFC 080-adjacent, gate stage 7) requires every
+exported `wf_*_pass` helper to be *used* — its identifier present, outside
+`StepFields.lean`, in a library `.lean` source **after stripping comments and
+string literals** (082-1, so a commented-out usage does not count) — or to
+carry a valid `HENRET_HELPER_RESERVED: reason; target RFC; expiry` annotation
+(082-2). The eight A1 helpers must be used, never annotated-away.
+
+### Adoption sites
+
+- `wf_parent_spawned_pass` and the bundled `wf_occ_pass` close the
+  `parent_spawned` and occurrence bullets in the `sleep` preservation proof;
+  `wf_parent_spawned_pass` replaces an eight-line `by_cases` bullet with two
+  lines while keeping the guard (`taskParent` unchanged, spawned-preservation)
+  visible (082-C).
+- The six RFC 040 `wf_timed_*_pass` helpers close the timed-wait bullets in the
+  `send`/`inject` no-waiter case, where `taskState`, `waitDeadline`, `timers`,
+  and `timedMailboxWaiters` are all stable.
+
+### Naming convention (082-D)
+
+| suffix | meaning |
+|---|---|
+| `wf_<field>_pass`   | field unchanged by the operation |
+| `wf_<field>_update` | field updated in a standard way |
+| `wf_<field>_filter` | field preserved by a filter/remove operation |
+| `wf_<field>_append` | field preserved by an append/wake operation |
+
+### Metrics (082-B / 082-4)
+
+| metric | value |
+|---|---|
+| exported `wf_*_pass` helpers | 12 |
+| helpers used (outside `StepFields.lean`) | 12 / 12 |
+| A1 (formerly-dead) helpers used | 8 / 8 |
+| preservation field bullets (`· --`) | ~405 |
+| `Preservation/*.lean` total lines | ~3,970 |
+| `InvariantsPreservation` imports | 6 (unchanged) |
+
+The 15–25% line-reduction target is **informative, not blocking** (082-B). This
+pass establishes adoption and the durable usage gate rather than a large
+reduction; the pass-through helpers are line-neutral at the definitional sites
+where they apply, and `wf_parent_spawned_pass` is a small net reduction. The
+broader reduction will come from operation-family unchanged-field lemmas applied
+as RFC 056 (bounded mailboxes) and later features touch these files — which is
+why RFC 082 is sequenced to **precede** RFC 056, so that feature is the first to
+benefit from the now-adopted, gate-protected helper API. Guard/admission logic
+remains visible in every operation-family proof, and no helper is `@[simp]`.

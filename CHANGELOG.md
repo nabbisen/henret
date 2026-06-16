@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.17.6 — Preservation Proof Ergonomics v2 (RFC 082, supersedes RFC 042)
+
+Realises the goal RFC 042 set but did not finish: the eight `wf_*_pass`
+preservation helpers the v0.17.0 audit found **dead** are now adopted, with a
+durable gate so they cannot drift back to unused. No semantic model behavior
+changed; `reachable_wf` and the public theorem surface are unchanged; no new
+project axioms.
+
+- **All eight A1 helpers adopted**: `wf_parent_spawned_pass` (replacing an
+  eight-line `by_cases` bullet with two lines) and the bundled `wf_occ_pass` in
+  the `sleep` preservation proof; the six RFC 040 `wf_timed_*_pass` helpers in
+  the `send`/`inject` no-waiter case. Guards stay visible in each proof (082-C);
+  no helper is `@[simp]`.
+- **`scripts/helper_usage_check.py`** (gate stage 7) requires every exported
+  `wf_*_pass` to be used — its identifier present outside `StepFields.lean`
+  after stripping Lean comments and string literals (082-1) — or carry a valid
+  `HENRET_HELPER_RESERVED: reason; rfc; expiry` annotation (082-2). The eight A1
+  helpers must be used, never annotated-away. Added to the release manifest's
+  policy hashes.
+- **Metrics and the 082-D naming convention** recorded in
+  `docs/proof-engineering.md`: 12/12 exported helpers used, A1 8/8, ~405 field
+  bullets, `InvariantsPreservation` import count 6 (unchanged). The 15–25%
+  line-reduction target is informative, not blocking (082-B); this pass
+  establishes adoption and the gate, sequenced to precede RFC 056.
+- **RFC 042 superseded**: moved to `rfcs/archive/`, status `Superseded by RFC
+  082`. Its `StepFields.lean` helpers remain in use.
+
 ## v0.17.5 — Golden Conformance Coverage Expansion (RFC 083)
 
 The golden conformance suite is back in line with the grammar. Alongside RFC

@@ -114,12 +114,14 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                   · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState = s.taskState
                     intro u p hp
                     exact h.parent_child_spawned u p hp
-                  · intro u hu; exact h.timed_has_deadline u hu
-                  · intro u dv hd; exact h.deadline_is_timed u dv hd
-                  · intro u hu; exact h.timed_has_timer u hu
-                  · intro u hu; exact h.timed_is_waiter u hu
-                  · intro a' u hm; exact h.timed_waiters_valid a' u hm
-                  · intro a'; exact h.timed_waiters_nodup a'
+                  · -- timed-wait fields (RFC 040 → RFC 082 helpers): send (no waiter)
+                    --   leaves taskState/waitDeadline/timers/timedMailboxWaiters fixed.
+                    exact fun u hu => wf_timed_has_deadline_pass h (fun _ => rfl) (fun _ => rfl) u hu
+                  · exact fun u dv hd => wf_deadline_is_timed_pass h (fun _ => rfl) (fun _ => rfl) u dv hd
+                  · exact fun u hu => wf_timed_has_timer_pass h rfl (fun _ => rfl) u hu
+                  · exact fun u hu => wf_timed_is_waiter_pass h (fun _ => rfl) (fun _ => rfl) u hu
+                  · exact fun a' u hm => wf_timed_waiters_valid_pass h (fun _ => rfl) (fun _ => rfl) a' u hm
+                  · exact fun a' => wf_timed_waiters_nodup_pass h (fun _ => rfl) a'
                 · -- Timed waiter (hwws: timedMailboxWaiters b = w :: ws)
                   obtain ⟨w, ws, hwws⟩ : ∃ w ws, s.timedMailboxWaiters b = w :: ws := by
                     cases h' : s.timedMailboxWaiters b with

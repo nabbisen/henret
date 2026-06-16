@@ -78,17 +78,14 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
         · -- parent_lt (RFC 032): taskParent not written by sleep
           intro u p hp
           exact wf_parent_lt_pass h (by simp [step, if_pos hrt, hts]) u p hp
-        · -- parent_spawned: sleep sets t → .sleeping; p still in some state
+        · -- parent_spawned (RFC 042 → RFC 082 helper): taskParent unchanged by
+          --   sleep; a spawned task stays spawned (step_preserves_spawned).
           intro u p hp
-          have hpar : s.taskParent u = some p := by
-            simp only [step, if_pos hrt, hts] at hp; exact hp
-          obtain ⟨st, hst⟩ := h.parent_spawned u p hpar
-          by_cases hpt : p = t
-          · exact ⟨.sleeping, by simp only [step, if_pos hrt, hts, upd_self, hpt]⟩
-          · exact ⟨st, by simp only [step, if_pos hrt, hts, upd, if_neg hpt]; exact hst⟩
-        · -- occ_fresh (RFC 033 → RFC 042 helper): mailboxes unaffected by sleep
+          exact wf_parent_spawned_pass h (by simp [step, if_pos hrt, hts])
+            (fun _ hv => step_preserves_spawned hv.choose_spec (.sleep t d)) u p hp
+        · -- occ_fresh (via bundled wf_occ_pass, RFC 042 → RFC 082): mailboxes/nextMsgId unaffected
           intro a mb env hmb henv
-          exact wf_occ_fresh_pass h (by simp [step, if_pos hrt, hts]) (by simp [step, if_pos hrt, hts]) a mb env hmb henv
+          exact (wf_occ_pass h (by simp [step, if_pos hrt, hts]) (by simp [step, if_pos hrt, hts])).fresh a mb env hmb henv
         · -- occ_nodup (RFC 033 → RFC 042 helper)
           intro a mb hmb
           exact wf_occ_nodup_pass h (by simp [step, if_pos hrt, hts]) a mb hmb

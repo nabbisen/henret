@@ -1,9 +1,9 @@
 ---
 rfc: 82
 title: Preservation Proof Ergonomics v2
-status: Proposed
-implemented_in: null
-supersedes: []
+status: Implemented
+implemented_in: v0.17.6
+supersedes: [42]
 superseded_by: []
 depends_on: []
 blocks: []
@@ -14,9 +14,20 @@ category: proofs
 
 ## Status
 
-Proposed strategic RFC. Approved in the v0.17.0 audit review (items A2 and
-A1, decision **B + A**, priority **P1**); amendments 082-A..D applied from
-the RFCs 080-086 review. **Supersedes RFC 042.**
+Implemented in **v0.17.6**. Approved in the v0.17.0 audit review (items A2 and
+A1, decision **B + A**, priority **P1**); amendments 082-A..D and the v2-review
+final-pass amendments 082-1..4 applied. **Supersedes RFC 042** (moved to
+`archive/`, status `Superseded by RFC 082`).
+
+All eight A1 (formerly-dead) `wf_*_pass` helpers are now used:
+`wf_parent_spawned_pass` and the bundled `wf_occ_pass` in the `sleep`
+preservation proof, and the six RFC 040 `wf_timed_*_pass` helpers in the
+`send`/`inject` no-waiter case. `scripts/helper_usage_check.py` (gate stage 7)
+enforces that every exported `wf_*_pass` stays used or carries a valid
+`HENRET_HELPER_RESERVED` annotation, stripping comments and string literals
+first (082-1). Metrics, the 082-D naming convention, and the line-reduction
+posture are recorded in `docs/proof-engineering.md`. `reachable_wf` and the
+public theorem surface are unchanged; no new project axioms.
 
 ## Summary
 

@@ -48,7 +48,12 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [037](done/037-v081-public-claim-repair.md) | Public Claim Repair (v0.9.0) | v0.9.0 |
 | [038](done/038-parent-owner-exactness.md) | Parent and Owner Exactness Invariants | v0.9.1 |
 | [039](done/039-supervision-cascade-cancel.md) | Supervision Semantics: Cascade Cancel | v0.10.0 |
-| [042](done/042-preservation-proof-automation.md) | Preservation Proof Automation | v0.10.1 |
+
+## Archive
+
+| RFC | Title | Reason |
+|---|---|---|
+| [042](archive/042-preservation-proof-automation.md) | Preservation Proof Automation | Superseded by RFC 082 |
 
 ## Proposed
 
@@ -96,7 +101,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [079](proposed/079-publication-and-community-review-plan.md) | Publication and Community Review Plan | — | — |
 | [080](done/080-release-gate-integrity-and-evidence-manifest.md) | Release Gate Integrity and Evidence Manifest | Implemented (v0.17.2) | — |
 | [081](done/081-package-boundary-and-evidence-ledger.md) | Package Boundary and Evidence Ledger | Implemented (v0.17.3) | — |
-| [082](proposed/082-preservation-proof-ergonomics-v2.md) | Preservation Proof Ergonomics v2 (supersedes 042) | — | P1 |
+| [082](done/082-preservation-proof-ergonomics-v2.md) | Preservation Proof Ergonomics v2 (supersedes 042) | Implemented (v0.17.6) | — |
 | [083](done/083-golden-conformance-coverage-expansion.md) | Golden Conformance Coverage Expansion | Implemented (v0.17.5) | — |
 | [084](proposed/084-model-to-documentation-extraction-implementation.md) | Model-to-Documentation Extraction Implementation | — | P1 |
 | [085](done/085-rfc-metadata-normalization.md) | RFC Metadata Normalization | Implemented (v0.17.1) | — |
