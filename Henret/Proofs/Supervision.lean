@@ -171,7 +171,7 @@ theorem preserves_wf_cancelTree {s : RuntimeState} (h : WellFormed s) (root : Ta
     have hmem : u ∉ descendantsOf s root := of_decide_eq_false hp
     exact ⟨st, by simp only [applyCancelTree, if_neg hmem]; exact hsu, rfl⟩
   obtain ⟨hrf, hros, haon, hcot⟩ :=
-    wf_resource_terminal h (fun u => decide (u ∈ descendantsOf s root)) hres_eq hnext_eq hmarked hunmarked
+    wf_resource_terminal h (fun u => decide (u ∈ descendantsOf s root)) hres_eq hnext_eq rfl rfl hmarked hunmarked
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
   · -- 1. readyQ_nodup
     exact List.Nodup.sublist (List.filter_sublist _) h.readyQ_nodup

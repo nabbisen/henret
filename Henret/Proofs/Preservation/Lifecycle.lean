@@ -28,7 +28,7 @@ theorem preserves_wf_spawn (h : WellFormed s) (a : ActorId) :
         intro u stu hsu hntm
         have hune : u ≠ s.nextId := by rintro rfl; rw [hts] at hsu; exact absurd hsu (by simp)
         exact ⟨stu, by simp [step, hrs, hts, upd, hune, hsu], hntm⟩
-      obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.spawn a) hres_eq hnext_eq hnt
+      obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.spawn a) hres_eq hnext_eq (by simp [step, hrs, hts]) hnt
       refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
       · simp only [step, hrs, hts, if_true]
         exact nodup_append_singleton h.readyQ_nodup hnq
@@ -273,7 +273,7 @@ theorem preserves_wf_schedule (h : WellFormed s) :
           by_cases hut : u = t
           · subst hut; exact ⟨.running, by simp [step, hr, hq, if_pos hrun], by decide⟩
           · exact ⟨stu, by simp [step, hr, hq, if_pos hrun, upd, hut, hsu], hntm⟩
-        obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h .schedule hres_eq hnext_eq hnt
+        obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h .schedule hres_eq hnext_eq (by simp [step, hr, hq, if_pos hrun]) hnt
         refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
         · simp only [step, hr, hq, if_pos hrun]; exact hnodup.2
         · intro u hm
@@ -456,7 +456,7 @@ theorem preserves_wf_yield (h : WellFormed s) :
           by_cases hut : u = t
           · subst hut; exact ⟨.yielded, by simp [step, hrt, hts], by decide⟩
           · exact ⟨stu, by simp [step, hrt, hts, upd, hut, hsu], hntm⟩
-        obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.yield t) hres_eq hnext_eq hnt
+        obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.yield t) hres_eq hnext_eq (by simp [step, hrt, hts]) hnt
         refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
         · simp only [step, hrt, hts, if_pos rfl]; simp only [if_pos]
           exact nodup_append_singleton h.readyQ_nodup hnq
@@ -627,7 +627,7 @@ theorem preserves_wf_complete (h : WellFormed s) :
           intro u st hu hsu; simp only [beq_eq_false_iff_ne, ne_eq] at hu
           exact ⟨st, by simp [step, hrt, hts, upd, hu, hsu], rfl⟩
         obtain ⟨hrf, hros, haon, hcot⟩ :=
-          wf_resource_terminal h (· == t) hres_eq hnext_eq hmarked hunmarked
+          wf_resource_terminal h (· == t) hres_eq hnext_eq (by simp [step, hrt, hts]) (by simp [step, hrt, hts]) hmarked hunmarked
         refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
         · simp [step, hrt, hts]; exact h.readyQ_nodup
         · intro u hm
@@ -798,7 +798,7 @@ theorem preserves_wf_cancel (h : WellFormed s) :
       have hunmarked : ∀ u st, (u == t) = false → s.taskState u = some st → ∃ st', (step s (.cancel t)).1.taskState u = some st' ∧ st'.isTerminal = st.isTerminal := by
         intro u st hu hsu; simp only [beq_eq_false_iff_ne, ne_eq] at hu
         exact ⟨st, by simp [step, hts, hterm, upd, hu, hsu], rfl⟩
-      obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_terminal h (· == t) hres_eq hnext_eq hmarked hunmarked
+      obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_terminal h (· == t) hres_eq hnext_eq (by simp [step, hts, hterm]) (by simp [step, hts, hterm]) hmarked hunmarked
       refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
       · simp [step, hts, hterm]; exact h.readyQ_nodup.filter _
       · intro u hm
@@ -1042,7 +1042,7 @@ theorem preserves_wf_fail (h : WellFormed s) :
       have hunmarked : ∀ u st, (u == t) = false → s.taskState u = some st → ∃ st', (step s (.fail t)).1.taskState u = some st' ∧ st'.isTerminal = st.isTerminal := by
         intro u st hu hsu; simp only [beq_eq_false_iff_ne, ne_eq] at hu
         exact ⟨st, by simp [step, hts, hterm, upd, hu, hsu], rfl⟩
-      obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_terminal h (· == t) hres_eq hnext_eq hmarked hunmarked
+      obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_terminal h (· == t) hres_eq hnext_eq (by simp [step, hts, hterm]) (by simp [step, hts, hterm]) hmarked hunmarked
       refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
       · simp [step, hts, hterm]; exact h.readyQ_nodup.filter _
       · intro u hm
@@ -1305,7 +1305,7 @@ theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
                 intro u stu hsu hntm
                 have hune : u ≠ s.nextId := by rintro rfl; rw [hfresh] at hsu; exact absurd hsu (by simp)
                 exact ⟨stu, by simp [step, hrt, hts, how, hfresh, hma, upd, hune, hsu], hntm⟩
-              obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.spawnChild t childA) hres_eq hnext_eq hnt
+              obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.spawnChild t childA) hres_eq hnext_eq (by simp [step, hrt, hts, how, hfresh, hma]) hnt
               rw [hstep_eq] at hrf hros haon hcot
               refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
               · exact nodup_append_singleton h.readyQ_nodup hnq
@@ -1497,7 +1497,7 @@ theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
                 intro u stu hsu hntm
                 have hune : u ≠ s.nextId := by rintro rfl; rw [hfresh] at hsu; exact absurd hsu (by simp)
                 exact ⟨stu, by simp [step, hrt, hts, how, hfresh, hma, upd, hune, hsu], hntm⟩
-              obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.spawnChild t childA) hres_eq hnext_eq hnt
+              obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.spawnChild t childA) hres_eq hnext_eq (by simp [step, hrt, hts, how, hfresh, hma]) hnt
               rw [hstep_eq] at hrf hros haon hcot
               refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
               · exact nodup_append_singleton h.readyQ_nodup hnq

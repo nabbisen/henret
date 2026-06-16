@@ -179,6 +179,7 @@ theorem step_preserves_sleepingHasTimer {s : RuntimeState}
                     exact ⟨e, Timer.mem_insertSorted.2 (Or.inr hem), het⟩)
                  | simp_all)
   | acquire u => simp only [step]; (repeat' split) <;> intro ht' <;> exact h t' ht'
+  | acquireActor a => simp only [step]; (repeat' split) <;> intro ht' <;> exact h t' ht'
   | release u r => simp only [step]; (repeat' split) <;> intro ht' <;> exact h t' ht'
   | finalize r => simp only [step]; (repeat' split) <;> intro ht' <;> exact h t' ht'
   | setPriority u p => simp only [step]; (repeat' split) <;> intro ht' <;> exact h t' ht'

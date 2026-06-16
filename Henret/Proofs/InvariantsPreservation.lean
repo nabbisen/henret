@@ -15,26 +15,82 @@ Per-operation proofs live in `Henret.Proofs.Preservation.{Lifecycle,
 Messaging,Time}`. This file assembles them into the public-surface
 theorems. -/
 
-/-- `closeActor` only flips an actor's admission status (or is a no-op
-    when the actor has no mailbox); `WellFormed` is status-irrelevant. -/
+/-- `closeActor a` closes actor `a` and marks its actor-owned `allocated`
+    resources `closing` (RFC 091). The marking is exactly what keeps `WellFormed`:
+    closing the actor would otherwise falsify `allocated_owner_live` for any of
+    `a`'s live resources, so the resource transition is mandatory, not cosmetic. -/
 theorem preserves_wf_closeActor {s : RuntimeState} (h : WellFormed s) (a : ActorId) :
     WellFormed ((step s (.closeActor a)).1) := by
-  simp only [step]
   cases hmb : s.mailboxes a with
-  | some _ => exact (WellFormed.status_irrel (upd s.actorStatus a .closed) s.runtimeStatus h)
-  | none   => simpa using h
+  | none => simpa [step, hmb] using h
+  | some mb =>
+    have hstep : (step s (.closeActor a)).1 = { s with
+        actorStatus := upd s.actorStatus a .closed
+        resources   := markActorResourcesClosing a s.resources } := by simp [step, hmb]
+    rw [hstep]
+    refine ⟨h.readyQ_nodup, h.readyQ_queued, h.running_runs, h.timers_nodup, h.timers_sleep,
+      h.fresh_none, h.timers_sorted, h.spawned_has_owner, h.owned_has_mailbox, h.runnable_queued,
+      h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, h.parent_lt,
+      h.parent_spawned, h.occ_fresh, h.occ_nodup, h.occ_disjoint, h.owner_spawned,
+      h.parent_child_spawned, h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer,
+      h.timed_is_waiter, h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive,
+      h.mailbox_within_capacity, ?_, ?_, ?_, ?_⟩
+    · -- resource_fresh
+      intro r hr
+      exact markActorResourcesClosing_none a s.resources r (h.resource_fresh r hr)
+    · -- resource_owner_valid : owner predicates read taskState/mailboxes only (defeq)
+      intro r rr hrr
+      simp only [markActorResourcesClosing] at hrr
+      obtain ⟨st0, hs⟩ := markClosingIfOwner_owner hrr
+      exact h.resource_owner_valid r ⟨rr.owner, st0⟩ hs
+    · -- allocated_owner_live
+      intro r rr hrr hal
+      simp only [markActorResourcesClosing] at hrr
+      obtain ⟨o, st⟩ := rr; cases hal
+      obtain ⟨hs, hpf⟩ := markClosingIfOwner_allocated hrr
+      have hl := h.allocated_owner_live r ⟨o, .allocated⟩ hs rfl
+      cases ho : o with
+      | task t => rw [ho] at hl; exact hl
+      | actor b =>
+        have hba : b ≠ a := by
+          rw [ho] at hpf; intro he; subst he; simp at hpf
+        rw [ho] at hl; simp only [OwnerLive, ActorExists] at hl ⊢
+        obtain ⟨hex, hne⟩ := hl
+        refine ⟨hex, ?_⟩
+        simp only [upd, if_neg hba]; exact hne
+    · -- closing_owner_closed
+      intro r rr hrr hcl
+      simp only [markActorResourcesClosing] at hrr
+      obtain ⟨o, st⟩ := rr; cases hcl
+      rcases markClosingIfOwner_closing hrr with hclr | ⟨hal, hpt⟩
+      · -- already closing in s
+        have hc := h.closing_owner_closed r ⟨o, .closing⟩ hclr rfl
+        cases ho : o with
+        | task t => rw [ho] at hc; exact hc
+        | actor b =>
+          rw [ho] at hc; simp only [OwnerClosed, ActorExists] at hc ⊢
+          obtain ⟨hex, hce⟩ := hc
+          refine ⟨hex, ?_⟩
+          by_cases hba : b = a
+          · subst hba; simp [upd_self]
+          · simp only [upd, if_neg hba]; exact hce
+      · -- newly marked: o == .actor a = true ⇒ o = .actor a
+        have hoa : o = .actor a := by simpa using hpt
+        subst hoa
+        simp only [OwnerClosed, ActorExists]
+        exact ⟨⟨mb, hmb⟩, by simp [upd_self]⟩
 
 /-- `shutdown` only flips the runtime status. -/
 theorem preserves_wf_shutdown {s : RuntimeState} (h : WellFormed s) :
     WellFormed ((step s .shutdown).1) :=
-  WellFormed.status_irrel s.actorStatus .shuttingDown h
+  WellFormed.runtimeStatus_irrel .shuttingDown h
 
 /-- `stopWhenIdle` only flips the runtime status (or is a no-op). -/
 theorem preserves_wf_stopWhenIdle {s : RuntimeState} (h : WellFormed s) :
     WellFormed ((step s .stopWhenIdle).1) := by
   simp only [step]
   split
-  · exact WellFormed.status_irrel s.actorStatus .stopped h
+  · exact WellFormed.runtimeStatus_irrel .stopped h
   · simpa using h
 
 /-- `stopWhenDrained` only flips the runtime status (or is a no-op) (RFC 087). -/
@@ -42,7 +98,7 @@ theorem preserves_wf_stopWhenDrained {s : RuntimeState} (h : WellFormed s) :
     WellFormed ((step s .stopWhenDrained).1) := by
   simp only [step]
   split
-  · exact WellFormed.status_irrel s.actorStatus .stopped h
+  · exact WellFormed.runtimeStatus_irrel .stopped h
   · simpa using h
 
 /-- Every operation preserves well-formedness. -/
@@ -72,6 +128,7 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
   | stopWhenIdle => exact preserves_wf_stopWhenIdle h
   | stopWhenDrained => exact preserves_wf_stopWhenDrained h
   | acquire t => exact preserves_wf_acquire h t
+  | acquireActor a => exact preserves_wf_acquireActor h a
   | release t r => exact preserves_wf_release h t r
   | finalize r => exact preserves_wf_finalize h r
   | setPriority t p => exact preserves_wf_setPriority h t p

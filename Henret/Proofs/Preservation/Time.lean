@@ -34,7 +34,7 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
           by_cases hut : u = t
           · subst hut; exact ⟨.sleeping, by simp [step, hrt, hts], by decide⟩
           · exact ⟨stu, by simp [step, hrt, hts, upd, hut, hsu], hntm⟩
-        obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.sleep t d) hres_eq hnext_eq hnt
+        obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.sleep t d) hres_eq hnext_eq (by simp [step, hrt, hts]) hnt
         refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
         · simp [step, hrt, hts]; exact h.readyQ_nodup
         · intro u hm
@@ -236,7 +236,7 @@ theorem preserves_wf_tick {s : RuntimeState} (h : WellFormed s) :
       intro u stu hsu hntm
       simp only [step, if_pos hle]
       exact wakeMany_nonterminal hsu hntm _
-    obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.tick t) hres_eq hnext_eq hnt
+    obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.tick t) hres_eq hnext_eq (by simp [step, if_pos hle]) hnt
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
     · -- readyQ_nodup
       rw [hstep_rq]; exact nodup_append h.readyQ_nodup hwoken_nodup hnotReadyQ
@@ -477,7 +477,7 @@ theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
         by_cases hut : u = t
         · subst hut; exact ⟨.ready, by simp [step, hts], by decide⟩
         · exact ⟨stu, by simp [step, hts, upd, hut, hsu], hntm⟩
-      obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.wake t) hres_eq hnext_eq hnt
+      obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.wake t) hres_eq hnext_eq (by simp [step, hts]) hnt
       refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
       · simp [step, hts]; exact nodup_append_singleton h.readyQ_nodup hnq
       · intro u hm

@@ -639,6 +639,17 @@ theorem bridge_stopWhenDrained (s : RuntimeState) (wqs : WorkerQueues)
   rw [show toQOps s .stopWhenDrained = [] from rfl, applyQOps_nil]
   exact bridge_stable hbs (by simp only [step]; split <;> rfl)
 
+/-- **`bridge_acquireActor`** (RFC 091) — actor-owned acquisition changes the
+    resource ledger but never a worker queue, so the queue-projection bridge is
+    stable (`toQOps = []`). Like `closeActor`, this confirms the bridge tracks
+    queues, not full state. -/
+theorem bridge_acquireActor (s : RuntimeState) (a : ActorId) (wqs : WorkerQueues)
+    (hbs : BridgeState s wqs) :
+    BridgeState (step s (.acquireActor a)).1 (applyQOps wqs (toQOps s (.acquireActor a))) := by
+  rw [show toQOps s (.acquireActor a) = [] from rfl, applyQOps_nil]
+  apply bridge_stable hbs
+  simp only [step]; (repeat' split) <;> rfl
+
 /-- **`bridge_step_single_worker`** — For any `RuntimeOp`, if `BridgeState` holds
     before the step, it holds after, with the translated queue effects applied.
     This is the central single-worker bridge theorem (RFC 036). -/
@@ -687,6 +698,7 @@ theorem bridge_step_single_worker (s : RuntimeState) (op : RuntimeOp) (wqs : Wor
     rw [show toQOps s (.acquire t) = [] from rfl, applyQOps_nil]
     apply bridge_stable hbs
     simp only [step]; (repeat' split) <;> rfl
+  | .acquireActor a => exact bridge_acquireActor s a wqs hbs
   | .release t r =>
     rw [show toQOps s (.release t r) = [] from rfl, applyQOps_nil]
     apply bridge_stable hbs

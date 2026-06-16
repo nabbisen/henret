@@ -38,9 +38,9 @@ In addition, every terminal transition (`complete`, `cancel`, `fail`, and a
 | Field | Meaning |
 |-------|---------|
 | `resource_fresh` | every id `≥ nextResourceId` is unallocated |
-| `resource_owner_spawned` | every resource is owned by a spawned task |
-| `allocated_owner_nonterminal` | an `allocated` resource's owner is live |
-| `closing_owner_terminal` | a `closing` resource's owner is terminal |
+| `resource_owner_valid` | every resource's owner (task or actor) exists |
+| `allocated_owner_live` | an `allocated` resource's owner can still hold a live handle |
+| `closing_owner_closed` | a `closing` resource's owner can no longer act |
 
 Jointly: a **live** task never owns a `closing` resource, and a **terminal**
 task never owns an `allocated` one. All four are vacuous on a program that
@@ -66,6 +66,39 @@ state-machine well-formed but does not model the FFI that performs physical
 reclamation. `finalize` is the typed seam that boundary reasons against.
 
 Out of scope for Tier 1: any liveness/timeliness guarantee (a `closing`
-resource need never be finalized); a drain-before-stop discipline (`stopped` ≠
-resource-drained); actor-owned resources; and resource transfer across
-`restartOne` (the replacement starts fresh — Option 1).
+resource need never be finalized); resource transfer across `restartOne` (the
+replacement starts fresh — Option 1); and manual release of actor-owned
+resources (`releaseActor`, a possible future RFC).
+
+## Actor-owned resources (RFC 091)
+
+RFC 091 generalizes the owner from a task to a `ResourceOwner` sum type:
+
+```text
+ResourceOwner = task (t : TaskId) | actor (a : ActorId)
+```
+
+One ledger, one `Drained` predicate, and one finalization discipline cover
+both owner kinds; there is no parallel actor-resource ledger. The owner
+invariants are stated owner-generically and read through `OwnerValid` /
+`OwnerLive` / `OwnerClosed` (the task projections recover the original RFC 057
+statements via `WellFormed.allocated_owner_nonterminal` /
+`closing_owner_terminal`).
+
+* **Allocation.** `acquireActor a` is a *control-plane* op: it allocates a fresh
+  actor-owned resource only when the runtime is running, the actor is open, and
+  the actor **exists**. Existence is witnessed by a mailbox (`ActorExists`), not
+  by `actorStatus` alone — `actorStatus` is total and defaults to active, so a
+  status check would let `acquireActor 999999` allocate for a never-created
+  actor (`preserves_wf_acquireActor`).
+* **Lifetime.** An actor-owned resource **outlives any single task**: a task
+  going terminal (`complete`/`cancel`/`fail`) never closes it. It closes only
+  when its owning actor closes: `closeActor a` marks actor-`a`-owned `allocated`
+  resources `closing` (`closeActor_marks_actor_resources_closing`), and
+  `finalize` reclaims them as usual.
+* **No manual actor release (Tier 1).** `release t r` is invalid for an
+  actor-owned resource (the guard requires owner `= .task t`). A future RFC may
+  add `releaseActor`.
+* **Unified drain.** `Drained` quantifies all resources, so `stopWhenDrained`
+  is blocked while an actor-owned resource is `allocated` or `closing`, and
+  succeeds once it is finalized.

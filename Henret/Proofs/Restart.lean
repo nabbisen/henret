@@ -53,7 +53,8 @@ theorem step_restartOf_stable (s : RuntimeState) (op : RuntimeOp)
   | .send _ _ _ | .receive _ | .inject _ _ | .sleep _ _ | .tick _ | .wake _
   | .receiveUntil _ _ | .receiveByOccurrence _ _ | .receiveFrom _ _
   | .fail _ | .spawnChild _ _
-  | .acquire _ | .release _ _ | .finalize _ | .setPriority _ _ | .setDeadline _ _ =>
+  | .acquire _ | .release _ _ | .finalize _ | .setPriority _ _ | .setDeadline _ _
+  | .acquireActor _ =>
       simp only [step]
       (repeat' split) <;> rfl
   | .closeActor _ | .shutdown | .stopWhenIdle | .stopWhenDrained =>
@@ -188,7 +189,8 @@ theorem step_preserves_restart_wf {s : RuntimeState}
   | .receiveUntil _ _ | .receiveByOccurrence _ _ | .receiveFrom _ _
   | .fail _ | .spawnChild _ _ | .cancelTree _
   | .closeActor _ | .shutdown | .stopWhenIdle | .stopWhenDrained
-  | .acquire _ | .release _ _ | .finalize _ | .setPriority _ _ | .setDeadline _ _ =>
+  | .acquire _ | .release _ _ | .finalize _ | .setPriority _ _ | .setDeadline _ _
+  | .acquireActor _ =>
       exact restart_wf_of_restartOf_stable h_wf hr _
         (step_restartOf_stable s _ (by rintro _ _ _ ⟨⟩))
 

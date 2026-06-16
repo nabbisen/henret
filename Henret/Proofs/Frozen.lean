@@ -42,7 +42,7 @@ theorem step_preserves_frozen {s : RuntimeState} (h_wf : WellFormed s)
     (h_st : SleepingHasTimer s) (h_f : Frozen s) (op : RuntimeOp) :
     Frozen (step s op).1 := by
   obtain ⟨hrun, hready, htimers, hstatus, hdr⟩ := h_f
-  have hdr' := drained_step_drained h_wf hrun hdr op
+  have hdr' := drained_step_drained h_wf hrun hstatus hdr op
   cases op with
   | spawn a => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hrun, hready, htimers, hstatus]
   | spawnChild t a => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hrun, hready, htimers, hstatus]
@@ -55,6 +55,7 @@ theorem step_preserves_frozen {s : RuntimeState} (h_wf : WellFormed s)
   | sleep t d => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hrun, hready, htimers, hstatus]
   | restartOne p c a => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hrun, hready, htimers, hstatus]
   | acquire t => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hrun, hready, htimers, hstatus]
+  | acquireActor a => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hstatus, hrun, hready, htimers]
   | release t r => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hrun, hready, htimers, hstatus]
   | receiveUntil t d => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hrun, hready, htimers, hstatus]
   | receiveByOccurrence t o => refine ⟨?_, ?_, ?_, ?_, hdr'⟩ <;> simp [step, hrun, hready, htimers, hstatus]

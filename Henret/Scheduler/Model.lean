@@ -140,7 +140,7 @@ misread. -/
 
 /-- Resource `r` is owned by task `t`. -/
 def ResourceOwnedBy (s : RuntimeState) (r : ResourceId) (t : TaskId) : Prop :=
-  ∃ rr, s.resources r = some rr ∧ rr.owner = t
+  ∃ rr, s.resources r = some rr ∧ rr.owner = .task t
 
 /-- Resource `r` is live: allocated and usable by its owner. -/
 def ResourceAllocated (s : RuntimeState) (r : ResourceId) : Prop :=
@@ -599,8 +599,12 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
     else (s, .invalid)
   | .closeActor a =>
     -- Reject admission to actor `a`; keep existing mailbox contents (RFC 055).
+    -- RFC 091: closing the actor also marks its actor-owned `allocated`
+    -- resources `closing` (its cleanup obligations), leaving task-owned and
+    -- already-closing/released resources untouched.
     match s.mailboxes a with
-    | some _ => ({ s with actorStatus := upd s.actorStatus a .closed }, .ok)
+    | some _ => ({ s with actorStatus := upd s.actorStatus a .closed
+                          resources   := markActorResourcesClosing a s.resources }, .ok)
     | none   => (s, .invalid)
   | .shutdown =>
     -- Begin runtime shutdown; idempotent (RFC 055).
@@ -621,9 +625,24 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
       match s.taskState t with
       | some .running =>
         ({ s with
-            resources := upd s.resources s.nextResourceId (some ⟨t, .allocated⟩)
+            resources := upd s.resources s.nextResourceId (some ⟨.task t, .allocated⟩)
             nextResourceId := s.nextResourceId + 1 }, .acquired s.nextResourceId)
       | _ => (s, .invalid)
+    else (s, .invalid)
+  | .acquireActor a =>
+    -- Control-plane allocation (RFC 091): while the runtime is running, an
+    -- existing, open actor `a` acquires a fresh actor-owned resource. Actor
+    -- existence is witnessed by a mailbox (`actorStatus` is total/default-active,
+    -- so status alone cannot witness existence).
+    if s.runtimeStatus = .running then
+      if s.actorStatus a = .closed then (s, .invalid)
+      else
+        match s.mailboxes a with
+        | some _ =>
+          ({ s with
+              resources := upd s.resources s.nextResourceId (some ⟨.actor a, .allocated⟩)
+              nextResourceId := s.nextResourceId + 1 }, .acquired s.nextResourceId)
+        | none => (s, .invalid)
     else (s, .invalid)
   | .release t r =>
     -- The owning running task releases a live resource (RFC 057).
@@ -632,8 +651,8 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
       | some .running =>
         match s.resources r with
         | some ⟨o, .allocated⟩ =>
-          if o = t then
-            ({ s with resources := upd s.resources r (some ⟨t, .released⟩) }, .ok)
+          if o = .task t then
+            ({ s with resources := upd s.resources r (some ⟨o, .released⟩) }, .ok)
           else (s, .invalid)
         | _ => (s, .invalid)
       | _ => (s, .invalid)

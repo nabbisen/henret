@@ -29,14 +29,16 @@ theorem reachable_resource_fresh (ops : List RuntimeOp) {r : ResourceId}
 
 /-- Every reachable resource is owned by a spawned task. -/
 theorem reachable_resource_owner_spawned (ops : List RuntimeOp) {r : ResourceId}
-    {rr : ResourceRecord} (h : (run RuntimeState.init ops).resources r = some rr) :
-    ∃ st, (run RuntimeState.init ops).taskState rr.owner = some st :=
-  (reachable_wf ops).resource_owner_spawned r rr h
+    {t : TaskId} {st0 : ResourceState}
+    (h : (run RuntimeState.init ops).resources r = some ⟨.task t, st0⟩) :
+    ∃ st, (run RuntimeState.init ops).taskState t = some st := by
+  have := (reachable_wf ops).resource_owner_valid r ⟨.task t, st0⟩ h
+  simpa [OwnerValid] using this
 
 /-- Every reachable `allocated` resource is owned by a live (non-terminal) task. -/
 theorem reachable_allocated_owner_nonterminal (ops : List RuntimeOp)
     {r : ResourceId} {t : TaskId}
-    (h : (run RuntimeState.init ops).resources r = some ⟨t, .allocated⟩) :
+    (h : (run RuntimeState.init ops).resources r = some ⟨.task t, .allocated⟩) :
     ∃ st, (run RuntimeState.init ops).taskState t = some st ∧ ¬ st.isTerminal :=
   (reachable_wf ops).allocated_owner_nonterminal r t h
 
@@ -44,7 +46,7 @@ theorem reachable_allocated_owner_nonterminal (ops : List RuntimeOp)
 finalization-ledger guarantee that nothing is left dangling on a live task. -/
 theorem reachable_closing_owner_terminal (ops : List RuntimeOp)
     {r : ResourceId} {t : TaskId}
-    (h : (run RuntimeState.init ops).resources r = some ⟨t, .closing⟩) :
+    (h : (run RuntimeState.init ops).resources r = some ⟨.task t, .closing⟩) :
     ∃ st, (run RuntimeState.init ops).taskState t = some st ∧ st.isTerminal :=
   (reachable_wf ops).closing_owner_terminal r t h
 
@@ -74,39 +76,51 @@ theorem nextResourceId_monotone_run (s : RuntimeState) (ops : List RuntimeOp) :
 theorem complete_marks_owned_resource_closing (s : RuntimeState)
     {t : TaskId} {r : ResourceId} (hrt : s.running = some t)
     (hts : s.taskState t = some .running)
-    (hres : s.resources r = some ⟨t, .allocated⟩) :
-    (step s (.complete t)).1.resources r = some ⟨t, .closing⟩ := by
+    (hres : s.resources r = some ⟨.task t, .allocated⟩) :
+    (step s (.complete t)).1.resources r = some ⟨.task t, .closing⟩ := by
   have hstep : (step s (.complete t)).1.resources = markClosingIf (· == t) s.resources := by
     simp [step, hrt, hts]
-  rw [hstep]; unfold markClosingIf; rw [hres]; simp
+  rw [hstep]; unfold markClosingIf markClosingIfOwner; rw [hres]; simp
 
 theorem cancel_marks_owned_resource_closing (s : RuntimeState)
     {t : TaskId} {st : TaskState} {r : ResourceId}
     (hts : s.taskState t = some st) (hterm : st.isTerminal = false)
-    (hres : s.resources r = some ⟨t, .allocated⟩) :
-    (step s (.cancel t)).1.resources r = some ⟨t, .closing⟩ := by
+    (hres : s.resources r = some ⟨.task t, .allocated⟩) :
+    (step s (.cancel t)).1.resources r = some ⟨.task t, .closing⟩ := by
   have hstep : (step s (.cancel t)).1.resources = markClosingIf (· == t) s.resources := by
     simp [step, hts, hterm]
-  rw [hstep]; unfold markClosingIf; rw [hres]; simp
+  rw [hstep]; unfold markClosingIf markClosingIfOwner; rw [hres]; simp
 
 theorem fail_marks_owned_resource_closing (s : RuntimeState)
     {t : TaskId} {st : TaskState} {r : ResourceId}
     (hts : s.taskState t = some st) (hterm : st.isTerminal = false)
-    (hres : s.resources r = some ⟨t, .allocated⟩) :
-    (step s (.fail t)).1.resources r = some ⟨t, .closing⟩ := by
+    (hres : s.resources r = some ⟨.task t, .allocated⟩) :
+    (step s (.fail t)).1.resources r = some ⟨.task t, .closing⟩ := by
   have hstep : (step s (.fail t)).1.resources = markClosingIf (· == t) s.resources := by
     simp [step, hts, hterm]
-  rw [hstep]; unfold markClosingIf; rw [hres]; simp
+  rw [hstep]; unfold markClosingIf markClosingIfOwner; rw [hres]; simp
 
 /-- When the subtree rooted at `root` is cancelled, every `allocated` resource
 owned by a cancelled task moves to `closing`. -/
 theorem cancelTree_marks_descendant_resource_closing (s : RuntimeState)
     {root t : TaskId} {r : ResourceId}
-    (hmem : t ∈ descendantsOf s root) (hres : s.resources r = some ⟨t, .allocated⟩) :
-    (step s (.cancelTree root)).1.resources r = some ⟨t, .closing⟩ := by
+    (hmem : t ∈ descendantsOf s root) (hres : s.resources r = some ⟨.task t, .allocated⟩) :
+    (step s (.cancelTree root)).1.resources r = some ⟨.task t, .closing⟩ := by
   rw [cancelTree_step_eq]
   show markClosingIf (fun u => decide (u ∈ descendantsOf s root)) s.resources r = _
-  unfold markClosingIf; rw [hres]; simp [hmem]
+  unfold markClosingIf markClosingIfOwner; rw [hres]; simp [hmem]
+
+/-- **RFC 091.** `closeActor a` marks every actor-`a`-owned `allocated` resource
+`closing` — the actor-lifetime analogue of `complete`/`cancel` for task-owned
+resources. Task-owned and already-`closing`/`released` resources are untouched. -/
+theorem closeActor_marks_actor_resources_closing (s : RuntimeState)
+    {a : ActorId} {r : ResourceId} {mb : Mailbox}
+    (hmb : s.mailboxes a = some mb)
+    (hres : s.resources r = some ⟨.actor a, .allocated⟩) :
+    (step s (.closeActor a)).1.resources r = some ⟨.actor a, .closing⟩ := by
+  have hstep : (step s (.closeActor a)).1.resources
+      = markActorResourcesClosing a s.resources := by simp [step, hmb]
+  rw [hstep]; unfold markActorResourcesClosing markClosingIfOwner; rw [hres]; simp
 
 /-! ## Released resources never return to life -/
 
@@ -118,6 +132,11 @@ theorem step_resources_eq_of_released {s : RuntimeState} (h_wf : WellFormed s)
     (step s op).1.resources r = s.resources r := by
   cases op with
   | acquire t =>
+    have hrne : r ≠ s.nextResourceId := by
+      intro he; rw [he, h_wf.resource_fresh _ (Nat.le_refl _)] at hrr
+      exact absurd hrr (by simp)
+    simp only [step]; (repeat' split) <;> first | rfl | exact upd_ne _ _ hrne
+  | acquireActor a =>
     have hrne : r ≠ s.nextResourceId := by
       intro he; rw [he, h_wf.resource_fresh _ (Nat.le_refl _)] at hrr
       exact absurd hrr (by simp)
@@ -160,7 +179,9 @@ theorem step_resources_eq_of_released {s : RuntimeState} (h_wf : WellFormed s)
   | receiveByOccurrence t occ => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
   | receiveFrom t src => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
   | restartOne p c a => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
-  | closeActor a => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
+  | closeActor a =>
+    simp only [step]; (repeat' split) <;>
+      first | rfl | exact markActorResourcesClosing_eq_of_released hrr hrel
   | shutdown => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
   | stopWhenIdle => first | rfl | (simp only [step]; (repeat' split) <;> rfl)
   | stopWhenDrained => first | rfl | (simp only [step]; (repeat' split) <;> rfl)

@@ -124,6 +124,12 @@ inductive RuntimeOp where
   | stopWhenDrained : RuntimeOp
   /-- Running task `t` acquires a fresh resource (RFC 057). -/
   | acquire (t : TaskId) : RuntimeOp
+  /-- Actor `a` acquires a fresh **actor-owned** resource (RFC 091): a
+      control-plane allocation guarded by runtime running status and actor
+      existence. The resource outlives any single task and closes only when
+      the actor is closed (`closeActor`). Invalid if the runtime is not
+      running, the actor is closed, or `a` has no mailbox. -/
+  | acquireActor (a : ActorId) : RuntimeOp
   /-- Running task `t` releases its live resource `r` (RFC 057). -/
   | release (t : TaskId) (r : ResourceId) : RuntimeOp
   /-- The environment reclaims a `closing` resource `r` (RFC 057). -/

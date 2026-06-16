@@ -47,7 +47,7 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
       first
       | exact ⟨stu, hsu, hntm⟩
       | exact upd_nonterminal hsu hntm (by decide)
-  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.send t b m) hres_eq hnext_eq hnt
+  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.send t b m) hres_eq hnext_eq (by simp only [step]; (repeat' split) <;> rfl) hnt
   by_cases hcl : s.actorStatus b = .closed
   · simpa [step, hcl] using h
   · by_cases hrt : s.running = some t
@@ -600,7 +600,7 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
       first
       | exact ⟨stu, hsu, hntm⟩
       | exact upd_nonterminal hsu hntm (by decide)
-  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.receive t) hres_eq hnext_eq hnt
+  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.receive t) hres_eq hnext_eq (by simp only [step]; (repeat' split) <;> rfl) hnt
   by_cases hrt : s.running = some t
   · cases hts : s.taskState t with
     | none => simpa [step, hrt, hts] using h
@@ -847,7 +847,7 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
       first
       | exact ⟨stu, hsu, hntm⟩
       | exact upd_nonterminal hsu hntm (by decide)
-  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.inject a m) hres_eq hnext_eq hnt
+  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.inject a m) hres_eq hnext_eq (by simp only [step]; (repeat' split) <;> rfl) hnt
   by_cases hg : s.runtimeStatus ≠ .running ∨ s.actorStatus a = .closed
   · simpa [step, hg] using h
   · obtain ⟨hrs0, hopen⟩ := not_or.mp hg
@@ -1316,7 +1316,7 @@ theorem preserves_wf_receiveUntil {s : RuntimeState} (h : WellFormed s)
       first
       | exact ⟨stu, hsu, hntm⟩
       | exact upd_nonterminal hsu hntm (by decide)
-  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.receiveUntil t deadline) hres_eq hnext_eq hnt
+  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.receiveUntil t deadline) hres_eq hnext_eq (by simp only [step]; (repeat' split) <;> rfl) hnt
   by_cases hrt : s.running = some t
   · cases hts : s.taskState t with
     | none => simpa [step, hrt, hts] using h
@@ -1593,7 +1593,7 @@ theorem preserves_wf_receiveByOccurrence {s : RuntimeState} (h : WellFormed s)
       first
       | exact ⟨stu, hsu, hntm⟩
       | exact upd_nonterminal hsu hntm (by decide)
-  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.receiveByOccurrence t occ) hres_eq hnext_eq hnt
+  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.receiveByOccurrence t occ) hres_eq hnext_eq (by simp only [step]; (repeat' split) <;> rfl) hnt
   by_cases hrt : s.running = some t
   · cases hts : s.taskState t with
     | none => simpa [step, hrt, hts] using h
@@ -1841,7 +1841,7 @@ theorem preserves_wf_receiveFrom {s : RuntimeState} (h : WellFormed s)
       first
       | exact ⟨stu, hsu, hntm⟩
       | exact upd_nonterminal hsu hntm (by decide)
-  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.receiveFrom t src) hres_eq hnext_eq hnt
+  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.receiveFrom t src) hres_eq hnext_eq (by simp only [step]; (repeat' split) <;> rfl) hnt
   by_cases hrt : s.running = some t
   · cases hts : s.taskState t with
     | none => simpa [step, hrt, hts] using h

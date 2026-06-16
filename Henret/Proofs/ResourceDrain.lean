@@ -1,5 +1,6 @@
 import Henret.Scheduler.Model
 import Henret.Proofs.Invariants
+import Henret.Proofs.Resource
 
 /-!
 # Henret.Proofs.ResourceDrain  (RFC 087 — RFC 057 Tier 2)
@@ -25,7 +26,7 @@ def Drained (s : RuntimeState) : Prop :=
 
 /-- **Drain progress.** A `closing` resource can always be finalized in one
 step, which releases it. The drain path is never blocked. -/
-theorem closing_finalize_releases (s : RuntimeState) (r : ResourceId) (o : TaskId)
+theorem closing_finalize_releases (s : RuntimeState) (r : ResourceId) (o : ResourceOwner)
     (h : s.resources r = some ⟨o, .closing⟩) :
     (step s (.finalize r)).2 = .ok ∧
     (step s (.finalize r)).1.resources r = some ⟨o, .released⟩ := by
@@ -68,5 +69,19 @@ theorem stopWhenDrained_noop {s : RuntimeState}
     (hq : ¬ (s.running = none ∧ s.readyQ = [] ∧ s.timers = [] ∧ s.resourceDrained = true)) :
     step s .stopWhenDrained = (s, .invalid) := by
   simp [step, hq]
+
+/-- **RFC 091.** Under `Drained`, `markActorResourcesClosing` is the identity:
+no resource is `allocated`, so there is nothing to mark `closing`. The
+actor-owned analogue of `markClosingIf_eq_of_released`; used to show
+`closeActor` is inert on a drained ledger (drain/frozen spine). -/
+theorem markActorResourcesClosing_eq_of_drained {s : RuntimeState} (a : ActorId)
+    (h_d : Drained s) :
+    markActorResourcesClosing a s.resources = s.resources := by
+  funext r
+  cases hex : s.resources r with
+  | none => simp [markActorResourcesClosing, markClosingIfOwner, hex]
+  | some rr =>
+    have hrel : rr.state = .released := h_d r rr hex
+    exact (markActorResourcesClosing_eq_of_released hex hrel).trans hex
 
 end Henret

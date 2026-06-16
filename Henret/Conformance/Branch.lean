@@ -430,7 +430,7 @@ def full_mailbox_with_waiter_send_backpressured : BranchScenario where
 /-- An initial state pre-seeded with resource `0` owned by `owner` in state
 `st` (counter advanced past it). Used by the non-owner / wrong-state cases
 that cannot arise from a single running task. -/
-def resInit (owner : TaskId) (st : ResourceState) : RuntimeState :=
+def resInit (owner : ResourceOwner) (st : ResourceState) : RuntimeState :=
   { RuntimeState.init with
       resources := upd RuntimeState.init.resources 0 (some ⟨owner, st⟩)
       nextResourceId := 1 }
@@ -440,7 +440,7 @@ def resource_acquire_release_ok : BranchScenario where
   description := "a running task acquires then releases its own resource"
   ops := [.spawn 7, .schedule, .acquire 0, .release 0 0]
   expected := [.spawned 0, .scheduled 0, .acquired 0, .ok]
-  finalCheck := fun s => s.resources 0 == some ⟨0, .released⟩ && s.nextResourceId == 1
+  finalCheck := fun s => s.resources 0 == some ⟨.task 0, .released⟩ && s.nextResourceId == 1
   covers := ["acquire.running-allocates", "release.owner-allocated-ok"]
 
 def resource_acquire_returns_fresh_id : BranchScenario where
@@ -449,7 +449,7 @@ def resource_acquire_returns_fresh_id : BranchScenario where
   ops := [.spawn 7, .schedule, .acquire 0, .acquire 0]
   expected := [.spawned 0, .scheduled 0, .acquired 0, .acquired 1]
   finalCheck := fun s =>
-    s.resources 0 == some ⟨0, .allocated⟩ && s.resources 1 == some ⟨0, .allocated⟩ &&
+    s.resources 0 == some ⟨.task 0, .allocated⟩ && s.resources 1 == some ⟨.task 0, .allocated⟩ &&
     s.nextResourceId == 2
   covers := ["acquire.fresh-id"]
 
@@ -458,17 +458,17 @@ def resource_release_non_owner_invalid : BranchScenario where
   description := "a running task cannot release a resource owned by another task"
   ops := [.spawn 7, .schedule, .release 0 0]
   expected := [.spawned 0, .scheduled 0, .invalid]
-  finalCheck := fun s => s.resources 0 == some ⟨5, .allocated⟩
+  finalCheck := fun s => s.resources 0 == some ⟨.task 5, .allocated⟩
   covers := ["release.non-owner-invalid"]
   negative := true
-  initial := resInit 5 .allocated
+  initial := resInit (.task 5) .allocated
 
 def resource_release_after_release_invalid : BranchScenario where
   name := "resource_release_after_release_invalid"
   description := "double-release of the same resource is rejected"
   ops := [.spawn 7, .schedule, .acquire 0, .release 0 0, .release 0 0]
   expected := [.spawned 0, .scheduled 0, .acquired 0, .ok, .invalid]
-  finalCheck := fun s => s.resources 0 == some ⟨0, .released⟩
+  finalCheck := fun s => s.resources 0 == some ⟨.task 0, .released⟩
   covers := ["release.released-invalid"]
   negative := true
 
@@ -477,7 +477,7 @@ def resource_finalize_allocated_invalid : BranchScenario where
   description := "finalizing an allocated (not closing) resource is rejected"
   ops := [.spawn 7, .schedule, .acquire 0, .finalize 0]
   expected := [.spawned 0, .scheduled 0, .acquired 0, .invalid]
-  finalCheck := fun s => s.resources 0 == some ⟨0, .allocated⟩
+  finalCheck := fun s => s.resources 0 == some ⟨.task 0, .allocated⟩
   covers := ["finalize.allocated-invalid"]
   negative := true
 
@@ -487,7 +487,7 @@ def resource_cancel_marks_closing : BranchScenario where
   ops := [.spawn 7, .schedule, .acquire 0, .cancel 0]
   expected := [.spawned 0, .scheduled 0, .acquired 0, .ok]
   finalCheck := fun s =>
-    s.resources 0 == some ⟨0, .closing⟩ && (s.taskState 0).any (·.isTerminal)
+    s.resources 0 == some ⟨.task 0, .closing⟩ && (s.taskState 0).any (·.isTerminal)
   covers := ["cancel.marks-owned-closing"]
 
 def resource_fail_marks_closing : BranchScenario where
@@ -496,7 +496,7 @@ def resource_fail_marks_closing : BranchScenario where
   ops := [.spawn 7, .schedule, .acquire 0, .fail 0]
   expected := [.spawned 0, .scheduled 0, .acquired 0, .ok]
   finalCheck := fun s =>
-    s.resources 0 == some ⟨0, .closing⟩ && (s.taskState 0).any (·.isTerminal)
+    s.resources 0 == some ⟨.task 0, .closing⟩ && (s.taskState 0).any (·.isTerminal)
   covers := ["fail.marks-owned-closing"]
 
 def resource_complete_marks_closing : BranchScenario where
@@ -505,7 +505,7 @@ def resource_complete_marks_closing : BranchScenario where
   ops := [.spawn 7, .schedule, .acquire 0, .complete 0]
   expected := [.spawned 0, .scheduled 0, .acquired 0, .ok]
   finalCheck := fun s =>
-    s.resources 0 == some ⟨0, .closing⟩ && (s.taskState 0).any (·.isTerminal)
+    s.resources 0 == some ⟨.task 0, .closing⟩ && (s.taskState 0).any (·.isTerminal)
   covers := ["complete.marks-owned-closing"]
 
 def resource_finalize_closing_released : BranchScenario where
@@ -513,7 +513,7 @@ def resource_finalize_closing_released : BranchScenario where
   description := "a closing resource (after cancel) is finalized to released"
   ops := [.spawn 7, .schedule, .acquire 0, .cancel 0, .finalize 0]
   expected := [.spawned 0, .scheduled 0, .acquired 0, .ok, .ok]
-  finalCheck := fun s => s.resources 0 == some ⟨0, .released⟩
+  finalCheck := fun s => s.resources 0 == some ⟨.task 0, .released⟩
   covers := ["finalize.closing-ok"]
 
 def resource_acquire_not_running_invalid : BranchScenario where
@@ -538,7 +538,7 @@ def stopWhenDrained_live_resource_invalid : BranchScenario where
   description := "stopWhenDrained is invalid (no-op) while a resource is still closing"
   ops := [.spawn 7, .schedule, .acquire 0, .complete 0, .stopWhenDrained]
   expected := [.spawned 0, .scheduled 0, .acquired 0, .ok, .invalid]
-  finalCheck := fun s => s.runtimeStatus != .stopped && s.resources 0 == some ⟨0, .closing⟩
+  finalCheck := fun s => s.runtimeStatus != .stopped && s.resources 0 == some ⟨.task 0, .closing⟩
   covers := ["stopWhenDrained.live-resource-invalid"]
   negative := true
 
@@ -550,6 +550,109 @@ def stopWhenDrained_then_acquire_stays_drained : BranchScenario where
   finalCheck := fun s => s.runtimeStatus == .stopped && s.resourceDrained
   covers := ["stopWhenDrained.persists-drained"]
   negative := true
+
+/-! ## RFC 091 actor-owned resource scenarios -/
+
+def acquireActor_ok : BranchScenario where
+  name := "acquireActor_ok"
+  description := "an existing, open actor acquires a fresh actor-owned resource"
+  ops := [.spawn 7, .acquireActor 7]
+  expected := [.spawned 0, .acquired 0]
+  finalCheck := fun s => s.resources 0 == some ⟨.actor 7, .allocated⟩ && s.nextResourceId == 1
+  covers := ["acquireActor.ok"]
+
+def acquireActor_invalid_closed_actor : BranchScenario where
+  name := "acquireActor_invalid_closed_actor"
+  description := "a closed actor cannot acquire an actor-owned resource"
+  ops := [.spawn 7, .closeActor 7, .acquireActor 7]
+  expected := [.spawned 0, .ok, .invalid]
+  finalCheck := fun s => s.resources 0 == none && s.nextResourceId == 0
+  covers := ["acquireActor.invalid-closed-actor"]
+  negative := true
+
+def acquireActor_invalid_missing_mailbox : BranchScenario where
+  name := "acquireActor_invalid_missing_mailbox"
+  description := "an actor with no mailbox (never created) cannot acquire"
+  ops := [.spawn 7, .acquireActor 99]
+  expected := [.spawned 0, .invalid]
+  finalCheck := fun s => s.resources 0 == none && s.nextResourceId == 0
+  covers := ["acquireActor.invalid-missing-mailbox"]
+  negative := true
+
+def task_complete_does_not_close_actor_resource : BranchScenario where
+  name := "task_complete_does_not_close_actor_resource"
+  description := "completing a task leaves an actor-owned resource allocated"
+  ops := [.spawn 7, .schedule, .acquireActor 7, .complete 0]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .ok]
+  finalCheck := fun s => s.resources 0 == some ⟨.actor 7, .allocated⟩
+  covers := ["acquireActor.survives-task-complete"]
+
+def task_cancel_does_not_close_actor_resource : BranchScenario where
+  name := "task_cancel_does_not_close_actor_resource"
+  description := "cancelling a task leaves an actor-owned resource allocated"
+  ops := [.spawn 7, .schedule, .acquireActor 7, .cancel 0]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .ok]
+  finalCheck := fun s => s.resources 0 == some ⟨.actor 7, .allocated⟩
+  covers := ["acquireActor.survives-task-cancel"]
+
+def task_fail_does_not_close_actor_resource : BranchScenario where
+  name := "task_fail_does_not_close_actor_resource"
+  description := "failing a task leaves an actor-owned resource allocated"
+  ops := [.spawn 7, .schedule, .acquireActor 7, .fail 0]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .ok]
+  finalCheck := fun s => s.resources 0 == some ⟨.actor 7, .allocated⟩
+  covers := ["acquireActor.survives-task-fail"]
+
+def closeActor_marks_actor_resource_closing : BranchScenario where
+  name := "closeActor_marks_actor_resource_closing"
+  description := "closing an actor moves its allocated resource to closing"
+  ops := [.spawn 7, .acquireActor 7, .closeActor 7]
+  expected := [.spawned 0, .acquired 0, .ok]
+  finalCheck := fun s => s.resources 0 == some ⟨.actor 7, .closing⟩
+  covers := ["closeActor.marks-actor-resource-closing"]
+
+def finalize_actor_resource_released : BranchScenario where
+  name := "finalize_actor_resource_released"
+  description := "a closing actor-owned resource is finalized to released"
+  ops := [.spawn 7, .acquireActor 7, .closeActor 7, .finalize 0]
+  expected := [.spawned 0, .acquired 0, .ok, .ok]
+  finalCheck := fun s => s.resources 0 == some ⟨.actor 7, .released⟩
+  covers := ["finalize.actor-resource-released"]
+
+def release_task_on_actor_resource_invalid : BranchScenario where
+  name := "release_task_on_actor_resource_invalid"
+  description := "a task cannot release an actor-owned resource (Tier 1)"
+  ops := [.spawn 7, .schedule, .acquireActor 7, .release 0 0]
+  expected := [.spawned 0, .scheduled 0, .acquired 0, .invalid]
+  finalCheck := fun s => s.resources 0 == some ⟨.actor 7, .allocated⟩
+  covers := ["release.actor-owned-invalid"]
+  negative := true
+
+def stopWhenDrained_blocked_by_actor_allocated_resource : BranchScenario where
+  name := "stopWhenDrained_blocked_by_actor_allocated_resource"
+  description := "a live actor-owned resource blocks a drained stop (unified Drained)"
+  ops := [.spawn 7, .schedule, .complete 0, .acquireActor 7, .stopWhenDrained]
+  expected := [.spawned 0, .scheduled 0, .ok, .acquired 0, .invalid]
+  finalCheck := fun s => s.runtimeStatus != .stopped && s.resources 0 == some ⟨.actor 7, .allocated⟩
+  covers := ["stopWhenDrained.blocked-by-actor-allocated"]
+  negative := true
+
+def stopWhenDrained_blocked_by_actor_closing_resource : BranchScenario where
+  name := "stopWhenDrained_blocked_by_actor_closing_resource"
+  description := "a closing actor-owned resource still blocks a drained stop"
+  ops := [.spawn 7, .schedule, .complete 0, .acquireActor 7, .closeActor 7, .stopWhenDrained]
+  expected := [.spawned 0, .scheduled 0, .ok, .acquired 0, .ok, .invalid]
+  finalCheck := fun s => s.runtimeStatus != .stopped && s.resources 0 == some ⟨.actor 7, .closing⟩
+  covers := ["stopWhenDrained.blocked-by-actor-closing"]
+  negative := true
+
+def stopWhenDrained_succeeds_after_actor_resource_finalized : BranchScenario where
+  name := "stopWhenDrained_succeeds_after_actor_resource_finalized"
+  description := "once the actor-owned resource is finalized, a drained stop succeeds"
+  ops := [.spawn 7, .schedule, .complete 0, .acquireActor 7, .closeActor 7, .finalize 0, .stopWhenDrained]
+  expected := [.spawned 0, .scheduled 0, .ok, .acquired 0, .ok, .ok, .ok]
+  finalCheck := fun s => s.runtimeStatus == .stopped && s.resources 0 == some ⟨.actor 7, .released⟩
+  covers := ["stopWhenDrained.succeeds-after-actor-finalize"]
 
 
 /-- The full branch-coverage suite. -/
@@ -579,7 +682,17 @@ def branchScenarios : List BranchScenario :=
     resource_fail_marks_closing, resource_complete_marks_closing,
     resource_finalize_closing_released, resource_acquire_not_running_invalid,
     stopWhenDrained_drained_stops, stopWhenDrained_live_resource_invalid,
-    stopWhenDrained_then_acquire_stays_drained ]
+    stopWhenDrained_then_acquire_stays_drained,
+    acquireActor_ok, acquireActor_invalid_closed_actor,
+    acquireActor_invalid_missing_mailbox,
+    task_complete_does_not_close_actor_resource,
+    task_cancel_does_not_close_actor_resource,
+    task_fail_does_not_close_actor_resource,
+    closeActor_marks_actor_resource_closing, finalize_actor_resource_released,
+    release_task_on_actor_resource_invalid,
+    stopWhenDrained_blocked_by_actor_allocated_resource,
+    stopWhenDrained_blocked_by_actor_closing_resource,
+    stopWhenDrained_succeeds_after_actor_resource_finalized ]
 
 def branchAllPass : Bool := branchScenarios.all checkBranch
 

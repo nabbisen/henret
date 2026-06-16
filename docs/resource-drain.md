@@ -102,3 +102,18 @@ so the next operation cannot leak. Pinned by the conformance scenario
   `stopped`).
 - **Actor-owned** (longer-lived) resources — resources remain task-owned.
 - Any **wall-clock liveness / timeliness** guarantee.
+
+## Unified drain over actor-owned resources (RFC 091)
+
+`Drained` quantifies **all** resources regardless of owner kind, so the
+drain-before-stop guarantee extends to actor-owned resources (RFC 091): a live
+(`allocated`) or in-flight (`closing`) actor-owned resource blocks
+`stopWhenDrained` exactly as a task-owned one does, and the stop succeeds only
+once it is `finalize`d. The single-step and `Frozen` permanence results
+(`drained_step_drained`, `step_preserves_frozen`) carry the extra hypothesis
+`runtimeStatus ≠ .running`, which holds after any successful `stopWhenDrained`
+(the runtime is `.stopped`); this blocks the new `acquireActor` allocation
+surface — a control-plane op gated on `runtimeStatus = .running` — from
+re-leaking a resource after a drained stop. Under `Drained`, `closeActor` is
+inert on the ledger (`markActorResourcesClosing_eq_of_drained`), so the
+permanence spine is unaffected.

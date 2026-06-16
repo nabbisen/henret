@@ -92,6 +92,35 @@ theorem insertSorted_task_nodup {e : TimerEntry} {l : List TimerEntry}
       · exact h1 hh.symm
       · exact h.1 hh
 
+/-! ## Resource-owner abstraction (RFC 091) -/
+
+/-- An actor **exists** once it has a mailbox. `actorStatus` is total and
+defaults to active, so status alone cannot witness existence — without this,
+`acquireActor 999999` could allocate for an actor that was never created
+(RFC 091 review §5). -/
+def ActorExists (s : RuntimeState) (a : ActorId) : Prop :=
+  ∃ mb, s.mailboxes a = some mb
+
+/-- The owner of a resource refers to an **existing** principal (RFC 091): a
+spawned task, or an existing actor. Generalizes RFC 057's `resource_owner_spawned`. -/
+def OwnerValid (s : RuntimeState) : ResourceOwner → Prop
+  | .task t  => ∃ st, s.taskState t = some st
+  | .actor a => ActorExists s a
+
+/-- The owner can currently hold a live (`allocated`) handle: a non-terminal
+task, or an existing non-closed actor (RFC 091). Generalizes
+`allocated_owner_nonterminal`. -/
+def OwnerLive (s : RuntimeState) : ResourceOwner → Prop
+  | .task t  => ∃ st, s.taskState t = some st ∧ ¬ st.isTerminal
+  | .actor a => ActorExists s a ∧ s.actorStatus a ≠ .closed
+
+/-- The owner can no longer act, so only a `closing` obligation remains: a
+terminal task, or an existing closed actor (RFC 091). Generalizes
+`closing_owner_terminal`. -/
+def OwnerClosed (s : RuntimeState) : ResourceOwner → Prop
+  | .task t  => ∃ st, s.taskState t = some st ∧ st.isTerminal
+  | .actor a => ActorExists s a ∧ s.actorStatus a = .closed
+
 /-! ## The well-formedness invariant (RFC 013) -/
 
 /-- Runtime well-formedness: the ownership-location discipline that
@@ -201,19 +230,55 @@ structure WellFormed (s : RuntimeState) : Prop where
   /-- Resource ids at or above the fresh counter are unallocated (RFC 057). -/
   resource_fresh :
     ∀ r, r ≥ s.nextResourceId → s.resources r = none
-  /-- Every resource's owning task was spawned (RFC 057). -/
-  resource_owner_spawned :
-    ∀ r rr, s.resources r = some rr → ∃ st, s.taskState rr.owner = some st
-  /-- An `allocated` resource is owned by a **non-terminal** task: a live
-      handle is never held by a dead task (RFC 057). -/
-  allocated_owner_nonterminal :
-    ∀ r t, s.resources r = some ⟨t, .allocated⟩ →
-      ∃ st, s.taskState t = some st ∧ ¬ st.isTerminal
-  /-- A `closing` resource is owned by a **terminal** task: a cleanup
-      obligation only exists once the owner can no longer act (RFC 057). -/
-  closing_owner_terminal :
-    ∀ r t, s.resources r = some ⟨t, .closing⟩ →
-      ∃ st, s.taskState t = some st ∧ st.isTerminal
+  /-- Every resource's owner refers to an existing principal (RFC 057/091). -/
+  resource_owner_valid :
+    ∀ r rr, s.resources r = some rr → OwnerValid s rr.owner
+  /-- An `allocated` resource is owned by a principal that can still hold a live
+      handle — a non-terminal task or an open actor (RFC 057/091). -/
+  allocated_owner_live :
+    ∀ r rr, s.resources r = some rr → rr.state = .allocated → OwnerLive s rr.owner
+  /-- A `closing` resource's owner can no longer act — a terminal task or a
+      closed actor (RFC 057/091). -/
+  closing_owner_closed :
+    ∀ r rr, s.resources r = some rr → rr.state = .closing → OwnerClosed s rr.owner
+
+/-! ## Resource WellFormed compatibility corollaries (RFC 057 API over RFC 091 fields)
+
+The owner-generic fields above subsume the original task-keyed RFC 057 fields.
+These corollaries recover the exact old statements for `.task` owners (so RFC 057
+proofs keep their API) and add the symmetric `.actor` projections (RFC 091). -/
+
+/-- RFC 057 compat: a task-owned `allocated` resource has a live owning task. -/
+theorem WellFormed.allocated_owner_nonterminal {s : RuntimeState} (h : WellFormed s) :
+    ∀ r t, s.resources r = some ⟨.task t, .allocated⟩ →
+      ∃ st, s.taskState t = some st ∧ ¬ st.isTerminal := by
+  intro r t hr
+  have := h.allocated_owner_live r ⟨.task t, .allocated⟩ hr rfl
+  simpa [OwnerLive] using this
+
+/-- RFC 057 compat: a task-owned `closing` resource has a terminal owning task. -/
+theorem WellFormed.closing_owner_terminal {s : RuntimeState} (h : WellFormed s) :
+    ∀ r t, s.resources r = some ⟨.task t, .closing⟩ →
+      ∃ st, s.taskState t = some st ∧ st.isTerminal := by
+  intro r t hr
+  have := h.closing_owner_closed r ⟨.task t, .closing⟩ hr rfl
+  simpa [OwnerClosed] using this
+
+/-- RFC 091: an actor-owned `allocated` resource has an existing, non-closed actor. -/
+theorem WellFormed.actor_allocated_owner_open {s : RuntimeState} (h : WellFormed s) :
+    ∀ r a, s.resources r = some ⟨.actor a, .allocated⟩ →
+      ActorExists s a ∧ s.actorStatus a ≠ .closed := by
+  intro r a hr
+  have := h.allocated_owner_live r ⟨.actor a, .allocated⟩ hr rfl
+  simpa [OwnerLive] using this
+
+/-- RFC 091: an actor-owned `closing` resource has an existing, closed actor. -/
+theorem WellFormed.actor_closing_owner_closed {s : RuntimeState} (h : WellFormed s) :
+    ∀ r a, s.resources r = some ⟨.actor a, .closing⟩ →
+      ActorExists s a ∧ s.actorStatus a = .closed := by
+  intro r a hr
+  have := h.closing_owner_closed r ⟨.actor a, .closing⟩ hr rfl
+  simpa [OwnerClosed] using this
 
 /-- From `mailboxFull = false` at a bounded policy, the mailbox has strict room.
     The bridge between the computable `send`/`inject` guard and the capacity
@@ -239,22 +304,24 @@ theorem WellFormed.restartOf_irrel {s : RuntimeState} (f : TaskId → Option Tas
    h.parent_spawned, h.occ_fresh, h.occ_nodup, h.occ_disjoint, h.owner_spawned,
    h.parent_child_spawned, h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer,
    h.timed_is_waiter, h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive,
-   h.mailbox_within_capacity, h.resource_fresh, h.resource_owner_spawned, h.allocated_owner_nonterminal, h.closing_owner_terminal⟩
+   h.mailbox_within_capacity, h.resource_fresh, h.resource_owner_valid, h.allocated_owner_live, h.closing_owner_closed⟩
 
-/-- Changing the RFC-055 admission-status fields (`actorStatus`,
-    `runtimeStatus`) preserves `WellFormed`: no invariant field mentions
-    them, so each obligation is discharged by the corresponding projection
-    through the structure update. -/
-theorem WellFormed.status_irrel {s : RuntimeState}
-    (g : ActorId → ActorStatus) (r : RuntimeStatus) (h : WellFormed s) :
-    WellFormed { s with actorStatus := g, runtimeStatus := r } :=
+/-- Changing only `runtimeStatus` preserves `WellFormed`: no invariant field
+    mentions `runtimeStatus`, so each obligation is discharged by the
+    corresponding projection through the structure update. (RFC 091 narrowed
+    this from the former `status_irrel`: the resource owner invariants now
+    depend on `actorStatus`, so an arbitrary `actorStatus` change is no longer
+    irrelevant — `closeActor` must mark actor-owned resources to preserve WF.) -/
+theorem WellFormed.runtimeStatus_irrel {s : RuntimeState}
+    (r : RuntimeStatus) (h : WellFormed s) :
+    WellFormed { s with runtimeStatus := r } :=
   ⟨h.readyQ_nodup, h.readyQ_queued, h.running_runs, h.timers_nodup, h.timers_sleep,
    h.fresh_none, h.timers_sorted, h.spawned_has_owner, h.owned_has_mailbox, h.runnable_queued,
    h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, h.parent_lt,
    h.parent_spawned, h.occ_fresh, h.occ_nodup, h.occ_disjoint, h.owner_spawned,
    h.parent_child_spawned, h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer,
    h.timed_is_waiter, h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive,
-   h.mailbox_within_capacity, h.resource_fresh, h.resource_owner_spawned, h.allocated_owner_nonterminal, h.closing_owner_terminal⟩
+   h.mailbox_within_capacity, h.resource_fresh, h.resource_owner_valid, h.allocated_owner_live, h.closing_owner_closed⟩
 
 /-! ## Ownership uniqueness corollaries (RFC 004 acceptance) -/
 

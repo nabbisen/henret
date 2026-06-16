@@ -110,6 +110,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [088](done/088-drained-state-persistence.md) | Drained-State Persistence (RFC 057 Tier 2) | Implemented (v0.24.0) | v0.24.0 |
 | [089](done/089-sleeping-timer-coherence.md) | Sleeping-Timer Coherence (RFC 057 Tier 2 groundwork) | Implemented (v0.25.0) | v0.25.0 |
 | [090](done/090-drained-permanence.md) | Drained Permanence (Frozen invariant, RFC 057 Tier 2 payoff) | Implemented (v0.26.0) | v0.26.0 |
+| [091](done/091-actor-owned-resources.md) | Actor-Owned Resources (RFC 057 Tier 2) | Implemented (v0.27.0) | v0.27.0 |
 
 ## Archive
 

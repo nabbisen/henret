@@ -161,7 +161,7 @@ rejected (`shutdown_rejects_spawn`) while in-flight tasks keep draining.
 *rejected* or *only* happens from a given state. Nothing claims a
 shutting-down runtime *will* drain or reach quiescence — that needs a
 scheduling/fairness policy. The two admission-status fields are
-`WellFormed`-irrelevant (`WellFormed.status_irrel`), so the 29-field base
+`WellFormed`-irrelevant for `shutdown`/`stopWhenIdle` (`WellFormed.runtimeStatus_irrel`), so the base
 contract is untouched; the safety theorems live in their own
 `Henret/Proofs/Shutdown.lean`. Subtree cancellation reuses `cancelTree`
 (RFC 039). See `docs/shutdown-semantics.md`.

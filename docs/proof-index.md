@@ -530,7 +530,7 @@ Examples `13_trace_rendering.lean`, `14_state_diagrams.lean`. See `docs/observab
 
 The first true semantic-core extension since RFC 040, and **safety-only** (no fairness or liveness claim). Two new enums `ActorStatus` (`active | closed`) / `RuntimeStatus` (`running | shuttingDown | stopped`); two new `RuntimeState` fields `actorStatus` / `runtimeStatus`; three new ops `closeActor` / `shutdown` / `stopWhenIdle` (21 ops total). Admission guards on `spawn` (running only), `send` (target actor open), `inject` (running and actor open). Subtree cancellation reuses `cancelTree` (RFC 039).
 
-**Base preservation** (`Henret/Proofs/InvariantsPreservation.lean`): `preserves_wf_closeActor` / `preserves_wf_shutdown` / `preserves_wf_stopWhenIdle`, all reducing to the new `WellFormed.status_irrel` (no `WellFormed` field mentions the admission-status fields, so the 28-field base contract is untouched). The guarded ops' existing preservation proofs are wrapped with an outer guard case-split; the reject branch is a no-op.
+**Base preservation** (`Henret/Proofs/InvariantsPreservation.lean`): `preserves_wf_closeActor` / `preserves_wf_shutdown` / `preserves_wf_stopWhenIdle`, with `shutdown`/`stopWhenIdle`/`stopWhenDrained` reducing to `WellFormed.runtimeStatus_irrel` (no `WellFormed` field mentions `runtimeStatus`) and `closeActor` additionally marking actor-owned resources closing (RFC 091, `closeActor_marks_actor_resources_closing`). The guarded ops' existing preservation proofs are wrapped with an outer guard case-split; the reject branch is a no-op.
 
 **Safety invariants** — separate `Henret/Proofs/Shutdown.lean`, kernel-proven on `{propext, Quot.sound}`:
 
@@ -647,8 +647,8 @@ blocking senders) is out of scope; see `docs/migration/v0.17-to-v0.18.md`.
 `RuntimeOp` gained `acquire` / `release` / `finalize` (24 constructors);
 `StepResult` gained `.acquired` (10 constructors); `RuntimeState` gained
 `resources` and `nextResourceId`. `WellFormed` gained fields **30–33**
-(`resource_fresh`, `resource_owner_spawned`, `allocated_owner_nonterminal`,
-`closing_owner_terminal`). A resource is task-owned and moves only forward:
+(`resource_fresh`, `resource_owner_valid`, `allocated_owner_live`,
+`closing_owner_closed`). A resource is owned by a task or actor (RFC 091) and moves only forward:
 `allocated → released` (synchronous `release`) or `allocated → closing →
 released` (terminal transition then `finalize`). See
 `docs/resource-lifetime.md`.
@@ -815,3 +815,29 @@ to block `wake`, the guards for the rest), so a runtime stopped via
 | `frozen_run_drained` | `Frozen` is carried across a whole run |
 | `reachable_stopWhenDrained_stays_drained` | a drained stop stays drained, permanently |
 | `reachable_stopWhenDrained_stays_quiescent` | a drained stop stays quiescent, permanently |
+
+### RFC 091 — Actor-Owned Resources (RFC 057 Tier 2)
+
+Generalizes the resource owner from a task to a `ResourceOwner` sum type
+(`task | actor`) over a single ledger, with a new control-plane allocation op
+`acquireActor`. Owner invariants are owner-generic
+(`resource_owner_valid` / `allocated_owner_live` / `closing_owner_closed`, read
+through `OwnerValid` / `OwnerLive` / `OwnerClosed`); the RFC 057 task statements
+survive as `WellFormed.allocated_owner_nonterminal` / `closing_owner_terminal`.
+Actor existence is witnessed by a mailbox (`ActorExists`), not by `actorStatus`.
+
+| Theorem | Statement |
+|---|---|
+| `preserves_wf_acquireActor` | `acquireActor` (running runtime, open existing actor) preserves all 33 `WellFormed` fields |
+| `closeActor_marks_actor_resources_closing` | `closeActor a` marks actor-`a`-owned `allocated` resources `closing` |
+| `markActorResourcesClosing_eq_of_drained` | under `Drained`, the actor-resource marking is the identity |
+| `step_preserves_actor_exists` | `ActorExists` is monotone under every op (no op removes a mailbox) |
+| `bridge_acquireActor` | actor acquisition is queue-stable (`toQOps = []`); the bridge tracks queues, not resources |
+
+Drain/permanence interaction: `drained_step_drained` and `step_preserves_frozen`
+carry `runtimeStatus ≠ .running`, which holds after `stopWhenDrained` and blocks
+`acquireActor` from re-leaking a resource post-stop. Behaviour is pinned by the
+twelve RFC 091 conformance scenarios (`acquireActor_*`,
+`task_*_does_not_close_actor_resource`, `closeActor_marks_actor_resource_closing`,
+`finalize_actor_resource_released`, `release_task_on_actor_resource_invalid`,
+`stopWhenDrained_{blocked_by_actor_allocated,blocked_by_actor_closing,succeeds_after_actor_resource_finalized}`).

@@ -2,7 +2,7 @@
 
 # Public theorem index
 
-The 141 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 146 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
@@ -18,6 +18,7 @@ The 141 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.cancelTree_marks_descendant_resource_closing`
 - `Henret.cancelTree_preserves_task_state`
 - `Henret.cancel_marks_owned_resource_closing`
+- `Henret.closeActor_marks_actor_resources_closing`
 - `Henret.closeActor_sets_closed`
 - `Henret.closed_actor_rejects_inject`
 - `Henret.closed_actor_rejects_send`
@@ -43,6 +44,7 @@ The 141 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.inject_stamps_none`
 - `Henret.inject_unbounded_not_backpressured`
 - `Henret.invalid_is_fault`
+- `Henret.markActorResourcesClosing_eq_of_drained`
 - `Henret.nextResourceId_monotone_run`
 - `Henret.nextResourceId_monotone_step`
 - `Henret.ok_not_fault`
@@ -51,6 +53,7 @@ The 141 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.policyStep_preserves_wf`
 - `Henret.policy_does_not_create_task`
 - `Henret.preserves_wf_acquire`
+- `Henret.preserves_wf_acquireActor`
 - `Henret.preserves_wf_cancelTree`
 - `Henret.preserves_wf_finalize`
 - `Henret.preserves_wf_release`
@@ -109,6 +112,7 @@ The 141 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.step_backpressured_unchanged`
 - `Henret.step_clock_monotone`
 - `Henret.step_invalid_unchanged`
+- `Henret.step_preserves_actor_exists`
 - `Henret.step_preserves_frozen`
 - `Henret.step_preserves_sleepingHasTimer`
 - `Henret.step_preserves_terminal`
@@ -126,6 +130,7 @@ The 141 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 
 ## Henret.Bridge
 
+- `Henret.Bridge.bridge_acquireActor`
 - `Henret.Bridge.bridge_cancelTree`
 - `Henret.Bridge.bridge_run_general`
 - `Henret.Bridge.bridge_run_tracks_single_worker`

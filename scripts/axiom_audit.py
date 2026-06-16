@@ -119,6 +119,12 @@ ALLOWLIST = {
     "Henret.preserves_wf_acquire":   (set(), STD),
     "Henret.preserves_wf_release":   (set(), STD),
     "Henret.preserves_wf_finalize":  (set(), STD),
+    # RFC 091: actor-owned resources
+    "Henret.preserves_wf_acquireActor":               (set(), STD),
+    "Henret.Bridge.bridge_acquireActor":              (set(), STD),
+    "Henret.closeActor_marks_actor_resources_closing": (set(), STD),
+    "Henret.markActorResourcesClosing_eq_of_drained": (set(), STD),
+    "Henret.step_preserves_actor_exists":             (set(), STD),
     "Henret.reachable_resource_fresh":              (set(), STD_C),
     "Henret.reachable_resource_owner_spawned":      (set(), STD_C),
     "Henret.reachable_allocated_owner_nonterminal": (set(), STD_C),

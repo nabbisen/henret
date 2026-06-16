@@ -60,9 +60,9 @@ theorem reorder_preserves_wf (p : SchedulingPolicy) {s : RuntimeState}
         timed_waiters_exclusive := h.timed_waiters_exclusive
         mailbox_within_capacity := h.mailbox_within_capacity
         resource_fresh := h.resource_fresh
-        resource_owner_spawned := h.resource_owner_spawned
-        allocated_owner_nonterminal := h.allocated_owner_nonterminal
-        closing_owner_terminal := h.closing_owner_terminal }
+        resource_owner_valid := h.resource_owner_valid
+        allocated_owner_live := h.allocated_owner_live
+        closing_owner_closed := h.closing_owner_closed }
 
 /-- **Every policy preserves `WellFormed`.** A policy-directed schedule step
 keeps all 33 invariant fields, because it is a `readyQ` permutation followed by

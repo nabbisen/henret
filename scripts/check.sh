@@ -205,6 +205,11 @@ open Henret Henret.Native Henret.Bridge
 #print axioms preserves_wf_acquire
 #print axioms preserves_wf_release
 #print axioms preserves_wf_finalize
+#print axioms preserves_wf_acquireActor
+#print axioms bridge_acquireActor
+#print axioms closeActor_marks_actor_resources_closing
+#print axioms markActorResourcesClosing_eq_of_drained
+#print axioms step_preserves_actor_exists
 #print axioms reachable_resource_fresh
 #print axioms reachable_resource_owner_spawned
 #print axioms reachable_allocated_owner_nonterminal

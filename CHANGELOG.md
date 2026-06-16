@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.27.0 — Actor-Owned Resources (RFC 091 / RFC 057 Tier 2)
+
+Resources are no longer task-only. RFC 091 generalizes the ledger owner from a
+task to a `ResourceOwner` sum type (`task | actor`) over a single ledger, one
+`Drained` predicate, and one finalization discipline — the architect's
+Option A, with unified `Drained` and a new `acquireActor` op. Zero `sorry`, no
+new axiom kinds, all 9 `check.sh --fast` gates green.
+
+- **Representation (breaking).** `ResourceRecord.owner : TaskId → ResourceOwner`
+  (`inductive ResourceOwner = task | actor`). See
+  `docs/migration/v0.26-to-v0.27.md`. The three task-keyed `WellFormed` fields
+  become owner-generic (`resource_owner_valid` / `allocated_owner_live` /
+  `closing_owner_closed`, read through `OwnerValid` / `OwnerLive` /
+  `OwnerClosed`); the RFC 057 task statements survive as compatibility
+  corollaries `WellFormed.allocated_owner_nonterminal` / `closing_owner_terminal`.
+- **New op `acquireActor a`** (RuntimeOp 27 → 28): a control-plane allocation
+  gated on `runtimeStatus = .running`, the actor being open, and the actor
+  **existing** — existence witnessed by a mailbox (`ActorExists`), not by
+  `actorStatus` alone (`preserves_wf_acquireActor`).
+- **Lifetime.** Actor-owned resources survive task termination; `closeActor a`
+  marks actor-`a`-owned `allocated` resources `closing`
+  (`closeActor_marks_actor_resources_closing`); `finalize` reclaims them.
+  `release t r` is invalid for actor-owned resources (Tier 1; no manual actor
+  release). `WellFormed.status_irrel` narrowed to `runtimeStatus_irrel` (the
+  resource invariants now depend on `actorStatus`).
+- **Unified drain.** `Drained` covers actor-owned resources; `drained_step_drained`
+  and `step_preserves_frozen` now carry `runtimeStatus ≠ .running` (true after
+  `stopWhenDrained`), blocking `acquireActor` from re-leaking post-stop. Under
+  `Drained`, `closeActor` is ledger-inert (`markActorResourcesClosing_eq_of_drained`).
+- **Conformance.** 12 new scenarios; coverage registry complete. Matrix through 222.
+- **Bridge.** `bridge_acquireActor` (queue-stable; the bridge tracks queues, not
+  resources).
+
 ## v0.26.0 — Drained Permanence / Frozen invariant (RFC 090 / RFC 057 Tier 2 payoff)
 
 The end-to-end payoff of the drain/stop thread (RFCs 087–089): a runtime stopped

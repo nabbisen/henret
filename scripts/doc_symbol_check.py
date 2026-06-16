@@ -174,14 +174,26 @@ IGNORE = {
     "full_mailbox_with_waiter_send_backpressured",
     "full_mailbox_with_waiter_inject_backpressured",
     # RFC 057 WellFormed fields referenced bare (dotted WellFormed.X is checked)
-    "resource_fresh", "resource_owner_spawned",
+    "resource_fresh", "resource_owner_spawned", "resource_owner_valid",
     "allocated_owner_nonterminal", "closing_owner_terminal",
+    "allocated_owner_live", "closing_owner_closed",
     # RFC 057 conformance scenario defs (Henret.Conformance namespace, not theorems)
     "resource_acquire_release_ok", "resource_acquire_returns_fresh_id",
     "resource_release_non_owner_invalid", "resource_release_after_release_invalid",
     "resource_finalize_allocated_invalid", "resource_cancel_marks_closing",
     "resource_fail_marks_closing", "resource_complete_marks_closing",
     "resource_finalize_closing_released", "resource_acquire_not_running_invalid",
+    # RFC 091 conformance scenario defs
+    "acquireActor_ok", "acquireActor_invalid_closed_actor",
+    "acquireActor_invalid_missing_mailbox",
+    "task_complete_does_not_close_actor_resource",
+    "task_cancel_does_not_close_actor_resource",
+    "task_fail_does_not_close_actor_resource",
+    "closeActor_marks_actor_resource_closing", "finalize_actor_resource_released",
+    "release_task_on_actor_resource_invalid",
+    "stopWhenDrained_blocked_by_actor_allocated_resource",
+    "stopWhenDrained_blocked_by_actor_closing_resource",
+    "stopWhenDrained_succeeds_after_actor_resource_finalized",
     # RFC 058 SchedulingPolicy field referenced bare (dotted form is checked)
     "choose_sound",
 }

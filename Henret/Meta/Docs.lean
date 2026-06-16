@@ -29,7 +29,7 @@ structure FieldDoc where
   summary : String
 deriving Repr
 
-/-- `RuntimeOp` — the 27-operation grammar (`Henret/Scheduler/Op.lean`). -/
+/-- `RuntimeOp` — the 28-operation grammar (`Henret/Scheduler/Op.lean`). -/
 def runtimeOpDocs : List ConstructorDoc :=
   [ { name := "spawn",              since := "RFC 004", category := "lifecycle",   summary := "create a root task owned by an actor" },
     { name := "schedule",           since := "RFC 004", category := "lifecycle",   summary := "select the ready-queue head to run" },
@@ -54,6 +54,7 @@ def runtimeOpDocs : List ConstructorDoc :=
     { name := "stopWhenIdle",       since := "RFC 055", category := "shutdown",    summary := "stop the runtime if quiescent" },
     { name := "stopWhenDrained",    since := "RFC 087", category := "shutdown",    summary := "stop the runtime if quiescent and resources drained" },
     { name := "acquire",            since := "RFC 057", category := "resource",    summary := "running task allocates a fresh resource" },
+    { name := "acquireActor",       since := "RFC 091", category := "resource",    summary := "actor allocates a fresh actor-owned resource" },
     { name := "release",            since := "RFC 057", category := "resource",    summary := "owning task releases an allocated resource" },
     { name := "finalize",           since := "RFC 057", category := "resource",    summary := "environment reclaims a closing resource" },
     { name := "setPriority",        since := "RFC 059", category := "metadata",    summary := "set a spawned task's scheduling priority" },
@@ -118,8 +119,8 @@ def wellFormedDocs : List FieldDoc :=
     { name := "timed_waiters_exclusive", group := "timed-wait",  since := "RFC 040", summary := "a task waits on at most one timed mailbox" },
     { name := "mailbox_within_capacity", group := "capacity",    since := "RFC 056", summary := "no mailbox exceeds its configured capacity" },
     { name := "resource_fresh",          group := "resource",    since := "RFC 057", summary := "ids at or above the counter are unallocated" },
-    { name := "resource_owner_spawned",  group := "resource",    since := "RFC 057", summary := "every resource is owned by a spawned task" },
-    { name := "allocated_owner_nonterminal", group := "resource", since := "RFC 057", summary := "an allocated resource's owner is live" },
-    { name := "closing_owner_terminal",  group := "resource",    since := "RFC 057", summary := "a closing resource's owner is terminal" } ]
+    { name := "resource_owner_valid",     group := "resource",    since := "RFC 057", summary := "every resource's owner (task or actor) exists" },
+    { name := "allocated_owner_live",     group := "resource",    since := "RFC 057", summary := "an allocated resource's owner can still hold a live handle" },
+    { name := "closing_owner_closed",     group := "resource",    since := "RFC 057", summary := "a closing resource's owner can no longer act" } ]
 
 end Henret.Meta

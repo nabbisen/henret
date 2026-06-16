@@ -37,19 +37,26 @@ inductive ResourceState where
   | released
 deriving Repr, DecidableEq, Inhabited
 
-/-- One resource's ledger entry: its owning task and its lifecycle state. -/
+/-- Who owns a resource (RFC 091). Tier 1 added **task** owners; RFC 091 adds
+**actor** owners, whose resources outlive any single task and close only when
+the actor itself closes. The sum type keeps one ledger and one drain predicate
+rather than a parallel actor-resource ledger. -/
+inductive ResourceOwner where
+  | task  : TaskId → ResourceOwner
+  | actor : ActorId → ResourceOwner
+deriving Repr, DecidableEq, Inhabited
+
+/-- One resource's ledger entry: its owner (task or actor) and lifecycle state. -/
 structure ResourceRecord where
-  owner : TaskId
+  owner : ResourceOwner
   state : ResourceState
 deriving Repr, DecidableEq, Inhabited
 
-/-- Mark every `allocated` resource whose owner satisfies `p` as `closing`,
-leaving `closing`/`released` resources and resources owned by other tasks
-unchanged. This is the single primitive behind the terminal-transition
-coupling: `cancel`/`fail`/`complete`/`cancelTree` all reduce to one
-`markClosingIf` application, so preservation is proved once around it
-(RFC 057 review §19). -/
-def markClosingIf (p : TaskId → Bool)
+/-- Mark every `allocated` resource whose **owner** satisfies `p` as `closing`,
+leaving `closing`/`released` resources and resources owned by others unchanged.
+The single owner-generic primitive behind every terminal-transition coupling
+(RFC 057 review §19, generalized in RFC 091). -/
+def markClosingIfOwner (p : ResourceOwner → Bool)
     (resources : ResourceId → Option ResourceRecord) :
     ResourceId → Option ResourceRecord :=
   fun r =>
@@ -57,9 +64,34 @@ def markClosingIf (p : TaskId → Bool)
     | some ⟨o, .allocated⟩ => if p o then some ⟨o, .closing⟩ else some ⟨o, .allocated⟩
     | other                => other
 
+/-- Task-owner specialization: a terminating task closes its **task-owned**
+`allocated` resources and never touches actor-owned ones. This is exactly the
+RFC 057 behavior (`cancel`/`fail`/`complete`/`cancelTree` reduce to it). -/
+def markClosingIf (p : TaskId → Bool)
+    (resources : ResourceId → Option ResourceRecord) :
+    ResourceId → Option ResourceRecord :=
+  markClosingIfOwner (fun o => match o with | .task t => p t | .actor _ => false) resources
+
+/-- Actor-owner specialization (RFC 091): `closeActor a` closes actor `a`'s
+**actor-owned** `allocated` resources, leaving task-owned ones untouched. -/
+def markActorResourcesClosing (a : ActorId)
+    (resources : ResourceId → Option ResourceRecord) :
+    ResourceId → Option ResourceRecord :=
+  markClosingIfOwner (fun o => o == .actor a) resources
+
+@[simp] theorem markClosingIfOwner_none (p : ResourceOwner → Bool)
+    (res : ResourceId → Option ResourceRecord) (r : ResourceId)
+    (h : res r = none) : markClosingIfOwner p res r = none := by
+  simp [markClosingIfOwner, h]
+
 @[simp] theorem markClosingIf_none (p : TaskId → Bool)
     (res : ResourceId → Option ResourceRecord) (r : ResourceId)
     (h : res r = none) : markClosingIf p res r = none := by
   simp [markClosingIf, h]
+
+@[simp] theorem markActorResourcesClosing_none (a : ActorId)
+    (res : ResourceId → Option ResourceRecord) (r : ResourceId)
+    (h : res r = none) : markActorResourcesClosing a res r = none := by
+  simp [markActorResourcesClosing, h]
 
 end Henret

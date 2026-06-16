@@ -112,7 +112,19 @@ def coverageRegistry : List CoverageEntry :=
     { op := "fail",     branchId := "fail.marks-owned-closing",     scenario := "resource_fail_marks_closing" },
     { op := "stopWhenDrained", branchId := "stopWhenDrained.drained-stops",          scenario := "stopWhenDrained_drained_stops" },
     { op := "stopWhenDrained", branchId := "stopWhenDrained.live-resource-invalid",  scenario := "stopWhenDrained_live_resource_invalid" },
-    { op := "stopWhenDrained", branchId := "stopWhenDrained.persists-drained",        scenario := "stopWhenDrained_then_acquire_stays_drained" } ]
+    { op := "stopWhenDrained", branchId := "stopWhenDrained.persists-drained",        scenario := "stopWhenDrained_then_acquire_stays_drained" },
+    { op := "acquireActor", branchId := "acquireActor.ok",                       scenario := "acquireActor_ok" },
+    { op := "acquireActor", branchId := "acquireActor.invalid-closed-actor",     scenario := "acquireActor_invalid_closed_actor" },
+    { op := "acquireActor", branchId := "acquireActor.invalid-missing-mailbox",  scenario := "acquireActor_invalid_missing_mailbox" },
+    { op := "acquireActor", branchId := "acquireActor.survives-task-complete",   scenario := "task_complete_does_not_close_actor_resource" },
+    { op := "acquireActor", branchId := "acquireActor.survives-task-cancel",     scenario := "task_cancel_does_not_close_actor_resource" },
+    { op := "acquireActor", branchId := "acquireActor.survives-task-fail",       scenario := "task_fail_does_not_close_actor_resource" },
+    { op := "closeActor",   branchId := "closeActor.marks-actor-resource-closing", scenario := "closeActor_marks_actor_resource_closing" },
+    { op := "finalize",     branchId := "finalize.actor-resource-released",      scenario := "finalize_actor_resource_released" },
+    { op := "release",      branchId := "release.actor-owned-invalid",           scenario := "release_task_on_actor_resource_invalid" },
+    { op := "stopWhenDrained", branchId := "stopWhenDrained.blocked-by-actor-allocated", scenario := "stopWhenDrained_blocked_by_actor_allocated_resource" },
+    { op := "stopWhenDrained", branchId := "stopWhenDrained.blocked-by-actor-closing",   scenario := "stopWhenDrained_blocked_by_actor_closing_resource" },
+    { op := "stopWhenDrained", branchId := "stopWhenDrained.succeeds-after-actor-finalize", scenario := "stopWhenDrained_succeeds_after_actor_resource_finalized" } ]
 
 /-- The names of every available golden scenario (trace + branch). -/
 def allScenarioNames : List String :=

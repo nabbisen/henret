@@ -18,7 +18,8 @@ RFC 040, and it is **safety-only**.
 
 `RuntimeState` carries two admission-status fields, both
 `WellFormed`-irrelevant (no invariant field mentions them; the 28-field
-base contract is unchanged via `WellFormed.status_irrel`):
+base contract is unchanged via `WellFormed.runtimeStatus_irrel`; since RFC
+091 `closeActor` also marks the actor's actor-owned resources closing):
 
 - `actorStatus : ActorId → ActorStatus`, where `ActorStatus = active |
   closed`. (`open` is a Lean keyword, hence `active`.)
@@ -98,8 +99,10 @@ Quot.sound}` only:
 - `stopWhenIdle_requires_quiescent`, `stopWhenIdle_sets_stopped`,
   `stopWhenIdle_not_quiescent_invalid`
 
-Preservation: `preserves_wf_{closeActor,shutdown,stopWhenIdle}` (via
-`WellFormed.status_irrel`). Bridge: `bridge_{closeActor,shutdown,
-stopWhenIdle}` (all queue-stable — the new ops do not touch `readyQ`).
+Preservation: `preserves_wf_{closeActor,shutdown,stopWhenIdle}`; `shutdown`
+and `stopWhenIdle` go via `WellFormed.runtimeStatus_irrel`, while `closeActor`
+additionally marks actor-owned resources closing (RFC 091). Bridge:
+`bridge_{closeActor,shutdown,stopWhenIdle}` (all queue-stable — these ops do
+not touch `readyQ`).
 
 See [`examples/16_structured_shutdown.lean`](../examples/16_structured_shutdown.lean).

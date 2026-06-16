@@ -193,12 +193,19 @@ def traceEvents (s : RuntimeState) (op : RuntimeOp) : List TraceEvent :=
         | some .running => [.noEffect op (.acquired s.nextResourceId)]
         | _ => [.invalid op]
       else [.invalid op]
+  | .acquireActor a =>
+      if s.runtimeStatus = .running then
+        if s.actorStatus a = .closed then [.invalid op]
+        else match s.mailboxes a with
+          | some _ => [.noEffect op (.acquired s.nextResourceId)]
+          | none   => [.invalid op]
+      else [.invalid op]
   | .release t r =>
       if s.running = some t then
         match s.taskState t with
         | some .running =>
           match s.resources r with
-          | some ⟨o, .allocated⟩ => if o = t then [.noEffect op .ok] else [.invalid op]
+          | some ⟨o, .allocated⟩ => if o = .task t then [.noEffect op .ok] else [.invalid op]
           | _ => [.invalid op]
         | _ => [.invalid op]
       else [.invalid op]
