@@ -2,7 +2,7 @@
 
 # Public theorem index
 
-The 95 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 103 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
@@ -10,6 +10,10 @@ The 95 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_a
 - `Henret.acquire_not_running_invalid`
 - `Henret.acquire_running_allocates`
 - `Henret.actor_le_full`
+- `Henret.backpressured_not_fault`
+- `Henret.backpressured_not_invalid_class`
+- `Henret.blocked_not_fault`
+- `Henret.blocked_not_invalid_class`
 - `Henret.cancelTree_cancels_task`
 - `Henret.cancelTree_marks_descendant_resource_closing`
 - `Henret.cancelTree_preserves_task_state`
@@ -28,8 +32,10 @@ The 95 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_a
 - `Henret.inject_full_backpressured`
 - `Henret.inject_stamps_none`
 - `Henret.inject_unbounded_not_backpressured`
+- `Henret.invalid_is_fault`
 - `Henret.nextResourceId_monotone_run`
 - `Henret.nextResourceId_monotone_step`
+- `Henret.ok_not_fault`
 - `Henret.parent_chain_terminates`
 - `Henret.preserves_wf_acquire`
 - `Henret.preserves_wf_cancelTree`
@@ -78,6 +84,8 @@ The 95 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_a
 - `Henret.step_preserves_terminal`
 - `Henret.stopWhenIdle_requires_quiescent`
 - `Henret.stopWhenIdle_sets_stopped`
+- `Henret.timedOut_not_fault`
+- `Henret.timedOut_not_invalid_class`
 
 ## Henret.Bridge
 

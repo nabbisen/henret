@@ -229,6 +229,14 @@ open Henret Henret.Native Henret.Bridge
 #print axioms released_resource_never_live_step
 #print axioms released_resource_never_live_run
 #print axioms reachable_released_resource_never_live
+#print axioms blocked_not_invalid_class
+#print axioms backpressured_not_invalid_class
+#print axioms timedOut_not_invalid_class
+#print axioms invalid_is_fault
+#print axioms blocked_not_fault
+#print axioms backpressured_not_fault
+#print axioms timedOut_not_fault
+#print axioms ok_not_fault
 LEAN
   lake env lean "$A" | python3 scripts/axiom_audit.py
   rc=$?
@@ -264,6 +272,8 @@ gate_doc_consistency() {
   python3 scripts/extract_model_docs.py --check || return 1
   python3 scripts/extract_theorem_docs.py --check || return 1
   python3 scripts/extract_rfc_index.py --check || return 1
+  # Fault-taxonomy doc<->code sync gate (RFC 064)
+  python3 scripts/fault_taxonomy_check.py || return 1
   echo "docs consistency ok"
 }
 

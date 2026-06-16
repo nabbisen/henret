@@ -48,6 +48,14 @@ executable. Each transition is guarded; invalid operations return the state
 -- some Henret.TaskState.yielded
 ```
 
+Not every non-success outcome is a *fault*. Henret keeps a precise vocabulary
+(RFC 064): a protocol violation (`.invalid`) is the only fault a `StepResult`
+reports; ordinary waiting (`.blocked`/`.backpressured`) and timeout
+(`.timedOut`) are normal transitions, and cancellation/task-fault are terminal
+*states* (`.cancelled`/`.failed`), not results. The classification is
+machine-checked by `faultClass` in `Henret/Diagnostics/Taxonomy.lean`; the full
+eight-class taxonomy is in `docs/fault-taxonomy.md`.
+
 ## 5. The lifecycle — `Henret/Actor/Task.lean`
 
 ```text

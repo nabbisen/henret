@@ -1,8 +1,8 @@
 ---
 rfc: 64
 title: Fault Model and Failure Taxonomy
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.20.0
 supersedes: []
 superseded_by: []
 depends_on: []
@@ -14,7 +14,7 @@ category: theory
 
 ## Status
 
-Proposed strategic RFC.
+Implemented (v0.20.0).
 
 ## Summary
 

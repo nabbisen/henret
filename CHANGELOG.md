@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.20.0 — Fault & Outcome Taxonomy (RFC 064)
+
+Gives Henret a precise, machine-checked vocabulary for the notions English
+collapses into "failure": protocol invalidity, ordinary waiting, cancellation,
+timeout, task fault, supervisor fault, runtime-adapter failure, and
+trusted-backend failure. Purely additive — **no new operations, results, or
+axioms; existing semantics unchanged** — and still zero `sorry`.
+
+- **Machine-checked classifier** (`Henret/Diagnostics/Taxonomy.lean`):
+  `FaultClass` (`progress` / `waiting` / `timeout` / `protocolInvalid`) and a
+  **total** `faultClass : StepResult → FaultClass`, so adding a `StepResult`
+  constructor without classifying it is a build error. `StepResult.isFault`
+  marks protocol invalidity as the only `StepResult`-reportable fault.
+- **Disambiguation theorems** (zero axioms): `blocked_not_invalid_class`,
+  `backpressured_not_invalid_class`, `timedOut_not_invalid_class` (waiting and
+  timeout are different classes from a rejected operation), and
+  `invalid_is_fault` / `blocked_not_fault` / `backpressured_not_fault` /
+  `timedOut_not_fault` / `ok_not_fault` (only invalidity is a fault).
+- **Taxonomy reference** `docs/fault-taxonomy.md` — the eight classes, the
+  `StepResult`→class and `TaskState`→class tables, and which classes are
+  state-level (cancellation via `.cancelled`, task fault via `.failed`) or
+  reserved/out-of-model (supervisor signal, adapter failure, trusted backend).
+  Task-fault payloads, supervisor signals, and richer fault outcomes are
+  explicitly **reserved**, not implemented.
+- **Sync gate** `scripts/fault_taxonomy_check.py` (wired into the docs-consistency
+  gate) verifies the eight class headings exist, every `StepResult` constructor
+  is classified, and the doc table matches the Lean `faultClass` definition both
+  ways. Guided tour, docs index, and the proof/trust/test matrix (claims
+  193–195) updated.
+
 ## v0.19.2 — RFC 057 closeout + roadmap refresh
 
 Closes the last RFC 057 loose end and corrects stale planning docs. No model or

@@ -145,6 +145,15 @@ ALLOWLIST = {
     "Henret.released_resource_never_live_step": (set(), STD),
     "Henret.released_resource_never_live_run":  (set(), STD_C),
     "Henret.reachable_released_resource_never_live": (set(), STD_C),
+    # RFC 064: fault & outcome taxonomy (zero-axiom classification)
+    "Henret.blocked_not_invalid_class":        (set(), STD),
+    "Henret.backpressured_not_invalid_class":  (set(), STD),
+    "Henret.timedOut_not_invalid_class":       (set(), STD),
+    "Henret.invalid_is_fault":                 (set(), STD),
+    "Henret.blocked_not_fault":                (set(), STD),
+    "Henret.backpressured_not_fault":          (set(), STD),
+    "Henret.timedOut_not_fault":               (set(), STD),
+    "Henret.ok_not_fault":                     (set(), STD),
 }
 
 text = sys.stdin.read()

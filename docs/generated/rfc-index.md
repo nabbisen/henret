@@ -2,7 +2,7 @@
 
 # RFC index
 
-87 RFCs: 65 implemented, 21 proposed/in-wave, 1 archived. Generated from RFC front matter.
+87 RFCs: 66 implemented, 20 proposed/in-wave, 1 archived. Generated from RFC front matter.
 
 ## Implemented (`done/`)
 
@@ -65,6 +65,7 @@
 | [55](done/055-structured-cancellation-and-shutdown.md) | Structured Cancellation and Shutdown | v0.17.0 | model-semantics |
 | [56](done/056-bounded-mailboxes-and-backpressure.md) | Bounded Mailboxes and Backpressure | v0.18.0 | model-semantics |
 | [57](done/057-resource-lifetime-and-finalization-ledger.md) | Resource Lifetime and Finalization Ledger | v0.19.0 | model-semantics |
+| [64](done/064-fault-model-and-failure-taxonomy.md) | Fault Model and Failure Taxonomy | v0.20.0 | theory |
 | [75](done/075-model-to-documentation-extraction.md) | Model-to-Documentation Extraction | v0.17.7 | documentation |
 | [80](done/080-release-gate-integrity-and-evidence-manifest.md) | Release Gate Integrity and Evidence Manifest | v0.17.2 | release-process |
 | [81](done/081-package-boundary-and-evidence-ledger.md) | Package Boundary and Evidence Ledger | v0.17.3 | governance |
@@ -84,7 +85,6 @@
 | [61](proposed/061-runtime-adapter-contract.md) | Runtime Adapter Contract | Proposed | integration |
 | [62](proposed/062-proof-ergonomics-library.md) | Proof Ergonomics Library | Proposed | proofs |
 | [63](proposed/063-long-term-module-architecture.md) | Long-Term Module Architecture | Proposed | tooling |
-| [64](proposed/064-fault-model-and-failure-taxonomy.md) | Fault Model and Failure Taxonomy | Proposed | theory |
 | [65](proposed/065-semantic-equivalence-and-bisimulation.md) | Semantic Equivalence and Bisimulation | Proposed | theory |
 | [66](proposed/066-deterministic-replay-format.md) | Deterministic Replay Format | Proposed | observability |
 | [67](proposed/067-state-snapshot-and-semantic-diff.md) | State Snapshot and Semantic Diff | Proposed | observability |

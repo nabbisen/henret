@@ -676,3 +676,22 @@ Conformance (`Henret/Conformance/Branch.lean`, under `branch_suite_passes`):
 `resource_finalize_closing_released`, and `resource_acquire_not_running_invalid`.
 The native finalizer is a trust boundary; liveness/timeliness, drain-before-stop,
 actor-owned resources, and restart resource-transfer are out of scope for Tier 1.
+
+### RFC 064 — Fault & Outcome Taxonomy
+
+A machine-checked classification of `StepResult` outcomes
+(`Henret/Diagnostics/Taxonomy.lean`). `faultClass : StepResult → FaultClass`
+is total (a new outcome cannot be left unclassified), with classes `progress`,
+`waiting`, `timeout`, and `protocolInvalid`. Only `protocolInvalid` is a fault.
+The full eight-class vocabulary (including the state-level cancellation/task-fault
+classes and the out-of-model adapter/backend classes) is in
+`docs/fault-taxonomy.md`; the doc↔code mapping is gated by
+`scripts/fault_taxonomy_check.py`.
+
+| Theorem | Statement |
+|---|---|
+| `blocked_not_invalid_class`, `backpressured_not_invalid_class`, `timedOut_not_invalid_class` | ordinary waiting and timeout are different classes from protocol invalidity (a park/reject/timeout is not a rejected operation) |
+| `invalid_is_fault` | a protocol-invalid result is a fault |
+| `blocked_not_fault`, `backpressured_not_fault`, `timedOut_not_fault`, `ok_not_fault` | waiting, timeout, and normal progress are **not** faults |
+
+No new operations, results, or axioms; existing semantics unchanged.

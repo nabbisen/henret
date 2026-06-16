@@ -83,7 +83,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [061](proposed/061-runtime-adapter-contract.md) | Runtime Adapter Contract | — | — |
 | [062](proposed/062-proof-ergonomics-library.md) | Proof Ergonomics Library | — | — |
 | [063](proposed/063-long-term-module-architecture.md) | Long-Term Module Architecture | — | — |
-| [064](proposed/064-fault-model-and-failure-taxonomy.md) | Fault Model and Failure Taxonomy | — | — |
+| [064](done/064-fault-model-and-failure-taxonomy.md) | Fault Model and Failure Taxonomy | Implemented (v0.20.0) | v0.20.0 |
 | [065](proposed/065-semantic-equivalence-and-bisimulation.md) | Semantic Equivalence and Bisimulation | — | — |
 | [066](proposed/066-deterministic-replay-format.md) | Deterministic Replay Format | — | — |
 | [067](proposed/067-state-snapshot-and-semantic-diff.md) | State Snapshot and Semantic Diff | — | — |
