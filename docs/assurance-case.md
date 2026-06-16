@@ -36,7 +36,7 @@ its headline theorem, file, class, and caveats.
 
 | ID | Claim | Headline theorem | File | Axioms |
 |---|---|---|---|---|
-| C1 | Reachable states satisfy the 28-field `WellFormed` invariant | `reachable_wf` | `Henret/Proofs/InvariantsPreservation.lean` | STD+choice |
+| C1 | Reachable states satisfy the 29-field `WellFormed` invariant | `reachable_wf` | `Henret/Proofs/InvariantsPreservation.lean` | STD+choice |
 | C2 | Message occurrence ids are globally unique in reachable states | `reachable_occurrence_unique` | `Henret/Proofs/Occurrence.lean` | STD+choice |
 | C3 | Parent chains are acyclic (strictly decreasing) in reachable states | `reachable_parent_lt`, `parent_chain_terminates` | `Henret/Proofs/Parenthood.lean` | STD+choice |
 | C4 | Actor-local receive touches only the owning actor's mailbox | `receive_only_own` | `Henret/Proofs/Messaging.lean` | STD+choice |

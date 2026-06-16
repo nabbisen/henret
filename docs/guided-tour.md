@@ -132,10 +132,10 @@ chain with `ancestor s t (t + 1)` always reaches a root (a task with
 deliverable: supervision trees are proper trees.
 
 `WellFormed.parent_lt` and `WellFormed.parent_spawned` are the parenthood
-fields of the current 28-field invariant. Both are
+fields of the current 29-field invariant. Both are
 preserved by every `RuntimeOp` case; `preserves_wf_spawnChild` in
 `Lifecycle.lean` covers the new operation itself. `reachable_wf` certifies
-all 28 fields.
+all 29 fields.
 
 ## 9c. Structured shutdown (RFC 055)
 
@@ -153,7 +153,7 @@ rejected (`shutdown_rejects_spawn`) while in-flight tasks keep draining.
 *rejected* or *only* happens from a given state. Nothing claims a
 shutting-down runtime *will* drain or reach quiescence — that needs a
 scheduling/fairness policy. The two admission-status fields are
-`WellFormed`-irrelevant (`WellFormed.status_irrel`), so the 28-field base
+`WellFormed`-irrelevant (`WellFormed.status_irrel`), so the 29-field base
 contract is untouched; the safety theorems live in their own
 `Henret/Proofs/Shutdown.lean`. Subtree cancellation reuses `cancelTree`
 (RFC 039). See `docs/shutdown-semantics.md`.

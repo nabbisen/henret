@@ -54,8 +54,7 @@ theorem step_restartOf_stable (s : RuntimeState) (op : RuntimeOp)
   | .receiveUntil _ _ | .receiveByOccurrence _ _ | .receiveFrom _ _
   | .fail _ | .spawnChild _ _ =>
       simp only [step]
-      split <;> (try split) <;> (try split) <;> (try split) <;>
-        (try split) <;> (try split) <;> (try split) <;> rfl
+      (repeat' split) <;> rfl
   | .closeActor _ | .shutdown | .stopWhenIdle =>
       simp only [step] <;> (try split) <;> rfl
   | .cancelTree _ => rfl

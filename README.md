@@ -122,7 +122,7 @@ open Henret
   the ready queue never duplicates a task, every queued task is runnable,
   every timer task is sleeping, and a task occupies at most one ownership
   location; wait-queue integrity is also guaranteed (`reachable_wf`,
-  `WellFormed`, 28 fields).
+  `WellFormed`, 29 fields).
 - **Ownership immutability** (v0.2.0) — a spawned task's owning actor never
   changes (`WellFormed.spawned_has_owner`, `reachable_spawned_has_owner`).
 - **Invalid is a no-op** (v0.2.0) — an invalid operation never mutates state

@@ -6,7 +6,7 @@ Each claim records its assurance tier and *where* its evidence lives. The model-
 
 | claim_id | tier | location | verified here | claim |
 |---|---|---|:---:|---|
-| `model.reachable_wf` | PROVEN | in_tree_model_proof | yes | Every reachable scheduler state satisfies the 28-field WellFormed invariant |
+| `model.reachable_wf` | PROVEN | in_tree_model_proof | yes | Every reachable scheduler state satisfies the 29-field WellFormed invariant |
 | `model.occurrence_unique` | PROVEN | in_tree_model_proof | yes | Equal message occurrence ids across any two reachable mailboxes imply the same envelope in the same mailbox |
 | `model.parent_acyclic` | PROVEN | in_tree_model_proof | yes | Parent chains are strictly decreasing and therefore terminate |
 | `model.owner_exactness` | PROVEN | in_tree_model_proof | yes | Every spawned task has an immutable owner and every owned task is spawned |

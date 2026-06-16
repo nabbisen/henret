@@ -177,7 +177,7 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 | `parent_chain_terminates` | `Henret/Proofs/Parenthood.lean` | Chains terminate (acyclicity) |
 | `reachable_owner_spawned` | `Henret/Proofs/Parenthood.lean` | Every owned task has a `taskState` (RFC 038, from `WellFormed.owner_spawned`) |
 | `reachable_parent_child_spawned` | `Henret/Proofs/Parenthood.lean` | Every task with a parent has a `taskState` (RFC 038, from `WellFormed.parent_child_spawned`) |
-| `preserves_wf_spawnChild` | `Henret/Proofs/Preservation/Lifecycle.lean` | 28-field WF preservation |
+| `preserves_wf_spawnChild` | `Henret/Proofs/Preservation/Lifecycle.lean` | 29-field WF preservation |
 
 `WellFormed` extended to **twenty-one fields** in RFC 038 (+2 over RFC 033's nineteen):
 - `owner_spawned` (field 20) — every task with a `taskOwner` has a `taskState`.
@@ -330,7 +330,7 @@ extension is deferred to RFC 043. See `docs/bridge-architecture.md`.
 
 | Theorem | File | Notes |
 |---|---|---|
-| `preserves_wf_receiveUntil` | `Henret/Proofs/Preservation/Messaging.lean` | All 28 WellFormed fields |
+| `preserves_wf_receiveUntil` | `Henret/Proofs/Preservation/Messaging.lean` | All 29 WellFormed fields |
 | `WellFormed.timed_has_deadline` | `Henret/Proofs/Invariants.lean` | Field 22 |
 | `WellFormed.deadline_is_timed` | `Henret/Proofs/Invariants.lean` | Field 23 |
 | `WellFormed.timed_has_timer` | `Henret/Proofs/Invariants.lean` | Field 24 |
@@ -613,3 +613,31 @@ Profile vocabulary in `Henret/Profile.lean` (metadata; does not change any theor
 | `SemanticProfile.le_refl`, `SemanticProfile.le_trans` | profile inclusion is a preorder |
 
 Named profiles `Profile.core` / `actor` / `full` carry kernel-proven `nodup` (no duplicate features). All depend only on `propext`. The theorem-to-profile mapping is in `docs/profile-index.md`.
+
+---
+
+### RFC 056 — Bounded Mailboxes & Backpressure (Option A, reject-only)
+
+`StepResult` gained `.backpressured` (9 constructors); `RuntimeState` gained
+`mailboxPolicy : ActorId → MailboxPolicy` (default `fun _ => .unbounded`);
+`RuntimeOp` is unchanged (21 constructors). `WellFormed` gained field **29**,
+`mailbox_within_capacity`. `send`/`inject` consult the policy *after* every
+validity guard; a delivery to a full mailbox is rejected with a no-op
+`.backpressured` and consumes no occurrence id.
+
+| Theorem | Statement |
+|---|---|
+| `reachable_mailbox_within_capacity` | no reachable mailbox exceeds its configured capacity (field 29; vacuous when unbounded) |
+| `send_full_backpressured`, `inject_full_backpressured` | a valid delivery to a full mailbox returns `.backpressured` |
+| `step_backpressured_unchanged` | `.backpressured` leaves the state unchanged (no-op) |
+| `backpressured_not_invalid` | `.backpressured ≠ .invalid` (distinct rejection from a guard failure) |
+| `send_unbounded_not_backpressured`, `inject_unbounded_not_backpressured` | under the default unbounded policy delivery is never backpressured |
+| `bridge_send`, `bridge_inject` | the single-worker bridge stays queue-stable under backpressure (`toQOps` emits `[]` for a full mailbox) |
+| `full_has_boundedMailbox` | the `full` profile carries the `boundedMailbox` feature |
+
+Conformance (`Henret/Conformance/Branch.lean`, under `branch_suite_passes`):
+`bounded_send_then_backpressured`, `bounded_receive_frees_capacity`,
+`bounded_inject_full_backpressured`, `capacity_zero_{send,inject}_backpressured`,
+`unbounded_send_never_backpressured`, and
+`full_mailbox_with_waiter_{send,inject}_backpressured`. Option B (park-policy /
+blocking senders) is out of scope; see `docs/migration/v0.17-to-v0.18.md`.

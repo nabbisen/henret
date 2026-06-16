@@ -53,22 +53,24 @@ theorem send_stamps_source {s : RuntimeState} {t : TaskId} {b o : ActorId} {mb :
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some o) (hmb : s.mailboxes b = some mb)
     (hac : s.actorStatus b ≠ .closed)
+    (hfull : s.mailboxFull b mb = false)
     (m : Message) :
     let env : Envelope := ⟨s.nextMsgId, s.taskOwner t, m⟩
     ((step s (.send t b m)).1).mailboxes b = some ⟨mb.messages ++ [env]⟩ ∧
     env.source = some o := by
-  exact ⟨send_appends hrt hts how hmb hac m, by simp [how]⟩
+  exact ⟨send_appends hrt hts how hmb hac hfull m, by simp [how]⟩
 
 /-- **Inject stamps `none` as source** (RFC 033): the envelope appended
 by `inject a m` carries `source = none`, marking it as an environment
 injection rather than a task-to-task message. -/
 theorem inject_stamps_none {s : RuntimeState} {a : ActorId} {mb : Mailbox}
     (hmb : s.mailboxes a = some mb) (hrs : s.runtimeStatus = .running)
-    (hac : s.actorStatus a ≠ .closed) (m : Message) :
+    (hac : s.actorStatus a ≠ .closed)
+    (hfull : s.mailboxFull a mb = false) (m : Message) :
     let env : Envelope := ⟨s.nextMsgId, none, m⟩
     ((step s (.inject a m)).1).mailboxes a = some ⟨mb.messages ++ [env]⟩ ∧
     env.source = none :=
-  ⟨inject_appends hmb hrs hac m, rfl⟩
+  ⟨inject_appends hmb hrs hac hfull m, rfl⟩
 
 end Henret
 

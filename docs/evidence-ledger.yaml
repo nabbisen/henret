@@ -20,7 +20,7 @@
 
 # --- In-tree model proofs (kernel-checked, present in this tarball) ----------
 - claim_id: model.reachable_wf
-  claim: Every reachable scheduler state satisfies the 28-field WellFormed invariant
+  claim: Every reachable scheduler state satisfies the 29-field WellFormed invariant
   tier: PROVEN
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true

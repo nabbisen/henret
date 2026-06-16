@@ -26,27 +26,19 @@ variable (s : RuntimeState) (t : TaskId) (b : ActorId) (m : Message)
 
 @[simp] theorem send_taskOwner :
     ((step s (.send t b m)).1).taskOwner = s.taskOwner := by
-  simp only [step]
-  split <;> (try split) <;> (try split) <;> (try split) <;>
-    (try split) <;> (try split) <;> (try split) <;> rfl
+  simp only [step]; (repeat' split) <;> rfl
 
 @[simp] theorem send_running :
     ((step s (.send t b m)).1).running = s.running := by
-  simp only [step]
-  split <;> (try split) <;> (try split) <;> (try split) <;>
-    (try split) <;> (try split) <;> (try split) <;> rfl
+  simp only [step]; (repeat' split) <;> rfl
 
 @[simp] theorem send_now :
     ((step s (.send t b m)).1).now = s.now := by
-  simp only [step]
-  split <;> (try split) <;> (try split) <;> (try split) <;>
-    (try split) <;> (try split) <;> (try split) <;> rfl
+  simp only [step]; (repeat' split) <;> rfl
 
 @[simp] theorem send_nextId :
     ((step s (.send t b m)).1).nextId = s.nextId := by
-  simp only [step]
-  split <;> (try split) <;> (try split) <;> (try split) <;>
-    (try split) <;> (try split) <;> (try split) <;> rfl
+  simp only [step]; (repeat' split) <;> rfl
 
 end SendProjections
 
@@ -85,19 +77,19 @@ variable (s : RuntimeState) (a : ActorId) (m : Message)
 
 @[simp] theorem inject_taskOwner :
     ((step s (.inject a m)).1).taskOwner = s.taskOwner := by
-  simp only [step]; split <;> (try split) <;> (try split) <;> (try split) <;> rfl
+  simp only [step]; (repeat' split) <;> rfl
 
 @[simp] theorem inject_running :
     ((step s (.inject a m)).1).running = s.running := by
-  simp only [step]; split <;> (try split) <;> (try split) <;> (try split) <;> rfl
+  simp only [step]; (repeat' split) <;> rfl
 
 @[simp] theorem inject_now :
     ((step s (.inject a m)).1).now = s.now := by
-  simp only [step]; split <;> (try split) <;> (try split) <;> (try split) <;> rfl
+  simp only [step]; (repeat' split) <;> rfl
 
 @[simp] theorem inject_nextId :
     ((step s (.inject a m)).1).nextId = s.nextId := by
-  simp only [step]; split <;> (try split) <;> (try split) <;> (try split) <;> rfl
+  simp only [step]; (repeat' split) <;> rfl
 
 end InjectProjections
 
@@ -131,8 +123,7 @@ variable (s : RuntimeState) (t : TaskId) (a : ActorId)
   | .send _ _ _ | .receive _ | .inject _ _ | .sleep _ _ | .tick _ | .wake _
   | .receiveUntil _ _ | .receiveByOccurrence _ _ | .receiveFrom _ _ | .fail _ =>
       simp only [step]
-      split <;> (try split) <;> (try split) <;> (try split) <;>
-        (try split) <;> (try split) <;> (try split) <;> simp [upd]
+      (repeat' split) <;> simp [upd]
   | .closeActor _ | .shutdown | .stopWhenIdle =>
       simp only [step] <;> (try split) <;> simp [upd]
   | .cancelTree _ => rfl
@@ -140,5 +131,12 @@ variable (s : RuntimeState) (t : TaskId) (a : ActorId)
   | .restartOne p c a => exact absurd rfl (h2 p c a)
 
 end SpawnChildProjections
+
+/-- No operation ever rewrites the mailbox-policy map (RFC 056): capacities are
+    configured at `init` and are immutable under `step`. This collapses the
+    `mailbox_within_capacity` premise on the post-step policy to one on `s`. -/
+@[simp] theorem step_preserves_mailboxPolicy (s : RuntimeState) (op : RuntimeOp) :
+    ((step s op).1).mailboxPolicy = s.mailboxPolicy := by
+  cases op <;> simp only [step] <;> (repeat' split) <;> rfl
 
 end Henret

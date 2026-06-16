@@ -10,34 +10,22 @@ theorem send_appends {s : RuntimeState} {t : TaskId} {b o : ActorId} {mb : Mailb
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some o) (hmb : s.mailboxes b = some mb)
     (hac : s.actorStatus b ≠ .closed)
+    (hfull : s.mailboxFull b mb = false)
     (m : Message) :
     ((step s (.send t b m)).1).mailboxes b =
       some ⟨mb.messages ++ [⟨s.nextMsgId, s.taskOwner t, m⟩]⟩ := by
   cases hw : s.mailboxWaiters b with
-  | cons w ws => simp [step, hac, hrt, hts, how, hmb, hw, upd, Mailbox.enqueue]
+  | cons w ws => simp [step, hac, hrt, hts, how, hmb, hw, hfull, upd, Mailbox.enqueue]
   | nil =>
     cases htw : s.timedMailboxWaiters b <;>
-      simp [step, hac, hrt, hts, how, hmb, hw, htw, upd, Mailbox.enqueue]
+      simp [step, hac, hrt, hts, how, hmb, hw, htw, hfull, upd, Mailbox.enqueue]
 
 /-- Send does not touch any mailbox other than the target's. -/
 theorem send_preserves_other {s : RuntimeState} {t : TaskId}
     {b c : ActorId} (h : c ≠ b) (m : Message) :
     ((step s (.send t b m)).1).mailboxes c = s.mailboxes c := by
   simp only [step]
-  split
-  · rfl
-  · split
-    · split
-      · split
-        · split
-          · cases hw : s.mailboxWaiters b with
-            | cons w ws => simp [hw, upd, h]
-            | nil =>
-              cases htw : s.timedMailboxWaiters b <;> simp [hw, htw, upd, h]
-          · rfl
-        · rfl
-      all_goals rfl
-    · rfl
+  (repeat' split) <;> simp [upd, h]
 
 /-- A send by a non-running task is invalid and a no-op. -/
 theorem send_not_running_invalid {s : RuntimeState} {t : TaskId}
@@ -226,28 +214,22 @@ theorem receive_only_own {s : RuntimeState} {t : TaskId} {env : Envelope}
 id and `source = none`) to the target mailbox. -/
 theorem inject_appends {s : RuntimeState} {a : ActorId} {mb : Mailbox}
     (h : s.mailboxes a = some mb) (hrs : s.runtimeStatus = .running)
-    (hac : s.actorStatus a ≠ .closed) (m : Message) :
+    (hac : s.actorStatus a ≠ .closed)
+    (hfull : s.mailboxFull a mb = false) (m : Message) :
     ((step s (.inject a m)).1).mailboxes a =
       some ⟨mb.messages ++ [⟨s.nextMsgId, none, m⟩]⟩ := by
   cases hw : s.mailboxWaiters a with
-  | cons w ws => simp [step, h, hrs, hac, hw, upd, Mailbox.enqueue]
+  | cons w ws => simp [step, h, hrs, hac, hw, hfull, upd, Mailbox.enqueue]
   | nil =>
     cases htw : s.timedMailboxWaiters a <;>
-      simp [step, h, hrs, hac, hw, htw, upd, Mailbox.enqueue]
+      simp [step, h, hrs, hac, hw, htw, hfull, upd, Mailbox.enqueue]
 
 /-- Injection does not touch any other actor's mailbox. -/
 theorem inject_preserves_other {s : RuntimeState} {a b : ActorId}
     (h : b ≠ a) (m : Message) :
     ((step s (.inject a m)).1).mailboxes b = s.mailboxes b := by
   simp only [step]
-  split
-  · rfl
-  · split
-    · cases hw : s.mailboxWaiters a with
-      | cons w ws => simp [hw, upd, h]
-      | nil =>
-        cases htw : s.timedMailboxWaiters a <;> simp [hw, htw, upd, h]
-    · rfl
+  (repeat' split) <;> simp [upd, h]
 
 /-! ## Mailbox monotonicity: messaging never removes a mailbox -/
 
@@ -269,14 +251,17 @@ theorem send_mailbox_isSome {s : RuntimeState} {t : TaskId}
             cases how : s.taskOwner t with
             | none => exact ⟨mb, by simp [step, hcl, hrt, hts, how]; exact h⟩
             | some o =>
-              cases hw : s.mailboxWaiters c with
-              | cons w ws =>
-                exact ⟨mb.enqueue ⟨s.nextMsgId, s.taskOwner t, m⟩,
-                        by simp [step, hcl, hrt, hts, how, h, hw, upd]⟩
-              | nil =>
-                cases htw : s.timedMailboxWaiters c <;>
+              by_cases hfull : s.mailboxFull c mb = true
+              · exact ⟨mb, by simp [step, hcl, hrt, hts, how, h, hfull]⟩
+              · simp only [Bool.not_eq_true] at hfull
+                cases hw : s.mailboxWaiters c with
+                | cons w ws =>
                   exact ⟨mb.enqueue ⟨s.nextMsgId, s.taskOwner t, m⟩,
-                          by simp [step, hcl, hrt, hts, how, h, hw, htw, upd]⟩
+                          by simp [step, hcl, hrt, hts, how, h, hw, hfull, upd]⟩
+                | nil =>
+                  cases htw : s.timedMailboxWaiters c <;>
+                    exact ⟨mb.enqueue ⟨s.nextMsgId, s.taskOwner t, m⟩,
+                            by simp [step, hcl, hrt, hts, how, h, hw, htw, hfull, upd]⟩
           | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
             exact ⟨mb, by simp [step, hcl, hrt, hts]; exact h⟩
       · exact ⟨mb, by simp [step, hcl, hrt]; exact h⟩
@@ -290,14 +275,17 @@ theorem inject_mailbox_isSome {s : RuntimeState} {a c : ActorId}
   · subst hca
     by_cases hg : s.runtimeStatus ≠ .running ∨ s.actorStatus c = .closed
     · exact ⟨mb, by simp only [step, if_pos hg]; exact h⟩
-    · cases hw : s.mailboxWaiters c with
-      | cons w ws =>
-        exact ⟨mb.enqueue ⟨s.nextMsgId, none, m⟩,
-                by simp [step, hg, h, hw, upd]⟩
-      | nil =>
-        cases htw : s.timedMailboxWaiters c <;>
+    · by_cases hfull : s.mailboxFull c mb = true
+      · exact ⟨mb, by simp [step, hg, h, hfull]⟩
+      · simp only [Bool.not_eq_true] at hfull
+        cases hw : s.mailboxWaiters c with
+        | cons w ws =>
           exact ⟨mb.enqueue ⟨s.nextMsgId, none, m⟩,
-                  by simp [step, hg, h, hw, htw, upd]⟩
+                  by simp [step, hg, h, hw, hfull, upd]⟩
+        | nil =>
+          cases htw : s.timedMailboxWaiters c <;>
+            exact ⟨mb.enqueue ⟨s.nextMsgId, none, m⟩,
+                    by simp [step, hg, h, hw, htw, hfull, upd]⟩
   · rw [inject_preserves_other hca m]; exact ⟨mb, h⟩
 
 /-- Receive never removes a mailbox. -/
@@ -326,6 +314,48 @@ theorem receive_mailbox_isSome {s : RuntimeState} {t : TaskId}
       | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         exact ⟨mb, by simp [step, hrt, hts]; exact h⟩
   · exact ⟨mb, by simp [step, hrt]; exact h⟩
+
+-- ─── RFC 056: backpressure branch distinctions ─────────────────────────────
+
+/-- A valid `send` to a full mailbox is rejected with `.backpressured`
+    (RFC 056, Option A reject-only). -/
+theorem send_full_backpressured {s : RuntimeState} {t : TaskId} {b o : ActorId} {mb : Mailbox}
+    (hrt : s.running = some t) (hts : s.taskState t = some .running)
+    (how : s.taskOwner t = some o) (hmb : s.mailboxes b = some mb)
+    (hac : s.actorStatus b ≠ .closed)
+    (hfull : s.mailboxFull b mb = true) (m : Message) :
+    (step s (.send t b m)).2 = .backpressured := by
+  simp [step, hac, hrt, hts, how, hmb, hfull]
+
+/-- A valid `inject` to a full mailbox is rejected with `.backpressured`
+    (RFC 056, Option A reject-only). -/
+theorem inject_full_backpressured {s : RuntimeState} {a : ActorId} {mb : Mailbox}
+    (hmb : s.mailboxes a = some mb) (hrs : s.runtimeStatus = .running)
+    (hac : s.actorStatus a ≠ .closed)
+    (hfull : s.mailboxFull a mb = true) (m : Message) :
+    (step s (.inject a m)).2 = .backpressured := by
+  simp [step, hrs, hac, hmb, hfull]
+
+/-- Under an unbounded policy a `send` is never backpressured (RFC 056): the
+    default-unbounded configuration is behaviourally identical to pre-RFC-056. -/
+theorem send_unbounded_not_backpressured {s : RuntimeState} {t : TaskId} {b : ActorId}
+    (hub : (s.mailboxPolicy b).capacity = none) (m : Message) :
+    (step s (.send t b m)).2 ≠ .backpressured := by
+  have hnf : ∀ mb : Mailbox, s.mailboxFull b mb = false := fun mb => by
+    simp [RuntimeState.mailboxFull, hub]
+  intro hbp
+  simp only [step] at hbp
+  (repeat' split at hbp) <;> simp_all [hnf]
+
+/-- Under an unbounded policy an `inject` is never backpressured (RFC 056). -/
+theorem inject_unbounded_not_backpressured {s : RuntimeState} {a : ActorId}
+    (hub : (s.mailboxPolicy a).capacity = none) (m : Message) :
+    (step s (.inject a m)).2 ≠ .backpressured := by
+  have hnf : ∀ mb : Mailbox, s.mailboxFull a mb = false := fun mb => by
+    simp [RuntimeState.mailboxFull, hub]
+  intro hbp
+  simp only [step] at hbp
+  (repeat' split at hbp) <;> simp_all [hnf]
 
 end Henret
 

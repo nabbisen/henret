@@ -220,7 +220,60 @@ theorem dequeueFirst_none (p : Envelope → Bool) (mb : Mailbox)
   | none => exact listDequeueFirst_none p hr
   | some pair => obtain ⟨e', es'⟩ := pair; rw [hr] at h; simp at h
 
+/-! ## Length lemmas for bounded mailboxes (RFC 056)
+
+These live with `Mailbox` rather than inside the preservation proofs so the
+capacity invariant's per-operation bullets stay one-liners. -/
+
+/-- Enqueue increases mailbox length by exactly one. -/
+@[simp] theorem enqueue_length (mb : Mailbox) (e : Envelope) :
+    (mb.enqueue e).messages.length = mb.messages.length + 1 := by
+  simp [enqueue]
+
+/-- If a mailbox has room (`length < n`), one enqueue keeps it within `n`. -/
+theorem enqueue_length_le_capacity_of_lt {mb : Mailbox} {e : Envelope} {n : Nat}
+    (h : mb.messages.length < n) : (mb.enqueue e).messages.length ≤ n := by
+  rw [enqueue_length]; omega
+
+/-- A head dequeue never increases mailbox length. -/
+theorem dequeue_length_le {mb : Mailbox} {e : Envelope} {mb' : Mailbox}
+    (h : mb.dequeue = some (e, mb')) : mb'.messages.length ≤ mb.messages.length := by
+  cases hm : mb.messages with
+  | nil => simp [dequeue, hm] at h
+  | cons x xs =>
+    simp only [dequeue, hm] at h
+    obtain ⟨_, rfl⟩ := h
+    simp
+
+/-- A selective dequeue never increases mailbox length (RFC 041 + 056). -/
+theorem dequeueFirst_length_le {p : Envelope → Bool} {mb mb' : Mailbox} {e : Envelope}
+    (h : mb.dequeueFirst p = some (e, mb')) : mb'.messages.length ≤ mb.messages.length :=
+  (dequeueFirst_sublist p mb h).length_le
+
 end Mailbox
+
+/-- Per-actor mailbox policy (RFC 056). A single-field record now — a
+**stability seam**: the overflow policy (reject / drop / park) is a plausible
+second knob, and `RuntimeState` is public and documentation-generated, so a
+record avoids future churn. `capacity = none` means unbounded.
+
+Option A models the **reject** overflow behavior only: a valid delivery to a
+full mailbox returns `.backpressured` and leaves the state unchanged. No
+unimplemented overflow constructors are exposed, since public constructors are
+a promise consumers may pattern-match on. -/
+structure MailboxPolicy where
+  /-- `some n` bounds the mailbox to `n` envelopes; `none` is unbounded. -/
+  capacity : Option Nat
+deriving Repr, DecidableEq, Inhabited
+
+namespace MailboxPolicy
+
+/-- The default policy: unbounded capacity (preserves pre-RFC-056 behavior). -/
+def unbounded : MailboxPolicy := { capacity := none }
+
+@[simp] theorem unbounded_capacity : unbounded.capacity = none := rfl
+
+end MailboxPolicy
 
 /-- Per-actor mailbox map. `none` means the actor does not exist. -/
 abbrev ActorMap := ActorId → Option Mailbox

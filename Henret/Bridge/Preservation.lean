@@ -192,9 +192,10 @@ private theorem send_valid_waiter_rq (s : RuntimeState) (t b w : TaskId) (m : Me
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some oa) (hmb : s.mailboxes b = some mb)
     (hac : s.actorStatus b ≠ .closed)
-    (hwt : s.mailboxWaiters b = w :: ws) :
+    (hwt : s.mailboxWaiters b = w :: ws)
+    (hfull : s.mailboxFull b mb = false) :
     (step s (.send t b m)).1.readyQ = s.readyQ ++ [w] := by
-  simp [step, hac, hrt, hts, how, hmb, hwt]
+  simp [step, hac, hrt, hts, how, hmb, hwt, hfull]
 
 -- send valid without any waiter: readyQ unchanged
 private theorem send_valid_no_waiter_rq (s : RuntimeState) (t b : TaskId) (m : Message)
@@ -202,9 +203,10 @@ private theorem send_valid_no_waiter_rq (s : RuntimeState) (t b : TaskId) (m : M
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some oa) (hmb : s.mailboxes b = some mb)
     (hac : s.actorStatus b ≠ .closed)
-    (hwt : s.mailboxWaiters b = []) (htw : s.timedMailboxWaiters b = []) :
+    (hwt : s.mailboxWaiters b = []) (htw : s.timedMailboxWaiters b = [])
+    (hfull : s.mailboxFull b mb = false) :
     (step s (.send t b m)).1.readyQ = s.readyQ := by
-  simp [step, hac, hrt, hts, how, hmb, hwt, htw]
+  simp [step, hac, hrt, hts, how, hmb, hwt, htw, hfull]
 
 -- send valid with timed waiter: readyQ gets w pushed
 private theorem send_valid_timed_waiter_rq (s : RuntimeState) (t b w : TaskId) (m : Message)
@@ -212,34 +214,38 @@ private theorem send_valid_timed_waiter_rq (s : RuntimeState) (t b w : TaskId) (
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some oa) (hmb : s.mailboxes b = some mb)
     (hac : s.actorStatus b ≠ .closed)
-    (hwt : s.mailboxWaiters b = []) (htws : s.timedMailboxWaiters b = w :: ws) :
+    (hwt : s.mailboxWaiters b = []) (htws : s.timedMailboxWaiters b = w :: ws)
+    (hfull : s.mailboxFull b mb = false) :
     (step s (.send t b m)).1.readyQ = s.readyQ ++ [w] := by
-  simp [step, hac, hrt, hts, how, hmb, hwt, htws]
+  simp [step, hac, hrt, hts, how, hmb, hwt, htws, hfull]
 
 -- inject valid with waiter: readyQ gets w pushed
 private theorem inject_valid_waiter_rq (s : RuntimeState) (a w : ActorId) (m : Message)
     (mb : Mailbox) (ws : List TaskId)
     (hrs : s.runtimeStatus = .running) (hac : s.actorStatus a ≠ .closed)
-    (hmb : s.mailboxes a = some mb) (hwt : s.mailboxWaiters a = w :: ws) :
+    (hmb : s.mailboxes a = some mb) (hwt : s.mailboxWaiters a = w :: ws)
+    (hfull : s.mailboxFull a mb = false) :
     (step s (.inject a m)).1.readyQ = s.readyQ ++ [w] := by
-  simp [step, hrs, hac, hmb, hwt]
+  simp [step, hrs, hac, hmb, hwt, hfull]
 
 -- inject valid without any waiter: readyQ unchanged
 private theorem inject_valid_no_waiter_rq (s : RuntimeState) (a : ActorId) (m : Message)
     (mb : Mailbox) (hrs : s.runtimeStatus = .running) (hac : s.actorStatus a ≠ .closed)
     (hmb : s.mailboxes a = some mb)
-    (hwt : s.mailboxWaiters a = []) (htw : s.timedMailboxWaiters a = []) :
+    (hwt : s.mailboxWaiters a = []) (htw : s.timedMailboxWaiters a = [])
+    (hfull : s.mailboxFull a mb = false) :
     (step s (.inject a m)).1.readyQ = s.readyQ := by
-  simp [step, hrs, hac, hmb, hwt, htw]
+  simp [step, hrs, hac, hmb, hwt, htw, hfull]
 
 -- inject valid with timed waiter: readyQ gets w pushed
 private theorem inject_valid_timed_waiter_rq (s : RuntimeState) (a w : ActorId) (m : Message)
     (mb : Mailbox) (ws : List TaskId)
     (hrs : s.runtimeStatus = .running) (hac : s.actorStatus a ≠ .closed)
     (hmb : s.mailboxes a = some mb)
-    (hwt : s.mailboxWaiters a = []) (htws : s.timedMailboxWaiters a = w :: ws) :
+    (hwt : s.mailboxWaiters a = []) (htws : s.timedMailboxWaiters a = w :: ws)
+    (hfull : s.mailboxFull a mb = false) :
     (step s (.inject a m)).1.readyQ = s.readyQ ++ [w] := by
-  simp [step, hrs, hac, hmb, hwt, htws]
+  simp [step, hrs, hac, hmb, hwt, htws, hfull]
 
 -- tick valid: readyQ gets woken appended
 private theorem tick_valid_rq (s : RuntimeState) (t : Nat) (h : s.now ≤ t) :
@@ -423,21 +429,27 @@ theorem bridge_send (s : RuntimeState) (t b : TaskId) (m : Message) (wqs : Worke
           | some oa =>
             cases hmb : s.mailboxes b with
             | some mb =>
+              by_cases hfull : s.mailboxFull b mb = true
+              · -- Full mailbox: backpressured no-op; toQOps emits [] (RFC 056)
+                rw [show toQOps s (.send t b m) = [] by
+                  simp [toQOps, hcl, hrt, hts, how, hmb, hfull], applyQOps_nil]
+                exact bridge_stable hbs (by simp [step, hcl, hrt, hts, how, hmb, hfull])
+              simp only [Bool.not_eq_true] at hfull
               cases hwt : s.mailboxWaiters b with
               | nil =>
                 cases htw : s.timedMailboxWaiters b with
                 | nil =>
                   rw [toQOps_send_valid_no_waiter _ _ _ _ oa mb hrt hts how hmb hcl hwt htw, applyQOps_nil]
-                  exact bridge_stable hbs (send_valid_no_waiter_rq s t b m oa mb hrt hts how hmb hcl hwt htw)
+                  exact bridge_stable hbs (send_valid_no_waiter_rq s t b m oa mb hrt hts how hmb hcl hwt htw hfull)
                 | cons w ws =>
-                  rw [toQOps_send_valid_timed_waiter _ _ _ w _ oa mb ws hrt hts how hmb hcl hwt htw, applyQOps_push0]
-                  have hrq := send_valid_timed_waiter_rq s t b w m oa mb ws hrt hts how hmb hcl hwt htw
+                  rw [toQOps_send_valid_timed_waiter _ _ _ w _ oa mb ws hrt hts how hmb hcl hwt htw hfull, applyQOps_push0]
+                  have hrq := send_valid_timed_waiter_rq s t b w m oa mb ws hrt hts how hmb hcl hwt htw hfull
                   exact { queue_eq    := by simp [hrq, hbs.queue_eq]
                           other_empty := fun w' hw' => by
                             simp [show w' ≠ 0 from hw']; exact hbs.other_empty w' hw' }
               | cons w ws =>
-                rw [toQOps_send_valid_waiter _ _ _ w _ oa mb ws hrt hts how hmb hcl hwt, applyQOps_push0]
-                have hrq := send_valid_waiter_rq s t b w m oa mb ws hrt hts how hmb hcl hwt
+                rw [toQOps_send_valid_waiter _ _ _ w _ oa mb ws hrt hts how hmb hcl hwt hfull, applyQOps_push0]
+                have hrq := send_valid_waiter_rq s t b w m oa mb ws hrt hts how hmb hcl hwt hfull
                 exact { queue_eq    := by simp [hrq, hbs.queue_eq]
                         other_empty := fun w' hw' => by
                           simp [show w' ≠ 0 from hw']; exact hbs.other_empty w' hw' }
@@ -471,21 +483,26 @@ theorem bridge_inject (s : RuntimeState) (a : ActorId) (m : Message) (wqs : Work
       rw [show toQOps s (.inject a m) = [] by simp [toQOps, hg, hmb], applyQOps_nil]
       exact bridge_stable hbs (by simp [step, hg, hmb])
     | some mb =>
+      by_cases hfull : s.mailboxFull a mb = true
+      · -- Full mailbox: backpressured no-op; toQOps emits [] (RFC 056)
+        rw [show toQOps s (.inject a m) = [] by simp [toQOps, hg, hmb, hfull], applyQOps_nil]
+        exact bridge_stable hbs (by simp [step, hg, hmb, hfull])
+      simp only [Bool.not_eq_true] at hfull
       cases hwt : s.mailboxWaiters a with
       | nil =>
         cases htw : s.timedMailboxWaiters a with
         | nil =>
           rw [toQOps_inject_valid_no_waiter s a m mb hrs hac hwt hmb htw, applyQOps_nil]
-          exact bridge_stable hbs (inject_valid_no_waiter_rq s a m mb hrs hac hmb hwt htw)
+          exact bridge_stable hbs (inject_valid_no_waiter_rq s a m mb hrs hac hmb hwt htw hfull)
         | cons w ws =>
-          rw [toQOps_inject_valid_timed_waiter s a w m mb ws hrs hac hmb hwt htw, applyQOps_push0]
-          have hrq := inject_valid_timed_waiter_rq s a w m mb ws hrs hac hmb hwt htw
+          rw [toQOps_inject_valid_timed_waiter s a w m mb ws hrs hac hmb hwt htw hfull, applyQOps_push0]
+          have hrq := inject_valid_timed_waiter_rq s a w m mb ws hrs hac hmb hwt htw hfull
           exact { queue_eq    := by simp [hrq, hbs.queue_eq]
                   other_empty := fun w' hw' => by
                     simp [show w' ≠ 0 from hw']; exact hbs.other_empty w' hw' }
       | cons w ws =>
-        rw [toQOps_inject_valid_waiter s a w m mb ws hrs hac hmb hwt, applyQOps_push0]
-        have hrq := inject_valid_waiter_rq s a w m mb ws hrs hac hmb hwt
+        rw [toQOps_inject_valid_waiter s a w m mb ws hrs hac hmb hwt hfull, applyQOps_push0]
+        have hrq := inject_valid_waiter_rq s a w m mb ws hrs hac hmb hwt hfull
         exact { queue_eq    := by simp [hrq, hbs.queue_eq]
                 other_empty := fun w' hw' => by
                   simp [show w' ≠ 0 from hw']; exact hbs.other_empty w' hw' }

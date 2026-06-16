@@ -180,6 +180,16 @@ theorem run_preserves_cancelled {s : RuntimeState} {u : TaskId}
 
 /-! ## Wake exactness (RFC 006) -/
 
+/-- **Bounded-mailbox safety** (RFC 056): no reachable mailbox ever exceeds
+    its configured capacity. The reachable projection of `WellFormed` field
+    `mailbox_within_capacity`; for an unbounded policy the premise is vacuous. -/
+theorem reachable_mailbox_within_capacity (ops : List RuntimeOp)
+    {a : ActorId} {n : Nat} {mb : Mailbox}
+    (hcap : ((run RuntimeState.init ops).mailboxPolicy a).capacity = some n)
+    (hmb : (run RuntimeState.init ops).mailboxes a = some mb) :
+    mb.messages.length ≤ n :=
+  (reachable_wf ops).mailbox_within_capacity a n mb hcap hmb
+
 end Henret
 
 /-!

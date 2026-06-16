@@ -23,7 +23,7 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
           obtain ⟨e, he, hee⟩ := hm
           have h1 := h.timers_sleep e he; rw [hee, hts] at h1
           rcases h1 with h1 | h1 <;> simp at h1
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · simp [step, hrt, hts]; exact h.readyQ_nodup
         · intro u hm
           simp [step, hrt, hts] at hm ⊢
@@ -154,6 +154,11 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
           exact h.timed_waiters_exclusive a' b' u hab'
             (by simpa [step, if_pos hrt, hts] using hma)
             (by simpa [step, if_pos hrt, hts] using hmb')
+        · -- mailbox_within_capacity (RFC 056): sleep touches neither mailboxes nor policy
+          intro a' n mbx hcap hmbx
+          exact h.mailbox_within_capacity a' n mbx
+            (by simpa [step, if_pos hrt, hts] using hcap)
+            (by simpa [step, if_pos hrt, hts] using hmbx)
       | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
@@ -194,7 +199,7 @@ theorem preserves_wf_tick {s : RuntimeState} (h : WellFormed s) :
       rcases hwoken u hm with h2 | h2
       · exact hs h2
       · exact ht h2
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · -- readyQ_nodup
       rw [hstep_rq]; exact nodup_append h.readyQ_nodup hwoken_nodup hnotReadyQ
     · -- readyQ_queued
@@ -407,6 +412,11 @@ theorem preserves_wf_tick {s : RuntimeState} (h : WellFormed s) :
       simp only [step, if_pos hle] at hma hmb'
       exact h.timed_waiters_exclusive a' b' u hab'
         (List.mem_filter.mp hma).1 (List.mem_filter.mp hmb').1
+    · -- mailbox_within_capacity (RFC 056): tick touches neither mailboxes nor policy
+      intro a' n mbx hcap hmbx
+      exact h.mailbox_within_capacity a' n mbx
+        (by simpa [step, if_pos hle] using hcap)
+        (by simpa [step, if_pos hle] using hmbx)
   · simpa [step, hle] using h
 
 theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
@@ -419,7 +429,7 @@ theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
       have hnq : t ∉ s.readyQ := fun hm => by
         have h1 := h.readyQ_queued t hm; rw [hts] at h1
         simp [Option.any, TaskState.isRunnable] at h1
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp [step, hts]; exact nodup_append_singleton h.readyQ_nodup hnq
       · intro u hm
         simp [step, hts] at hm ⊢; rcases hm with hm | rfl
@@ -545,6 +555,11 @@ theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
         intro a' b' u hab' hma hmb'
         exact h.timed_waiters_exclusive a' b' u hab'
           (by simpa [step, hts] using hma) (by simpa [step, hts] using hmb')
+      · -- mailbox_within_capacity (RFC 056): wake touches neither mailboxes nor policy
+        intro a' n mbx hcap hmbx
+        exact h.mailbox_within_capacity a' n mbx
+          (by simpa [step, hts] using hcap)
+          (by simpa [step, hts] using hmbx)
     | new | ready | running | yielded | completed | cancelled | waiting | waitingTimed | failed =>
       simpa [step, hts] using h
 

@@ -119,7 +119,9 @@ def toQOps (s : RuntimeState) (op : RuntimeOp) : List QOp :=
         match s.taskState t with
         | some .running =>
           match s.taskOwner t, s.mailboxes b with
-          | some _, some _ =>
+          | some _, some mb =>
+            if s.mailboxFull b mb then []
+            else
             match s.mailboxWaiters b with
             | w :: _ => [.Push 0 w]
             | []     =>
@@ -134,7 +136,9 @@ def toQOps (s : RuntimeState) (op : RuntimeOp) : List QOp :=
       if s.runtimeStatus ≠ .running ∨ s.actorStatus a = .closed then []
       else
       match s.mailboxes a with
-      | some _ =>
+      | some mb =>
+        if s.mailboxFull a mb then []
+        else
         match s.mailboxWaiters a with
         | w :: _ => [.Push 0 w]
         | []     =>
@@ -262,9 +266,10 @@ theorem toQOps_send_valid_waiter (s : RuntimeState) (t b w : TaskId) (m : Messag
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some oa) (hmb : s.mailboxes b = some mb)
     (hac : s.actorStatus b ≠ .closed)
-    (hwt : s.mailboxWaiters b = w :: ws) :
+    (hwt : s.mailboxWaiters b = w :: ws)
+    (hfull : s.mailboxFull b mb = false) :
     toQOps s (.send t b m) = [.Push 0 w] := by
-  simp [toQOps, hac, hrt, hts, how, hmb, hwt]
+  simp [toQOps, hac, hrt, hts, how, hmb, hwt, hfull]
 
 theorem toQOps_send_valid_no_waiter (s : RuntimeState) (t b : TaskId) (m : Message)
     (oa : ActorId) (mb : Mailbox)
@@ -280,16 +285,18 @@ theorem toQOps_send_valid_timed_waiter (s : RuntimeState) (t b w : TaskId) (m : 
     (hrt : s.running = some t) (hts : s.taskState t = some .running)
     (how : s.taskOwner t = some oa) (hmb : s.mailboxes b = some mb)
     (hac : s.actorStatus b ≠ .closed)
-    (hwt : s.mailboxWaiters b = []) (htw : s.timedMailboxWaiters b = w :: ws) :
+    (hwt : s.mailboxWaiters b = []) (htw : s.timedMailboxWaiters b = w :: ws)
+    (hfull : s.mailboxFull b mb = false) :
     toQOps s (.send t b m) = [.Push 0 w] := by
-  simp [toQOps, hac, hrt, hts, how, hmb, hwt, htw]
+  simp [toQOps, hac, hrt, hts, how, hmb, hwt, htw, hfull]
 
 theorem toQOps_inject_valid_waiter (s : RuntimeState) (a w : ActorId) (m : Message)
     (mb : Mailbox) (ws : List TaskId)
     (hrs : s.runtimeStatus = .running) (hac : s.actorStatus a ≠ .closed)
-    (hmb : s.mailboxes a = some mb) (hwt : s.mailboxWaiters a = w :: ws) :
+    (hmb : s.mailboxes a = some mb) (hwt : s.mailboxWaiters a = w :: ws)
+    (hfull : s.mailboxFull a mb = false) :
     toQOps s (.inject a m) = [.Push 0 w] := by
-  simp [toQOps, hrs, hac, hmb, hwt]
+  simp [toQOps, hrs, hac, hmb, hwt, hfull]
 
 theorem toQOps_inject_valid_no_waiter (s : RuntimeState) (a : ActorId) (m : Message)
     (mb : Mailbox) (hrs : s.runtimeStatus = .running) (hac : s.actorStatus a ≠ .closed)
@@ -302,9 +309,10 @@ theorem toQOps_inject_valid_timed_waiter (s : RuntimeState) (a w : ActorId) (m :
     (mb : Mailbox) (ws : List TaskId)
     (hrs : s.runtimeStatus = .running) (hac : s.actorStatus a ≠ .closed)
     (hmb : s.mailboxes a = some mb) (hwt : s.mailboxWaiters a = [])
-    (htw : s.timedMailboxWaiters a = w :: ws) :
+    (htw : s.timedMailboxWaiters a = w :: ws)
+    (hfull : s.mailboxFull a mb = false) :
     toQOps s (.inject a m) = [.Push 0 w] := by
-  simp [toQOps, hrs, hac, hmb, hwt, htw]
+  simp [toQOps, hrs, hac, hmb, hwt, htw, hfull]
 
 theorem toQOps_inject_invalid (s : RuntimeState) (a : ActorId) (m : Message)
     (hmb : s.mailboxes a = none) :

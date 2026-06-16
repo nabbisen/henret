@@ -120,15 +120,14 @@ theorem step_clock_monotone (s : RuntimeState) (op : RuntimeOp) :
     | some st => by_cases hterm : st.isTerminal <;> simp [step, hts, hterm]
   | send t b m =>
     simp only [step]
-    split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;>
-      (try split) <;> (try split) <;> simp_all
+    (repeat' split) <;> simp_all
   | receive t =>
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;>
       (try split) <;> simp_all
   | inject a m =>
     simp only [step]
-    split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;> simp_all
+    (repeat' split) <;> simp_all
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -192,13 +191,11 @@ theorem step_preserves_sorted {s : RuntimeState}
     · exact h
   | send t b m =>
     simp only [step]
-    split <;> (try split) <;> (try split) <;> (try split) <;>
-      (try split) <;> (try split) <;> (try split) <;> simp_all [Timer.sorted_filter]
+    (repeat' split) <;> simp_all [Timer.sorted_filter]
   | receive t => simpa using h
   | inject a m =>
     simp only [step]
-    split <;> (try split) <;> (try split) <;> (try split) <;> (try split) <;>
-      simp_all [Timer.sorted_filter]
+    (repeat' split) <;> simp_all [Timer.sorted_filter]
   | sleep t d =>
     simp only [step]; split
     · split

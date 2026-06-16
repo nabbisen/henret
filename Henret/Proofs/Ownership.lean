@@ -157,18 +157,21 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
               cases hmb : s.mailboxes b with
               | none => exact ⟨st, by simp [step, hcl, hrt, hts, how, hmb, h]⟩
               | some mb =>
-                cases hw : s.mailboxWaiters b with
-                | cons w ws =>
-                  by_cases huw : u = w
-                  · subst huw; exact ⟨.ready, by simp [step, hcl, hrt, hts, how, hmb, hw, upd]⟩
-                  · exact ⟨st, by simp [step, hcl, hrt, hts, how, hmb, hw, upd, huw]; exact h⟩
-                | nil =>
-                  cases htw : s.timedMailboxWaiters b with
-                  | nil => exact ⟨st, by simp [step, hcl, hrt, hts, how, hmb, hw, htw, upd, h]⟩
+                by_cases hfull : s.mailboxFull b mb = true
+                · exact ⟨st, by simp [step, hcl, hrt, hts, how, hmb, hfull, h]⟩
+                · simp only [Bool.not_eq_true] at hfull
+                  cases hw : s.mailboxWaiters b with
                   | cons w ws =>
                     by_cases huw : u = w
-                    · subst huw; exact ⟨.ready, by simp [step, hcl, hrt, hts, how, hmb, hw, htw, upd]⟩
-                    · exact ⟨st, by simp [step, hcl, hrt, hts, how, hmb, hw, htw, upd, huw]; exact h⟩
+                    · subst huw; exact ⟨.ready, by simp [step, hcl, hrt, hts, how, hmb, hw, hfull, upd]⟩
+                    · exact ⟨st, by simp [step, hcl, hrt, hts, how, hmb, hw, hfull, upd, huw]; exact h⟩
+                  | nil =>
+                    cases htw : s.timedMailboxWaiters b with
+                    | nil => exact ⟨st, by simp [step, hcl, hrt, hts, how, hmb, hw, htw, hfull, upd, h]⟩
+                    | cons w ws =>
+                      by_cases huw : u = w
+                      · subst huw; exact ⟨.ready, by simp [step, hcl, hrt, hts, how, hmb, hw, htw, hfull, upd]⟩
+                      · exact ⟨st, by simp [step, hcl, hrt, hts, how, hmb, hw, htw, hfull, upd, huw]; exact h⟩
           | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
             exact ⟨st, by simp [step, hcl, hrt, hts, h]⟩
       · exact ⟨st, by simp [step, hcl, hrt, h]⟩
@@ -244,18 +247,21 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
     · cases hmb : s.mailboxes a with
       | none => exact ⟨st, by simp [step, hg, hmb, h]⟩
       | some mb =>
-        cases hw : s.mailboxWaiters a with
-        | cons w ws =>
-          by_cases huw : u = w
-          · subst huw; exact ⟨.ready, by simp [step, hg, hmb, hw, upd]⟩
-          · exact ⟨st, by simp [step, hg, hmb, hw, upd, huw]; exact h⟩
-        | nil =>
-          cases htw : s.timedMailboxWaiters a with
-          | nil => exact ⟨st, by simp [step, hg, hmb, hw, htw, upd, h]⟩
+        by_cases hfull : s.mailboxFull a mb = true
+        · exact ⟨st, by simp [step, hg, hmb, hfull, h]⟩
+        · simp only [Bool.not_eq_true] at hfull
+          cases hw : s.mailboxWaiters a with
           | cons w ws =>
             by_cases huw : u = w
-            · subst huw; exact ⟨.ready, by simp [step, hg, hmb, hw, htw, upd]⟩
-            · exact ⟨st, by simp [step, hg, hmb, hw, htw, upd, huw]; exact h⟩
+            · subst huw; exact ⟨.ready, by simp [step, hg, hmb, hw, hfull, upd]⟩
+            · exact ⟨st, by simp [step, hg, hmb, hw, hfull, upd, huw]; exact h⟩
+          | nil =>
+            cases htw : s.timedMailboxWaiters a with
+            | nil => exact ⟨st, by simp [step, hg, hmb, hw, htw, hfull, upd, h]⟩
+            | cons w ws =>
+              by_cases huw : u = w
+              · subst huw; exact ⟨.ready, by simp [step, hg, hmb, hw, htw, hfull, upd]⟩
+              · exact ⟨st, by simp [step, hg, hmb, hw, htw, hfull, upd, huw]; exact h⟩
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -484,22 +490,25 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
               cases hmb : s.mailboxes b with
               | none => simp [step, hcl, hrt, hts, how, hmb]; exact h
               | some mb =>
-                cases hw : s.mailboxWaiters b with
-                | cons w ws =>
-                  by_cases huw : u = w
-                  · subst huw
-                    have hmem : u ∈ s.mailboxWaiters b := hw ▸ List.mem_cons_self u ws
-                    rw [h_wf.waiters_waiting b u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
-                  · simp [step, hcl, hrt, hts, how, hmb, hw, upd, huw]; exact h
-                | nil =>
-                  cases htw : s.timedMailboxWaiters b with
-                  | nil => simp [step, hcl, hrt, hts, how, hmb, hw, htw, upd]; exact h
+                by_cases hfull : s.mailboxFull b mb = true
+                · simp [step, hcl, hrt, hts, how, hmb, hfull]; exact h
+                · simp only [Bool.not_eq_true] at hfull
+                  cases hw : s.mailboxWaiters b with
                   | cons w ws =>
                     by_cases huw : u = w
                     · subst huw
-                      have hmem : u ∈ s.timedMailboxWaiters b := htw ▸ List.mem_cons_self u ws
-                      rw [h_wf.timed_waiters_valid b u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
-                    · simp [step, hcl, hrt, hts, how, hmb, hw, htw, upd, huw]; exact h
+                      have hmem : u ∈ s.mailboxWaiters b := hw ▸ List.mem_cons_self u ws
+                      rw [h_wf.waiters_waiting b u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
+                    · simp [step, hcl, hrt, hts, how, hmb, hw, hfull, upd, huw]; exact h
+                  | nil =>
+                    cases htw : s.timedMailboxWaiters b with
+                    | nil => simp [step, hcl, hrt, hts, how, hmb, hw, htw, hfull, upd]; exact h
+                    | cons w ws =>
+                      by_cases huw : u = w
+                      · subst huw
+                        have hmem : u ∈ s.timedMailboxWaiters b := htw ▸ List.mem_cons_self u ws
+                        rw [h_wf.timed_waiters_valid b u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
+                      · simp [step, hcl, hrt, hts, how, hmb, hw, htw, hfull, upd, huw]; exact h
           | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
             simp [step, hcl, hrt, hts]; exact h
       · simp [step, hcl, hrt]; exact h
@@ -581,22 +590,25 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
     · cases hmb : s.mailboxes a with
       | none => simp [step, hg, hmb]; exact h
       | some mb =>
-        cases hw : s.mailboxWaiters a with
-        | cons w ws =>
-          by_cases huw : u = w
-          · subst huw
-            have hmem : u ∈ s.mailboxWaiters a := hw ▸ List.mem_cons_self u ws
-            rw [h_wf.waiters_waiting a u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
-          · simp [step, hg, hmb, hw, upd, huw]; exact h
-        | nil =>
-          cases htw : s.timedMailboxWaiters a with
-          | nil => simp [step, hg, hmb, hw, htw, upd]; exact h
+        by_cases hfull : s.mailboxFull a mb = true
+        · simp [step, hg, hmb, hfull]; exact h
+        · simp only [Bool.not_eq_true] at hfull
+          cases hw : s.mailboxWaiters a with
           | cons w ws =>
             by_cases huw : u = w
             · subst huw
-              have hmem : u ∈ s.timedMailboxWaiters a := htw ▸ List.mem_cons_self u ws
-              rw [h_wf.timed_waiters_valid a u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
-            · simp [step, hg, hmb, hw, htw, upd, huw]; exact h
+              have hmem : u ∈ s.mailboxWaiters a := hw ▸ List.mem_cons_self u ws
+              rw [h_wf.waiters_waiting a u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
+            · simp [step, hg, hmb, hw, hfull, upd, huw]; exact h
+          | nil =>
+            cases htw : s.timedMailboxWaiters a with
+            | nil => simp [step, hg, hmb, hw, htw, hfull, upd]; exact h
+            | cons w ws =>
+              by_cases huw : u = w
+              · subst huw
+                have hmem : u ∈ s.timedMailboxWaiters a := htw ▸ List.mem_cons_self u ws
+                rw [h_wf.timed_waiters_valid a u hmem] at h; simp at h; subst h; simp [TaskState.isTerminal] at hterm
+              · simp [step, hg, hmb, hw, htw, hfull, upd, huw]; exact h
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -783,13 +795,16 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
               cases hmb : s.mailboxes b with
               | none => simp [step, hcl, hrt, hts, how, hmb]
               | some mb =>
-                -- send always succeeds when guards pass; no invalid branch
-                cases hw : s.mailboxWaiters b with
-                | cons w ws => simp [step, hcl, hrt, hts, how, hmb, hw] at h
-                | nil =>
-                  cases htw : s.timedMailboxWaiters b with
-                  | nil => simp [step, hcl, hrt, hts, how, hmb, hw, htw] at h
-                  | cons w ws => simp [step, hcl, hrt, hts, how, hmb, hw, htw] at h
+                -- send produces .ok or .backpressured here; never .invalid
+                by_cases hfull : s.mailboxFull b mb = true
+                · simp [step, hcl, hrt, hts, how, hmb, hfull] at h
+                · simp only [Bool.not_eq_true] at hfull
+                  cases hw : s.mailboxWaiters b with
+                  | cons w ws => simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at h
+                  | nil =>
+                    cases htw : s.timedMailboxWaiters b with
+                    | nil => simp [step, hcl, hrt, hts, how, hmb, hw, htw, hfull] at h
+                    | cons w ws => simp [step, hcl, hrt, hts, how, hmb, hw, htw, hfull] at h
           | new | ready | yielded | sleeping | waitingTimed | completed | cancelled | waiting | failed =>
             simp [step, hcl, hrt, hts]
       · simp [step, hcl, hrt]
@@ -856,12 +871,15 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
     · cases hmb : s.mailboxes a with
       | none => simp [step, hg, hmb]
       | some mb =>
-        cases hw : s.mailboxWaiters a with
-        | cons w ws => simp [step, hg, hmb, hw] at h
-        | nil =>
-          cases htw : s.timedMailboxWaiters a with
-          | nil => simp [step, hg, hmb, hw, htw] at h
-          | cons w ws => simp [step, hg, hmb, hw, htw] at h
+        by_cases hfull : s.mailboxFull a mb = true
+        · simp [step, hg, hmb, hfull] at h
+        · simp only [Bool.not_eq_true] at hfull
+          cases hw : s.mailboxWaiters a with
+          | cons w ws => simp [step, hg, hmb, hw, hfull] at h
+          | nil =>
+            cases htw : s.timedMailboxWaiters a with
+            | nil => simp [step, hg, hmb, hw, htw, hfull] at h
+            | cons w ws => simp [step, hg, hmb, hw, htw, hfull] at h
   | sleep t d =>
     by_cases hrt : s.running = some t
     · cases hts : s.taskState t with
@@ -936,5 +954,17 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
     · simp [step, hq] at h
     · simp [step, hq]
 
+/-- A backpressured operation never mutates state: `.backpressured` is a strict
+    no-op result (RFC 056). The bounded-mailbox analogue of
+    `step_invalid_unchanged`; only `send`/`inject` to a full mailbox can produce
+    it, and that branch returns the input state verbatim. -/
+theorem step_backpressured_unchanged {s : RuntimeState} {op : RuntimeOp}
+    (h : (step s op).2 = .backpressured) : (step s op).1 = s := by
+  cases op <;> simp only [step] at h ⊢ <;> (repeat' split) <;> simp_all
+
+/-- `.backpressured` is a distinct result from `.invalid`: a full mailbox is a
+    legal-but-no-progress outcome, not a protocol/admission failure (RFC 056). -/
+theorem backpressured_not_invalid : StepResult.backpressured ≠ StepResult.invalid := by
+  decide
 
 end Henret

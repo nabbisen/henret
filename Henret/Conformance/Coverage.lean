@@ -87,7 +87,17 @@ def coverageRegistry : List CoverageEntry :=
     { op := "spawn",      branchId := "spawn.shutdown-invalid",      scenario := "shutdown_rejects_spawn" },
     { op := "inject",     branchId := "inject.shutdown-invalid",     scenario := "shutdown_rejects_inject" },
     { op := "tick",       branchId := "tick.never-wakes-cancelled",  scenario := "stale_timer_cannot_wake_cancelled" },
-    { op := "cancel",     branchId := "cancel.removes-timer",        scenario := "stale_timer_cannot_wake_cancelled" } ]
+    { op := "cancel",     branchId := "cancel.removes-timer",        scenario := "stale_timer_cannot_wake_cancelled" },
+    -- bounded mailboxes / backpressure (RFC 056)
+    { op := "send",   branchId := "send.capacity-ok",                  scenario := "bounded_send_then_backpressured" },
+    { op := "send",   branchId := "send.capacity-full-backpressured",  scenario := "bounded_send_then_backpressured" },
+    { op := "send",   branchId := "send.capacity-frees-after-receive", scenario := "bounded_receive_frees_capacity" },
+    { op := "inject", branchId := "inject.capacity-full-backpressured", scenario := "bounded_inject_full_backpressured" },
+    { op := "send",   branchId := "send.capacity-zero-reject-all",     scenario := "capacity_zero_send_backpressured" },
+    { op := "inject", branchId := "inject.capacity-zero-reject-all",   scenario := "capacity_zero_inject_backpressured" },
+    { op := "send",   branchId := "send.unbounded-never-backpressured", scenario := "unbounded_send_never_backpressured" },
+    { op := "inject", branchId := "inject.full-with-waiter-backpressured", scenario := "full_mailbox_with_waiter_inject_backpressured" },
+    { op := "send",   branchId := "send.full-with-waiter-backpressured",   scenario := "full_mailbox_with_waiter_send_backpressured" } ]
 
 /-- The names of every available golden scenario (trace + branch). -/
 def allScenarioNames : List String :=

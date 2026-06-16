@@ -12,7 +12,7 @@ theorem or the behavior of `step`/`run`. The vocabulary lives in
 |---|---|---|
 | `core` | lifecycle | bare task lifecycle: spawn, schedule, yield, complete, cancel |
 | `actor` | + actorMessaging, parking, occurrenceIdentity | actor mailboxes, parking on empty receive, message occurrence identity |
-| `full` | + timers, supervision, bridge | every currently-implemented feature |
+| `full` | + timers, supervision, bridge, boundedMailbox | every currently-implemented feature |
 
 Inclusion is kernel-proven: `core_le_actor`, `actor_le_full`,
 `core_le_full` (all depend only on `propext`). Reserved features
@@ -43,7 +43,8 @@ the `SemanticFeature` enum but appear in no named profile yet.
 
 | Theorem | Why full |
 |---|---|
-| `reachable_wf` | asserts all 28 `WellFormed` fields (spans lifecycle, actor, timer, parent, occurrence) |
+| `reachable_wf` | asserts all 29 `WellFormed` fields (spans lifecycle, actor, timer, parent, occurrence, capacity) |
+| `reachable_mailbox_within_capacity`, `full_has_boundedMailbox` | bounded mailboxes / backpressure (RFC 056) |
 | `reachable_parent_lt`, `parent_chain_terminates` | parenthood / supervision groundwork |
 | `reachable_restart_fresh`, `reachable_restart_old_failed`, `reachable_restart_parent_consistent`, `restart_preserves_parent_acyclicity`, `restarted_task_has_owner` | supervision (RFC 049) |
 | `bridge_step_single_worker`, `reachable_bridge` | bridge (single-worker projection) |

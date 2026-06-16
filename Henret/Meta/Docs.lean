@@ -75,9 +75,10 @@ def stepResultDocs : List ConstructorDoc :=
     { name := "blocked",   since := "RFC 029", category := "blocked", summary := "legal but cannot progress now (parked)" },
     { name := "timedOut",  since := "RFC 040", category := "blocked", summary := "receiveUntil fast path: deadline passed" },
     { name := "woke",      since := "RFC 007", category := "success", summary := "tick woke these tasks" },
+    { name := "backpressured", since := "RFC 056", category := "rejected", summary := "valid send/inject rejected: mailbox at capacity (no-op)" },
     { name := "invalid",   since := "RFC 004", category := "rejected", summary := "not valid in the current state (no-op)" } ]
 
-/-- `WellFormed` — the 28 reachability-invariant fields
+/-- `WellFormed` — the 29 reachability-invariant fields
     (`Henret/Proofs/Invariants.lean`). -/
 def wellFormedDocs : List FieldDoc :=
   [ { name := "readyQ_nodup",            group := "scheduling",  since := "RFC 013", summary := "the ready queue has no duplicates" },
@@ -107,6 +108,7 @@ def wellFormedDocs : List FieldDoc :=
     { name := "timed_is_waiter",         group := "timed-wait",  since := "RFC 040", summary := "a waitingTimed task is a timed waiter" },
     { name := "timed_waiters_valid",     group := "timed-wait",  since := "RFC 040", summary := "every timed waiter is waitingTimed" },
     { name := "timed_waiters_nodup",     group := "timed-wait",  since := "RFC 040", summary := "timed-waiter lists are duplicate-free" },
-    { name := "timed_waiters_exclusive", group := "timed-wait",  since := "RFC 040", summary := "a task waits on at most one timed mailbox" } ]
+    { name := "timed_waiters_exclusive", group := "timed-wait",  since := "RFC 040", summary := "a task waits on at most one timed mailbox" },
+    { name := "mailbox_within_capacity", group := "capacity",    since := "RFC 056", summary := "no mailbox exceeds its configured capacity" } ]
 
 end Henret.Meta

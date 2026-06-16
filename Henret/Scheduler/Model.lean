@@ -72,6 +72,9 @@ structure RuntimeState where
   actorStatus : ActorId → ActorStatus
   /-- Runtime admission status (RFC 055). `running` by default. -/
   runtimeStatus : RuntimeStatus
+  /-- Per-actor mailbox policy (RFC 056). `unbounded` by default, so a state
+      that configures no capacity behaves exactly as pre-RFC-056. -/
+  mailboxPolicy : ActorId → MailboxPolicy
 
 namespace RuntimeState
 
@@ -93,6 +96,16 @@ def init : RuntimeState where
   restartOf      := fun _ => none
   actorStatus    := fun _ => .active
   runtimeStatus  := .running
+  mailboxPolicy  := fun _ => .unbounded
+
+/-- Is actor `b`'s mailbox `mb` at or over its configured capacity? (RFC 056)
+    Always `false` for an unbounded policy. `send`/`inject` consult this only
+    after every validity/admission guard, so a full mailbox yields
+    `.backpressured` (a legal-but-no-progress result), never `.invalid`. -/
+def mailboxFull (s : RuntimeState) (b : ActorId) (mb : Mailbox) : Bool :=
+  match (s.mailboxPolicy b).capacity with
+  | some n => decide (n ≤ mb.messages.length)
+  | none   => false
 
 end RuntimeState
 
@@ -240,6 +253,11 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
         | some _ =>
           match s.mailboxes b with
           | some mb =>
+            -- RFC 056: a valid delivery to a full mailbox is backpressured (reject),
+            -- not invalid. This guard follows every validity/admission check, so it is
+            -- never an oracle for an unauthorized sender, and occurrence ids are
+            -- allocated only on the successful-enqueue path below.
+            if s.mailboxFull b mb then (s, .backpressured) else
             -- Stamp envelope with occurrence id and sender's actor; wake head waiter of b if any (RFC 033).
             let env : Envelope := ⟨s.nextMsgId, s.taskOwner t, m⟩
             let s' := { s with
@@ -301,6 +319,9 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
     else
     match s.mailboxes a with
     | some mb =>
+      -- RFC 056: backpressure a full mailbox (reject); distinct from invalid, and
+      -- occurrence ids are allocated only on the successful-enqueue path below.
+      if s.mailboxFull a mb then (s, .backpressured) else
       -- Stamp envelope with occurrence id and none source (environment); wake head waiter if any (RFC 033).
       let env : Envelope := ⟨s.nextMsgId, none, m⟩
       let s' := { s with

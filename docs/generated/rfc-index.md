@@ -2,7 +2,7 @@
 
 # RFC index
 
-87 RFCs: 62 implemented, 24 proposed/in-wave, 1 archived. Generated from RFC front matter.
+87 RFCs: 64 implemented, 22 proposed/in-wave, 1 archived. Generated from RFC front matter.
 
 ## Implemented (`done/`)
 
@@ -63,6 +63,8 @@
 | [53](done/053-assurance-case-and-external-review-playbook.md) | Assurance Case and External Review Playbook | v0.15.4 | governance |
 | [54](done/054-semantic-profiles-and-capability-sets.md) | Semantic Profiles and Capability Sets | v0.16.0 | profiles |
 | [55](done/055-structured-cancellation-and-shutdown.md) | Structured Cancellation and Shutdown | v0.17.0 | model-semantics |
+| [56](done/056-bounded-mailboxes-and-backpressure.md) | Bounded Mailboxes and Backpressure | v0.18.0 | model-semantics |
+| [75](done/075-model-to-documentation-extraction.md) | Model-to-Documentation Extraction | v0.17.7 | documentation |
 | [80](done/080-release-gate-integrity-and-evidence-manifest.md) | Release Gate Integrity and Evidence Manifest | v0.17.2 | release-process |
 | [81](done/081-package-boundary-and-evidence-ledger.md) | Package Boundary and Evidence Ledger | v0.17.3 | governance |
 | [82](done/082-preservation-proof-ergonomics-v2.md) | Preservation Proof Ergonomics v2 | v0.17.6 | proofs |
@@ -75,7 +77,6 @@
 
 | RFC | Title | Status | Category |
 |---|---|---|---|
-| [56](proposed/056-bounded-mailboxes-and-backpressure.md) | Bounded Mailboxes and Backpressure | Proposed | model-semantics |
 | [57](proposed/057-resource-lifetime-and-finalization-ledger.md) | Resource Lifetime and Finalization Ledger | Proposed | model-semantics |
 | [58](proposed/058-scheduling-policy-layer.md) | Scheduling Policy Layer | Proposed | model-semantics |
 | [59](proposed/059-deadline-and-priority-semantics.md) | Deadline and Priority Semantics | Proposed | model-semantics |
@@ -94,7 +95,6 @@
 | [72](proposed/072-error-and-result-observability-contract.md) | Error and Result Observability Contract | Proposed | observability |
 | [73](proposed/073-runtime-adapter-negative-tests.md) | Runtime Adapter Negative Tests | Proposed | integration |
 | [74](proposed/074-bridge-completeness-certificate.md) | Bridge Completeness Certificate | Proposed | proofs |
-| [75](proposed/075-model-to-documentation-extraction.md) | Model-to-Documentation Extraction | Proposed | documentation |
 | [76](proposed/076-counterexample-catalog.md) | Counterexample Catalog | Proposed | pedagogy |
 | [77](proposed/077-minimal-verified-actor-patterns.md) | Minimal Verified Actor Patterns | Proposed | pedagogy |
 | [78](proposed/078-security-and-robustness-interpretation.md) | Security and Robustness Interpretation | Proposed | security |

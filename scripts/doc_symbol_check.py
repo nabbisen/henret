@@ -165,6 +165,14 @@ IGNORE = {
     "in_tree_model_proof", "in_tree_model_test", "sibling_runtime_package",
     "external_artifact", "verified_by_this_tarball", "verified_by_ci",
     "evidence_location", "claim_id", "external_version", "external_commit",
+    # RFC 056 WellFormed field referenced bare (dotted WellFormed.X is checked)
+    "mailbox_within_capacity",
+    # RFC 056 conformance scenario defs (Henret.Conformance namespace, not theorems)
+    "bounded_send_then_backpressured", "bounded_receive_frees_capacity",
+    "bounded_inject_full_backpressured", "capacity_zero_send_backpressured",
+    "capacity_zero_inject_backpressured", "unbounded_send_never_backpressured",
+    "full_mailbox_with_waiter_send_backpressured",
+    "full_mailbox_with_waiter_inject_backpressured",
 }
 
 NAME_RE = re.compile(r"`([A-Za-z][A-Za-z0-9_.']*)`")

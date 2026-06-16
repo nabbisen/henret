@@ -2,7 +2,7 @@
 
 # Public theorem index
 
-The 62 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 68 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
@@ -14,9 +14,12 @@ The 62 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_a
 - `Henret.closed_actor_rejects_send`
 - `Henret.core_le_actor`
 - `Henret.core_le_full`
+- `Henret.inject_full_backpressured`
 - `Henret.inject_stamps_none`
+- `Henret.inject_unbounded_not_backpressured`
 - `Henret.parent_chain_terminates`
 - `Henret.preserves_wf_cancelTree`
+- `Henret.reachable_mailbox_within_capacity`
 - `Henret.reachable_occurrence_unique`
 - `Henret.reachable_owner_has_mailbox`
 - `Henret.reachable_owner_spawned`
@@ -37,9 +40,12 @@ The 62 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_a
 - `Henret.restart_preserves_parent_acyclicity`
 - `Henret.restarted_task_has_owner`
 - `Henret.run_preserves_wf`
+- `Henret.send_full_backpressured`
 - `Henret.send_stamps_source`
+- `Henret.send_unbounded_not_backpressured`
 - `Henret.shutdown_rejects_spawn`
 - `Henret.shutdown_sets_status`
+- `Henret.step_backpressured_unchanged`
 - `Henret.step_clock_monotone`
 - `Henret.step_invalid_unchanged`
 - `Henret.step_preserves_terminal`

@@ -44,7 +44,13 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
           | none => simpa [step, hcl, hrt, hts, how] using h
           | some o => cases hmb : s.mailboxes b with
             | none => simpa [step, hcl, hrt, hts, how, hmb] using h
-            | some mb => cases hw : s.mailboxWaiters b with
+            | some mb =>
+              by_cases hfull : s.mailboxFull b mb = true
+              · rw [show (step s (.send t b m)).1 = s from by
+                  simp [step, hcl, hrt, hts, how, hmb, hfull]]
+                exact h
+              simp only [Bool.not_eq_true] at hfull
+              cases hw : s.mailboxWaiters b with
               | nil =>
                 by_cases htw : s.timedMailboxWaiters b = []
                 · -- No waiter at all: only mailboxes and nextMsgId change
@@ -52,23 +58,23 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                       { s with
                         mailboxes := upd s.mailboxes b (some (mb.enqueue ⟨s.nextMsgId, s.taskOwner t, m⟩))
                         nextMsgId := s.nextMsgId + 1 } := by
-                    simp [step, hcl, hrt, hts, how, hmb, hw, htw]
+                    simp [step, hcl, hrt, hts, how, hmb, hw, htw, hfull]
                   rw [hstep]
                   refine ⟨h.readyQ_nodup, fun u hm => h.readyQ_queued u hm, h.running_runs,
                     h.timers_nodup, h.timers_sleep, h.fresh_none, h.timers_sorted,
                     h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
                     h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-                    ?_, ?_, ?_, ?_, ?_, ?_, h.timed_waiters_exclusive⟩
+                    ?_, ?_, ?_, ?_, ?_, ?_, h.timed_waiters_exclusive, ?_⟩
                   · intro u cc hown
                     obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                     by_cases hcc : cc = b
                     · subst hcc; exact ⟨mb.enqueue ⟨s.nextMsgId, s.taskOwner t, m⟩, by simp [upd_self]⟩
                     · exact ⟨mbc, by simp [upd, if_neg hcc, hmbc]⟩
-                  · intro u p hp; exact h.parent_lt u p (by simpa [step, hcl, hrt, hts, how, hmb, hw] using hp)
+                  · intro u p hp; exact h.parent_lt u p (by simpa [step, hcl, hrt, hts, how, hmb, hw, hfull] using hp)
                   · intro u p hp
                     obtain ⟨st, hst⟩ := h.parent_spawned u p
-                      (by simpa [step, hcl, hrt, hts, how, hmb, hw] using hp)
-                    exact ⟨st, by simpa [step, hcl, hrt, hts, how, hmb, hw] using hst⟩
+                      (by simpa [step, hcl, hrt, hts, how, hmb, hw, hfull] using hp)
+                    exact ⟨st, by simpa [step, hcl, hrt, hts, how, hmb, hw, hfull] using hst⟩
                   · -- occ_fresh
                     intro ac mc env hmbc henv
                     by_cases hac : ac = b
@@ -122,6 +128,15 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                   · exact fun u hu => wf_timed_is_waiter_pass h (fun _ => rfl) (fun _ => rfl) u hu
                   · exact fun a' u hm => wf_timed_waiters_valid_pass h (fun _ => rfl) (fun _ => rfl) a' u hm
                   · exact fun a' => wf_timed_waiters_nodup_pass h (fun _ => rfl) a'
+                  · -- mailbox_within_capacity (RFC 056): enqueue respects capacity (mb not full)
+                    intro a' n mbx hcap hmbx
+                    by_cases hab : a' = b
+                    · subst hab; simp only [upd_self] at hmbx
+                      have hmc := Option.some.inj hmbx; subst hmc
+                      rw [Mailbox.enqueue_length]
+                      have hlt := lt_capacity_of_not_full hcap hfull; omega
+                    · simp only [upd, if_neg hab] at hmbx
+                      exact h.mailbox_within_capacity a' n mbx hcap hmbx
                 · -- Timed waiter (hwws: timedMailboxWaiters b = w :: ws)
                   obtain ⟨w, ws, hwws⟩ : ∃ w ws, s.timedMailboxWaiters b = w :: ws := by
                     cases h' : s.timedMailboxWaiters b with
@@ -134,41 +149,41 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                   have hwne : w ≠ t := by
                     intro he; subst he; exact absurd hwtt (by rw [h.running_runs w hrt]; simp)
                   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-                 ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+                 ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
                   · -- readyQ_nodup
-                    simp [step, hcl, hrt, hts, how, hmb, hw, hwws]
+                    simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull]
                     exact nodup_append_singleton h.readyQ_nodup hwq
                   · -- readyQ_queued
-                    intro u hm; simp [step, hcl, hrt, hts, how, hmb, hw, hwws] at hm ⊢
+                    intro u hm; simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] at hm ⊢
                     rcases hm with hm | rfl
                     · by_cases hue : u = w
                       · simp [upd_self, hue, Option.any, TaskState.isRunnable]
                       · simp [upd_ne _ _ hue]; exact h.readyQ_queued u hm
                     · simp [upd_self, Option.any, TaskState.isRunnable]
                   · -- running_runs
-                    intro u hru; simp [step, hcl, hrt, hts, how, hmb, hw, hwws] at hru ⊢
+                    intro u hru; simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] at hru ⊢
                     by_cases hue : u = w
                     · exact False.elim (hwne (hue ▸ hru : t = w).symm)
                     · simp [upd_ne _ _ hue]; exact h.running_runs u (by rw [← hru]; exact hrt)
                   · -- timers_nodup
-                    simp [step, hcl, hrt, hts, how, hmb, hw, hwws]
+                    simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull]
                     exact nodup_of_sublist
                       (List.Sublist.map TimerEntry.task (List.filter_sublist _)) h.timers_nodup
                   · -- timers_sleep
-                    intro e he; simp [step, hcl, hrt, hts, how, hmb, hw, hwws] at he ⊢
+                    intro e he; simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] at he ⊢
                     -- After simp, he : e ∈ s.timers ∧ ¬(e.task = w)
                     have hne' : e.task ≠ w := by simpa using he.2
                     simp [upd_ne _ _ hne']; exact h.timers_sleep e he.1
                   · -- fresh_none
-                    intro u hu; simp [step, hcl, hrt, hts, how, hmb, hw, hwws] at hu ⊢
+                    intro u hu; simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] at hu ⊢
                     have huw : u ≠ w := fun he => by
                       have := h.fresh_none u hu; rw [he] at this; rw [this] at hwtt; simp at hwtt
                     simp [upd_ne _ _ huw]; exact h.fresh_none u hu
                   · -- timers_sorted
-                    simp [step, hcl, hrt, hts, how, hmb, hw, hwws]
+                    simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull]
                     exact h.timers_sorted.sublist (List.filter_sublist _)
                   · -- spawned_has_owner
-                    intro u st hts'; simp [step, hcl, hrt, hts, how, hmb, hw, hwws] at hts' ⊢
+                    intro u st hts'; simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] at hts' ⊢
                     by_cases hue : u = w
                     · simp [upd_self, hue] at hts'; exact h.spawned_has_owner u .waitingTimed (hue ▸ hwtt)
                     · simp [upd_ne _ _ hue] at hts' ⊢; exact h.spawned_has_owner u st hts'
@@ -177,44 +192,44 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                     obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                     exact send_mailbox_isSome hmbc m
                   · -- runnable_queued
-                    intro u st hts' hrun; simp [step, hcl, hrt, hts, how, hmb, hw, hwws] at hts' ⊢
+                    intro u st hts' hrun; simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] at hts' ⊢
                     by_cases hue : u = w
                     · simp [hue, upd_self] at hts'; exact Or.inr hue
                     · simp [upd_ne _ _ hue] at hts'; exact Or.inl (h.runnable_queued u st hts' hrun)
                   · -- waiters_waiting: mailboxWaiters unchanged (we changed timedMailboxWaiters)
-                    intro a' u hm; simp [step, hcl, hrt, hts, how, hmb, hw, hwws] at hm ⊢
+                    intro a' u hm; simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] at hm ⊢
                     have huw : u ≠ w := fun he => by
                       have hw_wait := h.waiters_waiting a' u hm
                       rw [he] at hw_wait
                       rw [hw_wait] at hwtt; simp at hwtt
                     simp [upd_ne _ _ huw]; exact h.waiters_waiting a' u hm
                   · -- waiters_owned
-                    intro a' u hm; simp [step, hcl, hrt, hts, how, hmb, hw, hwws] at hm ⊢
+                    intro a' u hm; simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] at hm ⊢
                     exact h.waiters_owned a' u hm
                   · -- waiting_queued
-                    intro u hts'; simp [step, hcl, hrt, hts, how, hmb, hw, hwws] at hts' ⊢
+                    intro u hts'; simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] at hts' ⊢
                     by_cases hue : u = w
                     · simp [hue, upd_self] at hts'
                     · simp [upd_ne _ _ hue] at hts'
                       obtain ⟨a, ha, hmw⟩ := h.waiting_queued u hts'
                       exact ⟨a, ha, hmw⟩
                   · -- waiters_nodup
-                    intro a'; simp [step, hcl, hrt, hts, how, hmb, hw, hwws]
+                    intro a'; simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull]
                     exact h.waiters_nodup a'
                   · -- parent_lt
                     intro u p hp
-                    exact h.parent_lt u p (by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws] using hp)
+                    exact h.parent_lt u p (by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] using hp)
                   · -- parent_spawned
                     intro u p hp
-                    obtain ⟨st, hst⟩ := h.parent_spawned u p (by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws] using hp)
+                    obtain ⟨st, hst⟩ := h.parent_spawned u p (by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] using hp)
                     exact step_preserves_spawned hst _
                   · -- occ_fresh: nextMsgId + 1; mailbox b updated
                     intro ac mc env hmbc henv
                     have hmi : ((step s (.send t b m)).1).nextMsgId = s.nextMsgId + 1 := by
-                      simp [step, hcl, hrt, hts, how, hmb, hw, hwws]
+                      simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull]
                     rw [hmi]
                     by_cases hac : ac = b
-                    · rw [hac, send_appends hrt hts how hmb hcl m] at hmbc
+                    · rw [hac, send_appends hrt hts how hmb hcl hfull m] at hmbc
                       have hv := Option.some.inj hmbc; subst hv
                       simp only [List.mem_append, List.mem_singleton] at henv
                       rcases henv with henv | rfl
@@ -225,7 +240,7 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                   · -- occ_nodup
                     intro ac mc hmbc
                     by_cases hac : ac = b
-                    · rw [hac, send_appends hrt hts how hmb hcl m] at hmbc
+                    · rw [hac, send_appends hrt hts how hmb hcl hfull m] at hmbc
                       have hv := Option.some.inj hmbc; subst hv
                       simp only [List.map_append, List.map_singleton]
                       exact nodup_append_singleton (h.occ_nodup _ mb hmb) (nextMsgId_fresh h hmb)
@@ -235,14 +250,14 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                     intro ac bc mba mbb hab hmba hmbb ea hea eb heb
                     by_cases hac : ac = b <;> by_cases hbc : bc = b
                     · exact absurd (hac.trans hbc.symm) hab
-                    · rw [hac, send_appends hrt hts how hmb hcl m] at hmba
+                    · rw [hac, send_appends hrt hts how hmb hcl hfull m] at hmba
                       have hv := Option.some.inj hmba; subst hv
                       rw [send_preserves_other hbc m] at hmbb
                       simp only [List.mem_append, List.mem_singleton] at hea
                       rcases hea with hea | rfl
                       · exact h.occ_disjoint ac bc mb mbb hab (hac ▸ hmb) hmbb ea hea eb heb
                       · intro heq; exact Nat.lt_irrefl _ (heq ▸ h.occ_fresh bc mbb eb hmbb heb)
-                    · rw [hbc, send_appends hrt hts how hmb hcl m] at hmbb
+                    · rw [hbc, send_appends hrt hts how hmb hcl hfull m] at hmbb
                       have hv := Option.some.inj hmbb; subst hv
                       rw [send_preserves_other hac m] at hmba
                       simp only [List.mem_append, List.mem_singleton] at heb
@@ -255,63 +270,63 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                   · -- owner_spawned
                     intro u a' how'
                     obtain ⟨st, hst⟩ := h.owner_spawned u a'
-                      (by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws] using how')
+                      (by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] using how')
                     exact step_preserves_spawned hst _
                   · -- parent_child_spawned
                     intro u p hp
                     obtain ⟨st, hst⟩ := h.parent_child_spawned u p
-                      (by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws] using hp)
+                      (by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull] using hp)
                     exact step_preserves_spawned hst _
                   · -- timed_has_deadline
                     intro u hu
                     have huw : u ≠ w := fun he => by
-                      simp [step, hcl, hrt, hts, how, hmb, hw, hwws, he, upd_self] at hu
+                      simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, he, upd_self] at hu
                     have hu' : s.taskState u = some .waitingTimed := by
-                      simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, upd_ne _ _ huw] using hu
+                      simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, upd_ne _ _ huw] using hu
                     obtain ⟨dv, hdv⟩ := h.timed_has_deadline u hu'
-                    exact ⟨dv, by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, if_neg huw] using hdv⟩
+                    exact ⟨dv, by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, if_neg huw] using hdv⟩
                   · -- deadline_is_timed
                     intro u dv hd
                     have huw : u ≠ w := fun he => by
-                      simp [step, hcl, hrt, hts, how, hmb, hw, hwws, he] at hd
+                      simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, he] at hd
                     have hd' : s.waitDeadline u = some dv := by
-                      simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, if_neg huw] using hd
-                    simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, upd_ne _ _ huw] using
+                      simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, if_neg huw] using hd
+                    simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, upd_ne _ _ huw] using
                       h.deadline_is_timed u dv hd'
                   · -- timed_has_timer
                     intro u hu
                     have huw : u ≠ w := fun he => by
-                      simp [step, hcl, hrt, hts, how, hmb, hw, hwws, he, upd_self] at hu
+                      simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, he, upd_self] at hu
                     have hu' : s.taskState u = some .waitingTimed := by
-                      simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, upd_ne _ _ huw] using hu
+                      simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, upd_ne _ _ huw] using hu
                     obtain ⟨e, he, hek⟩ := h.timed_has_timer u hu'
                     have hewne : e.task ≠ w := fun heq => huw (hek ▸ heq)
-                    exact ⟨e, by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hewne] using he, hek⟩
+                    exact ⟨e, by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, hewne] using he, hek⟩
                   · -- timed_is_waiter
                     intro u hu
                     have huw : u ≠ w := fun he => by
-                      simp [step, hcl, hrt, hts, how, hmb, hw, hwws, he, upd_self] at hu
+                      simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, he, upd_self] at hu
                     have hu' : s.taskState u = some .waitingTimed := by
-                      simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, upd_ne _ _ huw] using hu
+                      simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, upd_ne _ _ huw] using hu
                     obtain ⟨ac, hac⟩ := h.timed_is_waiter u hu'
                     by_cases hab : ac = b
                     · -- u was in timedMailboxWaiters b = w :: ws; since u ≠ w, u ∈ ws
                       have hac_b : u ∈ s.timedMailboxWaiters b := hab ▸ hac
                       have hu_ws : u ∈ ws := (List.mem_cons.mp (hwws ▸ hac_b)).resolve_left huw
-                      exact ⟨b, by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hab] using hu_ws⟩
-                    · exact ⟨ac, by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, if_neg hab] using hac⟩
+                      exact ⟨b, by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, hab] using hu_ws⟩
+                    · exact ⟨ac, by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, if_neg hab] using hac⟩
                   · -- timed_waiters_valid
                     intro a' u hm
                     by_cases hab : a' = b
                     · -- a' = b: u was woken from timedMailboxWaiters b = w :: ws  
-                      have hm' : u ∈ ws := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hab] using hm
+                      have hm' : u ∈ ws := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, hab] using hm
                       have huw : u ≠ w := fun he =>
                         absurd (he ▸ hm') (List.nodup_cons.mp (hwws ▸ h.timed_waiters_nodup b)).1
-                      simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, upd_ne s.taskState (some .ready) huw] using
+                      simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, upd_ne s.taskState (some .ready) huw] using
                         h.timed_waiters_valid b u (hwws ▸ List.mem_cons_of_mem w hm')
                     · -- a' ≠ b: membership in s.timedMailboxWaiters a' unchanged
                       have htmeq : (step s (.send t b m)).1.timedMailboxWaiters a' = s.timedMailboxWaiters a' := by
-                        simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hab]
+                        simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, hab]
                       have hm' : u ∈ s.timedMailboxWaiters a' := htmeq ▸ hm
                       -- u ≠ w: if u = w, then w ∈ timedMailboxWaiters a' (a' ≠ b) but w ∈ timedMailboxWaiters b
                       have hw_in_b : w ∈ s.timedMailboxWaiters b := hwws ▸ List.mem_cons_self w ws
@@ -319,14 +334,14 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                         h.timed_waiters_exclusive a' b u hab hm' (he ▸ hw_in_b)
                       have hval : s.taskState u = some .waitingTimed := h.timed_waiters_valid a' u hm'
                       have htseq : (step s (.send t b m)).1.taskState u = s.taskState u := by
-                        simp [step, hcl, hrt, hts, how, hmb, hw, hwws, upd_ne _ _ huw]
+                        simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, upd_ne _ _ huw]
                       exact htseq.trans hval
                   · -- timed_waiters_nodup
                     intro a'
                     by_cases hab : a' = b
-                    · simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hab] using
+                    · simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, hab] using
                         (List.nodup_cons.mp (hwws ▸ h.timed_waiters_nodup b)).2
-                    · simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, if_neg hab] using
+                    · simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, if_neg hab] using
                         h.timed_waiters_nodup a'
                   · -- timed_waiters_exclusive
                     intro a' b' u hab' hma hmb'
@@ -335,54 +350,65 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                     · -- a' = b, b' = b: contradicts hab'
                       exact absurd (ha.trans hb.symm) hab'
                     · -- a' = b: u ∈ ws; b' ≠ b: u ∈ s.timedMailboxWaiters b'
-                      have hu_ws : u ∈ ws := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, ha] using hma
-                      have hms_b' : u ∈ s.timedMailboxWaiters b' := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, if_neg hb] using hmb'
+                      have hu_ws : u ∈ ws := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, ha] using hma
+                      have hms_b' : u ∈ s.timedMailboxWaiters b' := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, if_neg hb] using hmb'
                       exact h.timed_waiters_exclusive b b' u (fun h' => hb h'.symm) (hwws ▸ List.mem_cons_of_mem w hu_ws) hms_b'
                     · -- a' ≠ b: u ∈ s.timedMailboxWaiters a'; b' = b: u ∈ ws
-                      have hms_a' : u ∈ s.timedMailboxWaiters a' := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, if_neg ha] using hma
-                      have hu_ws : u ∈ ws := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hb] using hmb'
+                      have hms_a' : u ∈ s.timedMailboxWaiters a' := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, if_neg ha] using hma
+                      have hu_ws : u ∈ ws := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, hb] using hmb'
                       exact h.timed_waiters_exclusive a' b u ha hms_a' (hwws ▸ List.mem_cons_of_mem w hu_ws)
                     · -- a' ≠ b, b' ≠ b: both in s.timedMailboxWaiters
-                      have hms_a' := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, if_neg ha] using hma
-                      have hms_b' := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, if_neg hb] using hmb'
+                      have hms_a' := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, if_neg ha] using hma
+                      have hms_b' := by simpa [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull, if_neg hb] using hmb'
                       exact h.timed_waiters_exclusive a' b' u hab' hms_a' hms_b'
+                  · -- mailbox_within_capacity (RFC 056): enqueue respects capacity (mb not full)
+                    intro a' n mbx hcap hmbx
+                    rw [step_preserves_mailboxPolicy] at hcap
+                    by_cases hab : a' = b
+                    · subst hab
+                      rw [send_appends hrt hts how hmb hcl hfull m] at hmbx
+                      have hmc := Option.some.inj hmbx; subst hmc
+                      simp only [List.length_append, List.length_cons, List.length_nil]
+                      have hlt := lt_capacity_of_not_full hcap hfull; omega
+                    · rw [send_preserves_other hab m] at hmbx
+                      exact h.mailbox_within_capacity a' n mbx hcap hmbx
               | cons w ws =>
                 have hwt  : s.taskState w = some .waiting := h.waiters_waiting b w (hw ▸ List.mem_cons_self w ws)
                 have hwq  : w ∉ s.readyQ := waiting_not_in_readyQ h hwt
                 have hwne : w ≠ t := waiter_ne_running h hwt hrt
                 -- The step wakes w to .ready and bumps nextMsgId
-                refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+                refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
                 · -- readyQ_nodup
-                  simp [step, hcl, hrt, hts, how, hmb, hw]
+                  simp [step, hcl, hrt, hts, how, hmb, hw, hfull]
                   exact nodup_append_singleton h.readyQ_nodup hwq
                 · -- readyQ_queued
-                  intro u hm; simp [step, hcl, hrt, hts, how, hmb, hw] at hm ⊢
+                  intro u hm; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at hm ⊢
                   rcases hm with hm | rfl
                   · by_cases hue : u = w
                     · simp [upd_self, hue, Option.any, TaskState.isRunnable]
                     · simp [upd_ne _ _ hue]; exact h.readyQ_queued u hm
                   · simp [upd_self, Option.any, TaskState.isRunnable]
                 · -- running_runs
-                  intro u hru; simp [step, hcl, hrt, hts, how, hmb, hw] at hru ⊢
+                  intro u hru; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at hru ⊢
                   by_cases hue : u = w
                   · exact False.elim (hwne (hue.symm.trans hru.symm))
                   · simp [upd_ne _ _ hue]; exact h.running_runs u (hru ▸ hrt)
-                · simp [step, hcl, hrt, hts, how, hmb, hw]
+                · simp [step, hcl, hrt, hts, how, hmb, hw, hfull]
                   exact nodup_of_sublist (List.Sublist.map TimerEntry.task (List.filter_sublist _)) h.timers_nodup
                 · -- timers_sleep
-                  intro e he; simp [step, hcl, hrt, hts, how, hmb, hw] at he ⊢
+                  intro e he; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at he ⊢
                   have hts_e := h.timers_sleep e he.1
                   by_cases hne : e.task = w
                   · exact absurd (hne ▸ hts_e) (by simp [hwt])
                   · simp [upd_ne _ _ hne]; exact hts_e
                 · -- fresh_none
-                  intro u hu; simp [step, hcl, hrt, hts, how, hmb, hw] at hu ⊢
+                  intro u hu; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at hu ⊢
                   by_cases hue : u = w
                   · exact absurd hwt (by simp [← hue, h.fresh_none u hu])
                   · simp [upd_ne _ _ hue]; exact h.fresh_none u hu
-                · simp [step, hcl, hrt, hts, how, hmb, hw]; exact h.timers_sorted.sublist (List.filter_sublist _)
+                · simp [step, hcl, hrt, hts, how, hmb, hw, hfull]; exact h.timers_sorted.sublist (List.filter_sublist _)
                 · -- spawned_has_owner
-                  intro u st hts'; simp [step, hcl, hrt, hts, how, hmb, hw] at hts' ⊢
+                  intro u st hts'; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at hts' ⊢
                   by_cases hue : u = w
                   · simp [upd_self, hue] at hts' ⊢; exact h.spawned_has_owner w .waiting hwt
                   · simp [upd_ne _ _ hue] at hts' ⊢; exact h.spawned_has_owner u st hts'
@@ -391,12 +417,12 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                   obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                   exact send_mailbox_isSome hmbc m
                 · -- runnable_queued
-                  intro u st hts' hrun; simp [step, hcl, hrt, hts, how, hmb, hw] at hts' ⊢
+                  intro u st hts' hrun; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at hts' ⊢
                   by_cases hue : u = w
                   · simp [hue, upd_self] at hts'; exact Or.inr hue
                   · simp [upd_ne _ _ hue] at hts'; exact Or.inl (h.runnable_queued u st hts' hrun)
                 · -- waiters_waiting
-                  intro a' u hm; simp [step, hcl, hrt, hts, how, hmb, hw] at hm ⊢
+                  intro a' u hm; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at hm ⊢
                   by_cases hab : a' = b
                   · simp only [if_pos hab] at hm
                     have hmem : u ∈ s.mailboxWaiters b := hw ▸ List.mem_cons_of_mem w hm
@@ -410,13 +436,13 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                       exact hab (Option.some.inj (ho1.symm.trans ho2))
                     simp [upd_ne _ _ hue, hab]; exact hts_u
                 · -- waiters_owned
-                  intro a' u hm; simp [step, hcl, hrt, hts, how, hmb, hw] at hm ⊢
+                  intro a' u hm; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at hm ⊢
                   by_cases hab : a' = b
                   · simp only [if_pos hab] at hm
                     exact hab ▸ h.waiters_owned b u (hw ▸ List.mem_cons_of_mem w hm)
                   · simp only [if_neg hab] at hm ⊢; exact h.waiters_owned a' u hm
                 · -- waiting_queued
-                  intro u hts'; simp [step, hcl, hrt, hts, how, hmb, hw] at hts' ⊢
+                  intro u hts'; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at hts' ⊢
                   by_cases hue : u = w
                   · simp [hue, upd_self] at hts'
                   · simp [upd_ne _ _ hue] at hts'
@@ -426,25 +452,25 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                     · simp only [if_pos hab]; exact waiter_in_tail h hw (by rwa [hab] at hmem) hue
                     · simp only [if_neg hab]; exact hmem
                 · -- waiters_nodup
-                  intro a'; simp [step, hcl, hrt, hts, how, hmb, hw]
+                  intro a'; simp [step, hcl, hrt, hts, how, hmb, hw, hfull]
                   by_cases hab : a' = b
                   · simp only [if_pos hab]
                     exact (List.nodup_cons.mp (hw ▸ h.waiters_nodup b)).2
                   · simp only [if_neg hab]; exact h.waiters_nodup a'
                 · -- parent_lt
                   intro u p hp
-                  exact h.parent_lt u p (by simpa [step, hcl, hrt, hts, how, hmb, hw] using hp)
+                  exact h.parent_lt u p (by simpa [step, hcl, hrt, hts, how, hmb, hw, hfull] using hp)
                 · -- parent_spawned (RFC 042)
                   intro u p hp
-                  obtain ⟨st, hst⟩ := h.parent_spawned u p (by simpa [step, hcl, hrt, hts, how, hmb, hw] using hp)
+                  obtain ⟨st, hst⟩ := h.parent_spawned u p (by simpa [step, hcl, hrt, hts, how, hmb, hw, hfull] using hp)
                   exact step_preserves_spawned hst _
                 · -- occ_fresh (RFC 033): send cons, nextMsgId + 1
                   intro ac mc env hmbc henv
                   have hmi : ((step s (.send t b m)).1).nextMsgId = s.nextMsgId + 1 := by
-                    simp [step, hcl, hrt, hts, how, hmb, hw]
+                    simp [step, hcl, hrt, hts, how, hmb, hw, hfull]
                   rw [hmi]
                   by_cases hac : ac = b
-                  · rw [hac, send_appends hrt hts how hmb hcl m] at hmbc
+                  · rw [hac, send_appends hrt hts how hmb hcl hfull m] at hmbc
                     have hv := Option.some.inj hmbc; subst hv
                     simp only [List.mem_append, List.mem_singleton] at henv
                     rcases henv with henv | rfl
@@ -455,7 +481,7 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                 · -- occ_nodup (RFC 033): send cons
                   intro ac mc hmbc
                   by_cases hac : ac = b
-                  · rw [hac, send_appends hrt hts how hmb hcl m] at hmbc
+                  · rw [hac, send_appends hrt hts how hmb hcl hfull m] at hmbc
                     have hv := Option.some.inj hmbc; subst hv
                     simp only [List.map_append, List.map_singleton]
                     exact nodup_append_singleton (h.occ_nodup _ mb hmb) (nextMsgId_fresh h hmb)
@@ -465,14 +491,14 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                   intro ac bc mba mbb hab hmba hmbb ea hea eb heb
                   by_cases hac : ac = b <;> by_cases hbc : bc = b
                   · exact absurd (hac.trans hbc.symm) hab
-                  · rw [hac, send_appends hrt hts how hmb hcl m] at hmba
+                  · rw [hac, send_appends hrt hts how hmb hcl hfull m] at hmba
                     have hv := Option.some.inj hmba; subst hv
                     rw [send_preserves_other hbc m] at hmbb
                     simp only [List.mem_append, List.mem_singleton] at hea
                     rcases hea with hea | rfl
                     · exact h.occ_disjoint ac bc mb mbb hab (hac ▸ hmb) hmbb ea hea eb heb
                     · intro heq; exact Nat.lt_irrefl _ (heq ▸ h.occ_fresh bc mbb eb hmbb heb)
-                  · rw [hbc, send_appends hrt hts how hmb hcl m] at hmbb
+                  · rw [hbc, send_appends hrt hts how hmb hcl hfull m] at hmbb
                     have hv := Option.some.inj hmbb; subst hv
                     rw [send_preserves_other hac m] at hmba
                     simp only [List.mem_append, List.mem_singleton] at heb
@@ -485,48 +511,59 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                 · -- owner_spawned (RFC 038): taskOwner unchanged by send
                   intro u a' how'
                   obtain ⟨st, hst⟩ := h.owner_spawned u a'
-                    (by simpa [step, hcl, hrt, hts, how, hmb, hw] using how')
+                    (by simpa [step, hcl, hrt, hts, how, hmb, hw, hfull] using how')
                   exact step_preserves_spawned hst _
                 · -- parent_child_spawned (RFC 038): taskParent unchanged by send
                   intro u p hp
                   obtain ⟨st, hst⟩ := h.parent_child_spawned u p
-                    (by simpa [step, hcl, hrt, hts, how, hmb, hw] using hp)
+                    (by simpa [step, hcl, hrt, hts, how, hmb, hw, hfull] using hp)
                   exact step_preserves_spawned hst _
                 · -- timed_has_deadline
-                  intro u hu; simp [step, hcl, hrt, hts, how, hmb, hw] at hu
+                  intro u hu; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at hu
                   have huw : u ≠ w := by intro he; simp [he, upd_self] at hu
                   have hu' : s.taskState u = some .waitingTimed := by simpa [upd_ne _ _ huw] using hu
                   obtain ⟨dl, hdl⟩ := h.timed_has_deadline u hu'
-                  exact ⟨dl, by simpa [step, hcl, hrt, hts, how, hmb, hw, huw] using hdl⟩
+                  exact ⟨dl, by simpa [step, hcl, hrt, hts, how, hmb, hw, hfull, huw] using hdl⟩
                 · -- deadline_is_timed
-                  intro u dv hd; simp [step, hcl, hrt, hts, how, hmb, hw] at hd
+                  intro u dv hd; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at hd
                   have huw : u ≠ w := by intro he; simp [he] at hd
                   have hd' : s.waitDeadline u = some dv := by simpa [huw] using hd
-                  simpa [step, hcl, hrt, hts, how, hmb, hw, upd_ne _ _ huw] using h.deadline_is_timed u dv hd'
+                  simpa [step, hcl, hrt, hts, how, hmb, hw, hfull, upd_ne _ _ huw] using h.deadline_is_timed u dv hd'
                 · -- timed_has_timer
-                  intro u hu; simp [step, hcl, hrt, hts, how, hmb, hw] at hu ⊢
+                  intro u hu; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at hu ⊢
                   have huw : u ≠ w := by intro he; simp [he, upd_self] at hu
                   simp [upd_ne _ _ huw] at hu
                   obtain ⟨e, he, hek⟩ := h.timed_has_timer u hu
                   have hewne : e.task ≠ w := fun heq => huw (hek ▸ heq)
                   exact ⟨e, by simp [he, hewne], hek⟩
                 · -- timed_is_waiter
-                  intro u hu; simp [step, hcl, hrt, hts, how, hmb, hw] at hu ⊢
+                  intro u hu; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at hu ⊢
                   have huw : u ≠ w := by intro he; simp [he, upd_self] at hu
                   simp [upd_ne _ _ huw] at hu; exact h.timed_is_waiter u hu
                 · -- timed_waiters_valid
-                  intro a' u hm; simp [step, hcl, hrt, hts, how, hmb, hw] at hm ⊢
+                  intro a' u hm; simp [step, hcl, hrt, hts, how, hmb, hw, hfull] at hm ⊢
                   have huw : u ≠ w := by
                     intro he; rw [he] at hm
                     exact absurd (h.timed_waiters_valid a' w hm) (by simp [hwt])
                   simp [upd_ne _ _ huw]; exact h.timed_waiters_valid a' u hm
                 · -- timed_waiters_nodup
-                  intro a'; simpa [step, hcl, hrt, hts, how, hmb, hw] using h.timed_waiters_nodup a'
+                  intro a'; simpa [step, hcl, hrt, hts, how, hmb, hw, hfull] using h.timed_waiters_nodup a'
                 · -- timed_waiters_exclusive
                   intro a' b' u hab' hma hmb'
                   exact h.timed_waiters_exclusive a' b' u hab'
-                    (by simpa [step, hcl, hrt, hts, how, hmb, hw] using hma)
-                    (by simpa [step, hcl, hrt, hts, how, hmb, hw] using hmb')
+                    (by simpa [step, hcl, hrt, hts, how, hmb, hw, hfull] using hma)
+                    (by simpa [step, hcl, hrt, hts, how, hmb, hw, hfull] using hmb')
+                · -- mailbox_within_capacity (RFC 056): enqueue respects capacity (mb not full)
+                  intro a' n mbx hcap hmbx
+                  rw [step_preserves_mailboxPolicy] at hcap
+                  by_cases hab : a' = b
+                  · subst hab
+                    rw [send_appends hrt hts how hmb hcl hfull m] at hmbx
+                    have hmc := Option.some.inj hmbx; subst hmc
+                    simp only [List.length_append, List.length_cons, List.length_nil]
+                    have hlt := lt_capacity_of_not_full hcap hfull; omega
+                  · rw [send_preserves_other hab m] at hmbx
+                    exact h.mailbox_within_capacity a' n mbx hcap hmbx
         | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
           simpa [step, hcl, hrt, hts] using h
     · simpa [step, hcl, hrt] using h
@@ -560,7 +597,7 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
                 h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
                 h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
                 h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer, h.timed_is_waiter,
-                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive⟩
+                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_⟩
               · intro u cc hown
                 obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                 by_cases hcc : cc = a
@@ -610,6 +647,16 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
               · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState = s.taskState
                 intro u p hp
                 exact h.parent_child_spawned u p hp
+              · -- mailbox_within_capacity (RFC 056): receive shrinks the target mailbox
+                intro a' n nmb hcap hmbx
+                by_cases hac : a' = a
+                · subst hac
+                  simp only [upd_self] at hmbx
+                  have hv := Option.some.inj hmbx; subst hv
+                  have hb := h.mailbox_within_capacity a' n mb hcap hmb
+                  rw [hcons, List.length_cons] at hb; omega
+                · simp only [upd, if_neg hac] at hmbx
+                  exact h.mailbox_within_capacity a' n nmb hcap hmbx
             | none =>
               have ht_not_waiter : t ∉ s.mailboxWaiters a := fun hmem =>
                 absurd (h.waiters_waiting a t hmem) (by simp [hts])
@@ -619,7 +666,7 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
                                                         else s.mailboxWaiters ac } := by
                 simp [step, hrt, hts, how, hmb, hd]
               rw [hstep_p]
-              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
               · exact h.readyQ_nodup
               · intro u hm
                 by_cases hut : u = t
@@ -746,6 +793,9 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
               · -- timed_waiters_exclusive: timedMailboxWaiters unchanged
                 intro a' b' u hab' hma hmb'
                 exact h.timed_waiters_exclusive a' b' u hab' hma hmb'
+              · -- mailbox_within_capacity (RFC 056): receive park leaves mailboxes unchanged
+                intro a' n nmb hcap hmbx
+                exact h.mailbox_within_capacity a' n nmb hcap hmbx
       | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
@@ -761,7 +811,13 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
     have hrs : s.runtimeStatus = .running := Decidable.of_not_not hrs0
     cases hmb : s.mailboxes a with
     | none => simpa [step, hrs, hopen, hmb] using h
-    | some mb => cases hw : s.mailboxWaiters a with
+    | some mb =>
+      by_cases hfull : s.mailboxFull a mb = true
+      · rw [show (step s (.inject a m)).1 = s from by
+          simp [step, hrs, hopen, hmb, hfull]]
+        exact h
+      simp only [Bool.not_eq_true] at hfull
+      cases hw : s.mailboxWaiters a with
       | nil =>
         -- Handle timed waiter case first
         by_cases htw : s.timedMailboxWaiters a = []
@@ -770,20 +826,20 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
               { s with
                 mailboxes := upd s.mailboxes a (some (mb.enqueue ⟨s.nextMsgId, none, m⟩))
                 nextMsgId := s.nextMsgId + 1 } := by
-            simp [step, hrs, hopen, hmb, hw, htw]
+            simp [step, hrs, hopen, hmb, hw, hfull, htw]
           rw [hstep]
           refine ⟨h.readyQ_nodup, fun u hm => h.readyQ_queued u hm, h.running_runs,
             h.timers_nodup, h.timers_sleep, h.fresh_none, h.timers_sorted,
             h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
             h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
             h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer, h.timed_is_waiter,
-            h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive⟩
+            h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_⟩
           · intro u cc hown
             obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
             by_cases hcc : cc = a
             · subst hcc; exact ⟨mb.enqueue ⟨s.nextMsgId, none, m⟩, by simp [upd_self]⟩
             · exact ⟨mbc, by simp [upd, if_neg hcc, hmbc]⟩
-          · intro u p hp; exact h.parent_lt u p (by simpa [step, hrs, hopen, hmb, hw, htw] using hp)
+          · intro u p hp; exact h.parent_lt u p (by simpa [step, hrs, hopen, hmb, hw, hfull, htw] using hp)
           · intro u p hp
             obtain ⟨st, hst⟩ := h.parent_spawned u p hp
             exact ⟨st, hst⟩
@@ -828,6 +884,15 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
             exact ⟨st, hst⟩
           · intro u p hp; obtain ⟨st, hst⟩ := h.parent_child_spawned u p hp
             exact ⟨st, hst⟩
+          · -- mailbox_within_capacity (RFC 056): enqueue respects capacity (mb not full)
+            intro a' n mbx hcap hmbx
+            by_cases hab : a' = a
+            · subst hab; simp only [upd_self] at hmbx
+              have hmc := Option.some.inj hmbx; subst hmc
+              rw [Mailbox.enqueue_length]
+              have hlt := lt_capacity_of_not_full hcap hfull; omega
+            · simp only [upd, if_neg hab] at hmbx
+              exact h.mailbox_within_capacity a' n mbx hcap hmbx
         · -- nil-timed cons case: timed waiter w gets woken (mirror of send timed cons)
           obtain ⟨w, ws, htw⟩ : ∃ w ws, s.timedMailboxWaiters a = w :: ws := by
             cases h' : s.timedMailboxWaiters a with
@@ -845,9 +910,9 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
                 timedMailboxWaiters := fun ac => if ac = a then ws else s.timedMailboxWaiters ac
                 timers := s.timers.filter (fun e => e.task ≠ w)
                 waitDeadline := fun u => if u = w then none else s.waitDeadline u } := by
-            simp [step, hrs, hopen, hmb, hw, htw]
+            simp [step, hrs, hopen, hmb, hw, hfull, htw]
           rw [hstep]
-          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
           · -- readyQ_nodup
             exact nodup_append_singleton h.readyQ_nodup hwq
           · -- readyQ_queued
@@ -1007,44 +1072,53 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
             · have hms_a' : u ∈ s.timedMailboxWaiters a' := by simpa [if_neg ha] using hma
               have hms_b' : u ∈ s.timedMailboxWaiters b' := by simpa [if_neg hb] using hmb'
               exact h.timed_waiters_exclusive a' b' u hab' hms_a' hms_b'
+          · -- mailbox_within_capacity (RFC 056): enqueue respects capacity (mb not full)
+            intro a' n mbx hcap hmbx
+            by_cases hab : a' = a
+            · subst hab; simp only [upd_self] at hmbx
+              have hmc := Option.some.inj hmbx; subst hmc
+              rw [Mailbox.enqueue_length]
+              have hlt := lt_capacity_of_not_full hcap hfull; omega
+            · simp only [upd, if_neg hab] at hmbx
+              exact h.mailbox_within_capacity a' n mbx hcap hmbx
       | cons w ws =>
         have hwt  : s.taskState w = some .waiting := h.waiters_waiting a w (hw ▸ List.mem_cons_self w ws)
         have hwq  : w ∉ s.readyQ := waiting_not_in_readyQ h hwt
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-        · simp [step, hrs, hopen, hmb, hw]; exact nodup_append_singleton h.readyQ_nodup hwq
-        · intro u hm; simp [step, hrs, hopen, hmb, hw] at hm ⊢
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        · simp [step, hrs, hopen, hmb, hw, hfull]; exact nodup_append_singleton h.readyQ_nodup hwq
+        · intro u hm; simp [step, hrs, hopen, hmb, hw, hfull] at hm ⊢
           rcases hm with hm | rfl
           · by_cases hue : u = w
             · simp [upd_self, hue, Option.any, TaskState.isRunnable]
             · simp [upd_ne _ _ hue]; exact h.readyQ_queued u hm
           · simp [upd_self, Option.any, TaskState.isRunnable]
-        · intro u hru; simp [step, hrs, hopen, hmb, hw] at hru ⊢
+        · intro u hru; simp [step, hrs, hopen, hmb, hw, hfull] at hru ⊢
           by_cases hue : u = w
           · exact absurd hwt (by simp [← hue, h.running_runs u hru])
           · simp [upd_ne _ _ hue]; exact h.running_runs u hru
-        · simp [step, hrs, hopen, hmb, hw]
+        · simp [step, hrs, hopen, hmb, hw, hfull]
           exact nodup_of_sublist (List.Sublist.map TimerEntry.task (List.filter_sublist _)) h.timers_nodup
-        · intro e he; simp [step, hrs, hopen, hmb, hw] at he ⊢
+        · intro e he; simp [step, hrs, hopen, hmb, hw, hfull] at he ⊢
           have hts_e := h.timers_sleep e he.1
           have hne' : e.task ≠ w := by simpa using he.2
           simp [upd_ne _ _ hne']; exact hts_e
-        · intro u hu; simp [step, hrs, hopen, hmb, hw] at hu ⊢
+        · intro u hu; simp [step, hrs, hopen, hmb, hw, hfull] at hu ⊢
           by_cases hue : u = w
           · exact absurd hwt (by simp [← hue, h.fresh_none u hu])
           · simp [upd_ne _ _ hue]; exact h.fresh_none u hu
-        · simp [step, hrs, hopen, hmb, hw]; exact h.timers_sorted.sublist (List.filter_sublist _)
-        · intro u st hts'; simp [step, hrs, hopen, hmb, hw] at hts' ⊢
+        · simp [step, hrs, hopen, hmb, hw, hfull]; exact h.timers_sorted.sublist (List.filter_sublist _)
+        · intro u st hts'; simp [step, hrs, hopen, hmb, hw, hfull] at hts' ⊢
           by_cases hue : u = w
           · simp [upd_self, hue] at hts' ⊢; exact h.spawned_has_owner w .waiting hwt
           · simp [upd_ne _ _ hue] at hts' ⊢; exact h.spawned_has_owner u st hts'
         · intro u cc hown; simp only [inject_taskOwner] at hown
           obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
           exact inject_mailbox_isSome hmbc m
-        · intro u st hts' hrun; simp [step, hrs, hopen, hmb, hw] at hts' ⊢
+        · intro u st hts' hrun; simp [step, hrs, hopen, hmb, hw, hfull] at hts' ⊢
           by_cases hue : u = w
           · simp [hue, upd_self] at hts'; exact Or.inr hue
           · simp [upd_ne _ _ hue] at hts'; exact Or.inl (h.runnable_queued u st hts' hrun)
-        · intro a' u hm; simp [step, hrs, hopen, hmb, hw] at hm ⊢
+        · intro a' u hm; simp [step, hrs, hopen, hmb, hw, hfull] at hm ⊢
           by_cases hab : a' = a
           · simp only [if_pos hab] at hm
             have hmem : u ∈ s.mailboxWaiters a := hw ▸ List.mem_cons_of_mem w hm
@@ -1057,12 +1131,12 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
               have ho2 : s.taskOwner w = some a  := h.waiters_owned a w (hw ▸ List.mem_cons_self w ws)
               exact hab (Option.some.inj (ho1.symm.trans ho2))
             simp [upd_ne _ _ hue, hab]; exact hts_u
-        · intro a' u hm; simp [step, hrs, hopen, hmb, hw] at hm ⊢
+        · intro a' u hm; simp [step, hrs, hopen, hmb, hw, hfull] at hm ⊢
           by_cases hab : a' = a
           · simp only [if_pos hab] at hm
             exact hab ▸ h.waiters_owned a u (hw ▸ List.mem_cons_of_mem w hm)
           · simp only [if_neg hab] at hm ⊢; exact h.waiters_owned a' u hm
-        · intro u hts'; simp [step, hrs, hopen, hmb, hw] at hts' ⊢
+        · intro u hts'; simp [step, hrs, hopen, hmb, hw, hfull] at hts' ⊢
           by_cases hue : u = w
           · simp [hue, upd_self] at hts'
           · simp [upd_ne _ _ hue] at hts'
@@ -1071,23 +1145,23 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
             by_cases hab : a' = a
             · simp only [if_pos hab]; exact waiter_in_tail h hw (by rwa [hab] at hmem) hue
             · simp only [if_neg hab]; exact hmem
-        · intro a'; simp [step, hrs, hopen, hmb, hw]
+        · intro a'; simp [step, hrs, hopen, hmb, hw, hfull]
           by_cases hab : a' = a
           · simp only [if_pos hab]; exact (List.nodup_cons.mp (hw ▸ h.waiters_nodup a)).2
           · simp only [if_neg hab]; exact h.waiters_nodup a'
         · -- parent_lt
-          exact fun u p hp => h.parent_lt u p (by simpa [step, hrs, hopen, hmb, hw] using hp)
+          exact fun u p hp => h.parent_lt u p (by simpa [step, hrs, hopen, hmb, hw, hfull] using hp)
         · -- parent_spawned (RFC 042)
           intro u p hp
-          obtain ⟨st, hst⟩ := h.parent_spawned u p (by simpa [step, hrs, hopen, hmb, hw] using hp)
+          obtain ⟨st, hst⟩ := h.parent_spawned u p (by simpa [step, hrs, hopen, hmb, hw, hfull] using hp)
           exact step_preserves_spawned hst _
         · -- occ_fresh (RFC 033): inject cons
           intro ac mc env hmbc henv
           have hmi : ((step s (.inject a m)).1).nextMsgId = s.nextMsgId + 1 := by
-            simp [step, hrs, hopen, hmb, hw]
+            simp [step, hrs, hopen, hmb, hw, hfull]
           rw [hmi]
           by_cases hac : ac = a
-          · rw [hac] at hmbc; rw [inject_appends hmb hrs hopen m] at hmbc
+          · rw [hac] at hmbc; rw [inject_appends hmb hrs hopen hfull m] at hmbc
             have hv := Option.some.inj hmbc; subst hv
             simp only [List.mem_append, List.mem_singleton] at henv
             rcases henv with henv | rfl
@@ -1098,7 +1172,7 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
         · -- occ_nodup (RFC 033): inject cons
           intro ac mc hmbc
           by_cases hac : ac = a
-          · rw [hac] at hmbc; rw [inject_appends hmb hrs hopen m] at hmbc
+          · rw [hac] at hmbc; rw [inject_appends hmb hrs hopen hfull m] at hmbc
             have hv := Option.some.inj hmbc; subst hv
             simp only [List.map_append, List.map_singleton]
             exact nodup_append_singleton (h.occ_nodup a mb hmb) (nextMsgId_fresh h hmb)
@@ -1108,14 +1182,14 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
           intro ac bc mba mbb hab hmba hmbb ea hea eb heb
           by_cases hac : ac = a <;> by_cases hbc : bc = a
           · exact absurd (hac.trans hbc.symm) hab
-          · rw [hac] at hmba; rw [inject_appends hmb hrs hopen m] at hmba
+          · rw [hac] at hmba; rw [inject_appends hmb hrs hopen hfull m] at hmba
             have hv := Option.some.inj hmba; subst hv
             rw [inject_preserves_other hbc m] at hmbb
             simp only [List.mem_append, List.mem_singleton] at hea
             rcases hea with hea | rfl
             · exact h.occ_disjoint ac bc mb mbb hab (hac ▸ hmb) hmbb ea hea eb heb
             · intro heq; exact Nat.lt_irrefl _ (heq ▸ h.occ_fresh bc mbb eb hmbb heb)
-          · rw [hbc] at hmbb; rw [inject_appends hmb hrs hopen m] at hmbb
+          · rw [hbc] at hmbb; rw [inject_appends hmb hrs hopen hfull m] at hmbb
             have hv := Option.some.inj hmbb; subst hv
             rw [inject_preserves_other hac m] at hmba
             simp only [List.mem_append, List.mem_singleton] at heb
@@ -1127,47 +1201,58 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
             exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
         · -- owner_spawned (RFC 038): taskOwner unchanged; taskState changes at w
           intro u a' how'
-          obtain ⟨st, hst⟩ := h.owner_spawned u a' (by simpa [step, hrs, hopen, hmb, hw] using how')
+          obtain ⟨st, hst⟩ := h.owner_spawned u a' (by simpa [step, hrs, hopen, hmb, hw, hfull] using how')
           exact step_preserves_spawned hst (.inject a m)
         · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState changes at w
           intro u p hp
-          obtain ⟨st, hst⟩ := h.parent_child_spawned u p (by simpa [step, hrs, hopen, hmb, hw] using hp)
+          obtain ⟨st, hst⟩ := h.parent_child_spawned u p (by simpa [step, hrs, hopen, hmb, hw, hfull] using hp)
           exact step_preserves_spawned hst (.inject a m)
         · -- timed_has_deadline (RFC 040): w was .waiting (no deadline), others unchanged
-          intro u hu; simp [step, hrs, hopen, hmb, hw] at hu
+          intro u hu; simp [step, hrs, hopen, hmb, hw, hfull] at hu
           have huw : u ≠ w := by intro he; simp [he, upd_self] at hu
           have hu' : s.taskState u = some .waitingTimed := by simpa [upd_ne _ _ huw] using hu
           obtain ⟨dl, hdl⟩ := h.timed_has_deadline u hu'
-          exact ⟨dl, by simpa [step, hrs, hopen, hmb, hw, huw] using hdl⟩
+          exact ⟨dl, by simpa [step, hrs, hopen, hmb, hw, hfull, huw] using hdl⟩
         · -- deadline_is_timed (RFC 040)
-          intro u dv hd; simp [step, hrs, hopen, hmb, hw] at hd
+          intro u dv hd; simp [step, hrs, hopen, hmb, hw, hfull] at hd
           have huw : u ≠ w := by intro he; simp [he] at hd
           have hd' : s.waitDeadline u = some dv := by simpa [huw] using hd
-          simpa [step, hrs, hopen, hmb, hw, upd_ne _ _ huw] using h.deadline_is_timed u dv hd'
+          simpa [step, hrs, hopen, hmb, hw, hfull, upd_ne _ _ huw] using h.deadline_is_timed u dv hd'
         · -- timed_has_timer (RFC 040): w's timer filtered
-          intro u hu; simp [step, hrs, hopen, hmb, hw] at hu
+          intro u hu; simp [step, hrs, hopen, hmb, hw, hfull] at hu
           have huw : u ≠ w := by intro he; simp [he, upd_self] at hu
           have hu' : s.taskState u = some .waitingTimed := by simpa [upd_ne _ _ huw] using hu
           obtain ⟨e, he, hek⟩ := h.timed_has_timer u hu'
           have hewne : e.task ≠ w := fun heq => huw (hek ▸ heq)
-          exact ⟨e, by simp [step, hrs, hopen, hmb, hw, he, hewne], hek⟩
+          exact ⟨e, by simp [step, hrs, hopen, hmb, hw, hfull, he, hewne], hek⟩
         · -- timed_is_waiter (RFC 040): timedMailboxWaiters unchanged
-          intro u hu; simp [step, hrs, hopen, hmb, hw] at hu
+          intro u hu; simp [step, hrs, hopen, hmb, hw, hfull] at hu
           have huw : u ≠ w := by intro he; simp [he, upd_self] at hu
           have hu' : s.taskState u = some .waitingTimed := by simpa [upd_ne _ _ huw] using hu
           obtain ⟨ac, hac⟩ := h.timed_is_waiter u hu'
-          exact ⟨ac, by simpa [step, hrs, hopen, hmb, hw] using hac⟩
+          exact ⟨ac, by simpa [step, hrs, hopen, hmb, hw, hfull] using hac⟩
         · -- timed_waiters_valid (RFC 040): timedMailboxWaiters unchanged
           intro a' u hm
-          have hm' : u ∈ s.timedMailboxWaiters a' := by simpa [step, hrs, hopen, hmb, hw] using hm
+          have hm' : u ∈ s.timedMailboxWaiters a' := by simpa [step, hrs, hopen, hmb, hw, hfull] using hm
           have huw : u ≠ w := fun he => absurd (h.timed_waiters_valid a' w (he ▸ hm')) (by rw [hwt]; simp)
-          simpa [step, hrs, hopen, hmb, hw, upd_ne _ _ huw] using h.timed_waiters_valid a' u hm'
+          simpa [step, hrs, hopen, hmb, hw, hfull, upd_ne _ _ huw] using h.timed_waiters_valid a' u hm'
         · -- timed_waiters_nodup (RFC 040): timedMailboxWaiters unchanged
-          intro a'; simpa [step, hrs, hopen, hmb, hw] using h.timed_waiters_nodup a'
+          intro a'; simpa [step, hrs, hopen, hmb, hw, hfull] using h.timed_waiters_nodup a'
         · -- timed_waiters_exclusive (RFC 040): timedMailboxWaiters unchanged
           intro a' b' u hab' hma hmb'
           exact h.timed_waiters_exclusive a' b' u hab'
-            (by simpa [step, hrs, hopen, hmb, hw] using hma) (by simpa [step, hrs, hopen, hmb, hw] using hmb')
+            (by simpa [step, hrs, hopen, hmb, hw, hfull] using hma) (by simpa [step, hrs, hopen, hmb, hw, hfull] using hmb')
+        · -- mailbox_within_capacity (RFC 056): enqueue respects capacity (mb not full)
+          intro a' n mbx hcap hmbx
+          rw [step_preserves_mailboxPolicy] at hcap
+          by_cases hab : a' = a
+          · subst hab
+            rw [inject_appends hmb hrs hopen hfull m] at hmbx
+            have hmc := Option.some.inj hmbx; subst hmc
+            simp only [List.length_append, List.length_cons, List.length_nil]
+            have hlt := lt_capacity_of_not_full hcap hfull; omega
+          · rw [inject_preserves_other hab m] at hmbx
+            exact h.mailbox_within_capacity a' n mbx hcap hmbx
 
   -- ─── receiveUntil: WellFormed preservation (RFC 040) ──────────────────────
 
@@ -1197,7 +1282,7 @@ theorem preserves_wf_receiveUntil {s : RuntimeState} (h : WellFormed s)
                 h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
                 h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
                 h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer, h.timed_is_waiter,
-                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive⟩
+                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_⟩
               · intro u cc hown
                 obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                 by_cases hcc : cc = a
@@ -1239,6 +1324,16 @@ theorem preserves_wf_receiveUntil {s : RuntimeState} (h : WellFormed s)
                   exact h.occ_disjoint ac bc mba mbb hab hmba hmbb ea hea eb heb
               · intro u a' how'; obtain ⟨st, hst⟩ := h.owner_spawned u a' how'; exact ⟨st, hst⟩
               · intro u p hp; obtain ⟨st, hst⟩ := h.parent_child_spawned u p hp; exact ⟨st, hst⟩
+              · -- mailbox_within_capacity (RFC 056): receiveUntil shrinks the target mailbox
+                intro a' n nmb hcap hmbx
+                by_cases hac : a' = a
+                · subst hac
+                  simp only [upd_self] at hmbx
+                  have hv := Option.some.inj hmbx; subst hv
+                  have hb := h.mailbox_within_capacity a' n mb hcap hmb
+                  rw [hcons, List.length_cons] at hb; omega
+                · simp only [upd, if_neg hac] at hmbx
+                  exact h.mailbox_within_capacity a' n nmb hcap hmbx
             | none =>
               by_cases hdl : deadline ≤ s.now
               · -- Past-deadline fast path: no state change
@@ -1264,7 +1359,7 @@ theorem preserves_wf_receiveUntil {s : RuntimeState} (h : WellFormed s)
                         waitDeadline := upd s.waitDeadline t (some deadline) } := by
                   simp [step, hrt, hts, how, hmb, hd, hdl]
                 rw [hstep]
-                refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+                refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
                 · -- readyQ_nodup
                   exact h.readyQ_nodup
                 · -- readyQ_queued
@@ -1414,6 +1509,9 @@ theorem preserves_wf_receiveUntil {s : RuntimeState} (h : WellFormed s)
                     · have := h.timed_waiters_valid a' u hma; rw [hts] at this; cases this
                   · simp only [if_neg ha'] at hma; simp only [if_neg hb'] at hmb'
                     exact h.timed_waiters_exclusive a' b' u hab' hma hmb'
+                · -- mailbox_within_capacity (RFC 056): receiveUntil park leaves mailboxes unchanged
+                  intro a' n nmb hcap hmbx
+                  exact h.mailbox_within_capacity a' n nmb hcap hmbx
       | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
@@ -1449,7 +1547,7 @@ theorem preserves_wf_receiveByOccurrence {s : RuntimeState} (h : WellFormed s)
                 h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
                 h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
                 h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer, h.timed_is_waiter,
-                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive⟩
+                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_⟩
               · intro u cc hown
                 obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                 by_cases hcc : cc = a
@@ -1499,6 +1597,16 @@ theorem preserves_wf_receiveByOccurrence {s : RuntimeState} (h : WellFormed s)
               · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState = s.taskState
                 intro u p hp
                 exact h.parent_child_spawned u p hp
+              · -- mailbox_within_capacity (RFC 056): receiveByOccurrence shrinks the target mailbox
+                intro a' n nmb hcap hmbx
+                by_cases hac : a' = a
+                · subst hac
+                  simp only [upd_self] at hmbx
+                  have hv := Option.some.inj hmbx; subst hv
+                  exact Nat.le_trans (Mailbox.dequeueFirst_length_le hd)
+                    (h.mailbox_within_capacity a' n mb hcap hmb)
+                · simp only [upd, if_neg hac] at hmbx
+                  exact h.mailbox_within_capacity a' n nmb hcap hmbx
             | none =>
               have ht_not_waiter : t ∉ s.mailboxWaiters a := fun hmem =>
                 absurd (h.waiters_waiting a t hmem) (by simp [hts])
@@ -1508,7 +1616,7 @@ theorem preserves_wf_receiveByOccurrence {s : RuntimeState} (h : WellFormed s)
                                                         else s.mailboxWaiters ac } := by
                 simp [step, hrt, hts, how, hmb, hd]
               rw [hstep_p]
-              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
               · exact h.readyQ_nodup
               · intro u hm
                 by_cases hut : u = t
@@ -1635,6 +1743,9 @@ theorem preserves_wf_receiveByOccurrence {s : RuntimeState} (h : WellFormed s)
               · -- timed_waiters_exclusive: timedMailboxWaiters unchanged
                 intro a' b' u hab' hma hmb'
                 exact h.timed_waiters_exclusive a' b' u hab' hma hmb'
+              · -- mailbox_within_capacity (RFC 056): park leaves mailboxes unchanged
+                intro a' n nmb hcap hmbx
+                exact h.mailbox_within_capacity a' n nmb hcap hmbx
       | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
@@ -1669,7 +1780,7 @@ theorem preserves_wf_receiveFrom {s : RuntimeState} (h : WellFormed s)
                 h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
                 h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
                 h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer, h.timed_is_waiter,
-                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive⟩
+                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_⟩
               · intro u cc hown
                 obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                 by_cases hcc : cc = a
@@ -1719,6 +1830,16 @@ theorem preserves_wf_receiveFrom {s : RuntimeState} (h : WellFormed s)
               · -- parent_child_spawned (RFC 038): taskParent unchanged; taskState = s.taskState
                 intro u p hp
                 exact h.parent_child_spawned u p hp
+              · -- mailbox_within_capacity (RFC 056): selective receive shrinks the target mailbox
+                intro a' n nmb hcap hmbx
+                by_cases hac : a' = a
+                · subst hac
+                  simp only [upd_self] at hmbx
+                  have hv := Option.some.inj hmbx; subst hv
+                  exact Nat.le_trans (Mailbox.dequeueFirst_length_le hd)
+                    (h.mailbox_within_capacity a' n mb hcap hmb)
+                · simp only [upd, if_neg hac] at hmbx
+                  exact h.mailbox_within_capacity a' n nmb hcap hmbx
             | none =>
               have ht_not_waiter : t ∉ s.mailboxWaiters a := fun hmem =>
                 absurd (h.waiters_waiting a t hmem) (by simp [hts])
@@ -1728,7 +1849,7 @@ theorem preserves_wf_receiveFrom {s : RuntimeState} (h : WellFormed s)
                                                         else s.mailboxWaiters ac } := by
                 simp [step, hrt, hts, how, hmb, hd]
               rw [hstep_p]
-              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
               · exact h.readyQ_nodup
               · intro u hm
                 by_cases hut : u = t
@@ -1855,6 +1976,9 @@ theorem preserves_wf_receiveFrom {s : RuntimeState} (h : WellFormed s)
               · -- timed_waiters_exclusive: timedMailboxWaiters unchanged
                 intro a' b' u hab' hma hmb'
                 exact h.timed_waiters_exclusive a' b' u hab' hma hmb'
+              · -- mailbox_within_capacity (RFC 056): park leaves mailboxes unchanged
+                intro a' n nmb hcap hmbx
+                exact h.mailbox_within_capacity a' n nmb hcap hmbx
       | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h

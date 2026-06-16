@@ -192,10 +192,25 @@ structure WellFormed (s : RuntimeState) : Prop where
   /-- A task appears in at most one timed-waiter list (RFC 040). -/
   timed_waiters_exclusive :
     ∀ a b t, a ≠ b → t ∈ s.timedMailboxWaiters a → t ∉ s.timedMailboxWaiters b
+  /-- No reachable mailbox exceeds its configured capacity (RFC 056). For an
+      unbounded policy (`capacity = none`) the premise is vacuous, so this is
+      a no-op for any state that configures no bounds. -/
+  mailbox_within_capacity :
+    ∀ a n mb, (s.mailboxPolicy a).capacity = some n → s.mailboxes a = some mb →
+      mb.messages.length ≤ n
 
-/-- The initial state is well-formed (28 fields). -/
+/-- From `mailboxFull = false` at a bounded policy, the mailbox has strict room.
+    The bridge between the computable `send`/`inject` guard and the capacity
+    invariant's `length < n` obligation (RFC 056). -/
+theorem lt_capacity_of_not_full {s : RuntimeState} {b : ActorId} {mb : Mailbox} {n : Nat}
+    (hcap : (s.mailboxPolicy b).capacity = some n)
+    (hfull : s.mailboxFull b mb = false) : mb.messages.length < n := by
+  simp only [RuntimeState.mailboxFull, hcap, decide_eq_false_iff_not, Nat.not_le] at hfull
+  exact hfull
+
+/-- The initial state is well-formed (29 fields). -/
 theorem wf_init : WellFormed RuntimeState.init := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [RuntimeState.init]
 
 /-- Changing only `restartOf` preserves well-formedness: no `WellFormed`
@@ -207,7 +222,8 @@ theorem WellFormed.restartOf_irrel {s : RuntimeState} (f : TaskId → Option Tas
    h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, h.parent_lt,
    h.parent_spawned, h.occ_fresh, h.occ_nodup, h.occ_disjoint, h.owner_spawned,
    h.parent_child_spawned, h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer,
-   h.timed_is_waiter, h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive⟩
+   h.timed_is_waiter, h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive,
+   h.mailbox_within_capacity⟩
 
 /-- Changing the RFC-055 admission-status fields (`actorStatus`,
     `runtimeStatus`) preserves `WellFormed`: no invariant field mentions
@@ -221,7 +237,8 @@ theorem WellFormed.status_irrel {s : RuntimeState}
    h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, h.parent_lt,
    h.parent_spawned, h.occ_fresh, h.occ_nodup, h.occ_disjoint, h.owner_spawned,
    h.parent_child_spawned, h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer,
-   h.timed_is_waiter, h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive⟩
+   h.timed_is_waiter, h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive,
+   h.mailbox_within_capacity⟩
 
 /-! ## Ownership uniqueness corollaries (RFC 004 acceptance) -/
 

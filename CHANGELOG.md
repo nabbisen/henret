@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.18.0 — Bounded Mailboxes & Backpressure (RFC 056, Option A reject-only)
+
+Mailboxes can now carry a per-actor capacity bound; an over-capacity `send` or
+`inject` is **rejected** with a new no-op `.backpressured` result. The feature
+is purely additive and the default policy is unbounded, so any v0.17 program is
+behaviourally identical until it configures a bound. The mathematical core
+(model + every preservation proof + the single-worker bridge) is kernel-checked
+with **zero `sorry` and zero project axioms**.
+
+- **Model.** New `MailboxPolicy` record (`{ capacity : Option Nat }`,
+  `.unbounded := { capacity := none }`) and `RuntimeState.mailboxPolicy`
+  (init `fun _ => .unbounded`). `StepResult` gains `.backpressured` (9
+  constructors, before `.invalid`). `RuntimeOp` is unchanged (21 constructors).
+  `send`/`inject` consult the policy **after** every validity guard; a full
+  mailbox yields `.backpressured` with no state change and no occurrence-id
+  consumption. Capacity zero is a documented reject-all policy.
+- **Invariant.** `WellFormed` gains field **29**, `mailbox_within_capacity`
+  ("no mailbox exceeds its configured capacity"), vacuous under the unbounded
+  default. Carried through all three `Preservation/{Lifecycle,Messaging,Time}`
+  proofs and projected by `reachable_mailbox_within_capacity`.
+- **Headline theorems.** `step_backpressured_unchanged`,
+  `backpressured_not_invalid`, `send_full_backpressured`,
+  `inject_full_backpressured`, `send_unbounded_not_backpressured`,
+  `inject_unbounded_not_backpressured`.
+- **Bridge.** `toQOps` is capacity-aware (emits `[]` for a full mailbox);
+  `bridge_send`/`bridge_inject` stay queue-stable under backpressure.
+- **Profile.** New `boundedMailbox` `SemanticFeature`, added to `Profile.full`
+  with `full_has_boundedMailbox`.
+- **Conformance.** Nine new kernel-checked `BranchScenario`s under
+  `branch_suite_passes` (cap-1 ok→backpressured, receive-frees, inject-full,
+  capacity-zero send+inject, unbounded-never, and both full-mailbox-with-waiter
+  variants — proving a Mesa waiter does not imply an empty mailbox); branch IDs
+  registered in `coverage_complete`.
+- **Docs.** New `docs/migration/v0.17-to-v0.18.md`; `Meta/Docs`, generated
+  tables, the proof index, the trust/test matrix, the assurance case, the
+  integration contract, the profile index, and the evidence ledger updated to
+  the 29-field / 9-result model. Option B (park-policy / blocking senders) is
+  explicitly out of scope.
+
 ## v0.17.7 — Model-to-Documentation Extraction (RFC 084 full, implements RFC 075)
 
 The recurrently-drifting documentation tables are now generated from a single

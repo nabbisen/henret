@@ -183,6 +183,12 @@ open Henret Henret.Native Henret.Bridge
 #print axioms Conformance.conformance_suite_passes
 #print axioms Conformance.branch_suite_passes
 #print axioms Conformance.coverage_complete
+#print axioms reachable_mailbox_within_capacity
+#print axioms step_backpressured_unchanged
+#print axioms send_full_backpressured
+#print axioms inject_full_backpressured
+#print axioms send_unbounded_not_backpressured
+#print axioms inject_unbounded_not_backpressured
 #print axioms Progress.ready_eventually_scheduled_under_bounded_fairness
 #print axioms Progress.schedule_schedules_head
 #print axioms Progress.head_scheduled_within_one

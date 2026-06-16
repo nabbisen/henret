@@ -1,8 +1,8 @@
 ---
 rfc: 56
 title: Bounded Mailboxes and Backpressure
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.18.0
 supersedes: []
 superseded_by: []
 depends_on: []

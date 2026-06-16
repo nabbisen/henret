@@ -75,7 +75,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [053](done/053-assurance-case-and-external-review-playbook.md) | Assurance Case and External Review Playbook | Implemented (v0.15.4) | — |
 | [054](done/054-semantic-profiles-and-capability-sets.md) | Semantic Profiles and Capability Sets | Implemented (v0.16.0) | — |
 | [055](done/055-structured-cancellation-and-shutdown.md) | Structured Cancellation and Shutdown | Implemented (v0.17.0) | — |
-| [056](proposed/056-bounded-mailboxes-and-backpressure.md) | Bounded Mailboxes and Backpressure | — | — |
+| [056](done/056-bounded-mailboxes-and-backpressure.md) | Bounded Mailboxes and Backpressure | Implemented (v0.18.0) | — |
 | [057](proposed/057-resource-lifetime-and-finalization-ledger.md) | Resource Lifetime and Finalization Ledger | — | — |
 | [058](proposed/058-scheduling-policy-layer.md) | Scheduling Policy Layer | — | — |
 | [059](proposed/059-deadline-and-priority-semantics.md) | Deadline and Priority Semantics | — | — |
@@ -94,7 +94,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [072](proposed/072-error-and-result-observability-contract.md) | Error and Result Observability Contract | — | — |
 | [073](proposed/073-runtime-adapter-negative-tests.md) | Runtime Adapter Negative Tests | — | — |
 | [074](proposed/074-bridge-completeness-certificate.md) | Bridge Completeness Certificate | — | — |
-| [075](proposed/075-model-to-documentation-extraction.md) | Model-to-Documentation Extraction | — | P1 |
+| [075](done/075-model-to-documentation-extraction.md) | Model-to-Documentation Extraction | Implemented (v0.17.7) | — |
 | [076](proposed/076-counterexample-catalog.md) | Counterexample Catalog | — | — |
 | [077](proposed/077-minimal-verified-actor-patterns.md) | Minimal Verified Actor Patterns | — | — |
 | [078](proposed/078-security-and-robustness-interpretation.md) | Security and Robustness Interpretation | — | — |

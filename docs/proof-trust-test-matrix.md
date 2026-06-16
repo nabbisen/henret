@@ -290,7 +290,7 @@ zero-assumption core.
 | # | Claim | Class | Evidence | Location | Verified here |
 |---:|---|---|---|---|:---:|
 | 147 | Failure (`.failed`) is a terminal state distinct from cancellation | PROVEN | `TaskState.failed`, `isTerminal_failed`, `step_preserves_terminal` | in_tree_model_proof | yes |
-| 148 | `fail` and `restartOne` preserve the 28-field WellFormed invariant | PROVEN | `preserves_wf_fail`, `preserves_wf_restartOne` | in_tree_model_proof | yes |
+| 148 | `fail` and `restartOne` preserve the 29-field WellFormed invariant | PROVEN | `preserves_wf_fail`, `preserves_wf_restartOne` | in_tree_model_proof | yes |
 | 149 | A restart creates a fresh task id strictly greater than the failed one | PROVEN | `reachable_restart_fresh` | in_tree_model_proof | yes |
 | 150 | The task replaced by a restart is failed | PROVEN | `reachable_restart_old_failed` | in_tree_model_proof | yes |
 | 151 | A restart replacement shares the failed task's supervising parent | PROVEN | `reachable_restart_parent_consistent` | in_tree_model_proof | yes |
@@ -333,3 +333,11 @@ All claims here are **safety-only**: no fairness, liveness, or guaranteed-quiesc
 | 171 | The new ops are queue-stable under the single-worker bridge | PROVEN | `bridge_closeActor`, `bridge_shutdown`, `bridge_stopWhenIdle` | in_tree_model_proof | yes |
 | 172 | Subtree cancellation reuses `cancelTree` (RFC 039); no new cancellation op | DOCUMENTED | `cancelTree_cancels_task`, `cancelTree_preserves_task_state`, `docs/shutdown-semantics.md` | — | — |
 | 173 | No liveness or eventual-quiescence claim is introduced | DOCUMENTED | `docs/shutdown-semantics.md`, `examples/16_structured_shutdown.lean` | — | — |
+| 174 | No reachable mailbox ever exceeds its configured capacity (`WellFormed` field 29; vacuous under the default unbounded policy) | PROVEN | `reachable_mailbox_within_capacity`, `wf_init` | in_tree_model_proof | yes |
+| 175 | A valid `send`/`inject` to a full mailbox is rejected with `.backpressured` (Option A, reject-only) | PROVEN | `send_full_backpressured`, `inject_full_backpressured` | in_tree_model_proof | yes |
+| 176 | `.backpressured` is a no-op: the state is unchanged and no occurrence id is consumed | PROVEN | `step_backpressured_unchanged`, `backpressured_not_invalid` | in_tree_model_proof | yes |
+| 177 | Under the default unbounded policy `send`/`inject` are never backpressured (behaviourally identical to pre-RFC-056) | PROVEN | `send_unbounded_not_backpressured`, `inject_unbounded_not_backpressured` | in_tree_model_proof | yes |
+| 178 | A full mailbox with a parked Mesa waiter still backpressures further delivery (a waiter does not imply an empty mailbox) | PROVEN | `branch_suite_passes` (`full_mailbox_with_waiter_{send,inject}_backpressured`) | in_tree_model_proof | yes |
+| 179 | Capacity-zero is a documented reject-all policy: every `send`/`inject` is backpressured | PROVEN | `branch_suite_passes` (`capacity_zero_{send,inject}_backpressured`) | in_tree_model_proof | yes |
+| 180 | The single-worker bridge stays queue-stable under backpressure (`toQOps` emits `[]` for a full mailbox) | PROVEN | `bridge_send`, `bridge_inject` | in_tree_model_proof | yes |
+| 181 | Park-policy overflow (Option B: blocking senders) is out of scope and not implemented | DOCUMENTED | `docs/migration/v0.17-to-v0.18.md`, RFC 056 | — | — |

@@ -51,6 +51,7 @@ proof style throughout this file.
 @[simp] theorem ct_taskOwner   (s : RuntimeState) (tc : List TaskId) : (applyCancelTree s tc).taskOwner  = s.taskOwner  := rfl
 @[simp] theorem ct_taskParent  (s : RuntimeState) (tc : List TaskId) : (applyCancelTree s tc).taskParent = s.taskParent := rfl
 @[simp] theorem ct_mailboxes   (s : RuntimeState) (tc : List TaskId) : (applyCancelTree s tc).mailboxes  = s.mailboxes  := rfl
+@[simp] theorem ct_mailboxPolicy (s : RuntimeState) (tc : List TaskId) : (applyCancelTree s tc).mailboxPolicy = s.mailboxPolicy := rfl
 
 /-! ## Descendant collection lemmas -/
 
@@ -150,7 +151,7 @@ theorem cancelTree_removes_from_waiters {s : RuntimeState} {root t : TaskId}
 theorem preserves_wf_cancelTree {s : RuntimeState} (h : WellFormed s) (root : TaskId) :
     WellFormed ((step s (.cancelTree root)).1) := by
   simp only [cancelTree_step_eq]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- 1. readyQ_nodup
     exact List.Nodup.sublist (List.filter_sublist _) h.readyQ_nodup
   · -- 2. readyQ_queued: t ∈ filtered readyQ → t ∉ tc → taskState unchanged → runnable
@@ -386,5 +387,9 @@ theorem preserves_wf_cancelTree {s : RuntimeState} (h : WellFormed s) (root : Ta
     simp only [ct_timedMailboxWaiters] at hma hmb
     exact h.timed_waiters_exclusive a b u hab
       (List.mem_filter.mp hma).1 (List.mem_filter.mp hmb).1
+  · -- 29. mailbox_within_capacity (RFC 056): cancelTree touches neither mailboxes nor policy
+    intro a n mbx hcap hmbx
+    simp only [ct_mailboxes, ct_mailboxPolicy] at hcap hmbx
+    exact h.mailbox_within_capacity a n mbx hcap hmbx
 
 end Henret

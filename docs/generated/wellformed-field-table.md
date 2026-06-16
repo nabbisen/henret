@@ -2,7 +2,7 @@
 
 # WellFormed invariant fields
 
-Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Proofs/Invariants.lean` (28 fields).
+Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Proofs/Invariants.lean` (29 fields).
 
 | # | Field | Group | Since | Summary |
 |---|---|---|---|---|
@@ -34,3 +34,4 @@ Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Proofs/Invaria
 | 26 | `timed_waiters_valid` | timed-wait | RFC 040 | every timed waiter is waitingTimed |
 | 27 | `timed_waiters_nodup` | timed-wait | RFC 040 | timed-waiter lists are duplicate-free |
 | 28 | `timed_waiters_exclusive` | timed-wait | RFC 040 | a task waits on at most one timed mailbox |
+| 29 | `mailbox_within_capacity` | capacity | RFC 056 | no mailbox exceeds its configured capacity |

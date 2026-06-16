@@ -53,6 +53,13 @@ def checkBranch (sc : BranchScenario) : Bool :=
 def mailboxLen (s : RuntimeState) (a : ActorId) : Nat :=
   match s.mailboxes a with | some mb => mb.messages.length | none => 0
 
+/-- An initial state in which actor `a`'s mailbox has bounded capacity `cap`
+    (every other actor keeps the default unbounded policy). Used by the
+    RFC 056 backpressure scenarios. -/
+def capInit (a : ActorId) (cap : Nat) : RuntimeState :=
+  { RuntimeState.init with
+      mailboxPolicy := fun x => if x = a then { capacity := some cap } else .unbounded }
+
 /-! ## Positive scenarios -/
 
 def receiveUntil_timeout_fast_path : BranchScenario where
@@ -313,6 +320,111 @@ def cancelTree_cancels_subtree : BranchScenario where
     s.taskState 0 == some .cancelled && s.taskState 1 == some .cancelled
   covers := ["cancelTree.cancels-subtree"]
 
+/-! ## RFC 056: bounded mailbox / backpressure scenarios -/
+
+/-- Capacity 1: the first valid send succeeds; a second send to the now-full
+    mailbox is rejected with `.backpressured` (Option A reject-only). -/
+def bounded_send_then_backpressured : BranchScenario where
+  name := "bounded_send_then_backpressured"
+  description := "cap-1 mailbox: send ok then send backpressured when full"
+  ops := [.spawn 7, .schedule, .send 0 7 ⟨1, 100⟩, .send 0 7 ⟨2, 200⟩]
+  expected := [.spawned 0, .scheduled 0, .ok, .backpressured]
+  finalCheck := fun s => mailboxLen s 7 == 1
+  covers := ["send.capacity-full-backpressured", "send.capacity-ok"]
+  initial := capInit 7 1
+
+/-- Capacity 1: after a backpressured send, a receive frees a slot and the
+    next send succeeds again. A backpressured send consumes no occurrence id
+    (delta 7): the received envelope carries occurrence `0`. -/
+def bounded_receive_frees_capacity : BranchScenario where
+  name := "bounded_receive_frees_capacity"
+  description := "cap-1 mailbox: ok, backpressured, receive frees, ok"
+  ops := [.spawn 7, .schedule, .send 0 7 ⟨1, 100⟩, .send 0 7 ⟨2, 200⟩,
+          .receive 0, .send 0 7 ⟨3, 300⟩]
+  expected := [.spawned 0, .scheduled 0, .ok, .backpressured,
+               .received ⟨0, some 7, ⟨1, 100⟩⟩, .ok]
+  finalCheck := fun s => mailboxLen s 7 == 1
+  covers := ["send.capacity-frees-after-receive"]
+  initial := capInit 7 1
+
+/-- Capacity 1: a valid inject fills the mailbox; a second inject is
+    backpressured. -/
+def bounded_inject_full_backpressured : BranchScenario where
+  name := "bounded_inject_full_backpressured"
+  description := "cap-1 mailbox: inject ok then inject backpressured when full"
+  ops := [.spawn 7, .inject 7 ⟨1, 100⟩, .inject 7 ⟨2, 200⟩]
+  expected := [.spawned 0, .ok, .backpressured]
+  finalCheck := fun s => mailboxLen s 7 == 1
+  covers := ["inject.capacity-full-backpressured"]
+  initial := capInit 7 1
+
+/-- Capacity 0 is a documented reject-all policy (delta 6): every valid send
+    is backpressured and the mailbox stays empty. -/
+def capacity_zero_send_backpressured : BranchScenario where
+  name := "capacity_zero_send_backpressured"
+  description := "cap-0 mailbox rejects every send (reject-all)"
+  ops := [.spawn 7, .schedule, .send 0 7 ⟨1, 100⟩]
+  expected := [.spawned 0, .scheduled 0, .backpressured]
+  finalCheck := fun s => mailboxLen s 7 == 0
+  covers := ["send.capacity-zero-reject-all"]
+  negative := true
+  initial := capInit 7 0
+
+/-- Capacity 0: every valid inject is backpressured (reject-all, delta 6). -/
+def capacity_zero_inject_backpressured : BranchScenario where
+  name := "capacity_zero_inject_backpressured"
+  description := "cap-0 mailbox rejects every inject (reject-all)"
+  ops := [.spawn 7, .inject 7 ⟨1, 100⟩]
+  expected := [.spawned 0, .backpressured]
+  finalCheck := fun s => mailboxLen s 7 == 0
+  covers := ["inject.capacity-zero-reject-all"]
+  negative := true
+  initial := capInit 7 0
+
+/-- The default unbounded policy is behaviourally identical to pre-RFC-056:
+    repeated sends are never backpressured. -/
+def unbounded_send_never_backpressured : BranchScenario where
+  name := "unbounded_send_never_backpressured"
+  description := "default unbounded mailbox: repeated sends all succeed"
+  ops := [.spawn 7, .schedule, .send 0 7 ⟨1, 100⟩, .send 0 7 ⟨2, 200⟩,
+          .send 0 7 ⟨3, 300⟩]
+  expected := [.spawned 0, .scheduled 0, .ok, .ok, .ok]
+  finalCheck := fun s => mailboxLen s 7 == 3
+  covers := ["send.unbounded-never-backpressured"]
+  initial := RuntimeState.init
+
+/-- Delta 5: a Mesa waiter does NOT imply an empty mailbox. Two tasks park on
+    a cap-1 mailbox; an inject wakes the head waiter and fills the mailbox to
+    capacity, leaving the second task still waiting. A further inject is then
+    backpressured even though a waiter is present. -/
+def full_mailbox_with_waiter_inject_backpressured : BranchScenario where
+  name := "full_mailbox_with_waiter_inject_backpressured"
+  description := "cap-1 full mailbox with a parked waiter still backpressures inject"
+  ops := [.spawn 7, .schedule, .spawnChild 0 7, .receive 0, .schedule, .receive 1,
+          .inject 7 ⟨1, 100⟩, .inject 7 ⟨2, 200⟩]
+  expected := [.spawned 0, .scheduled 0, .spawned 1, .blocked, .scheduled 1, .blocked,
+               .ok, .backpressured]
+  finalCheck := fun s => mailboxLen s 7 == 1 && s.taskState 1 == some .waiting
+  covers := ["inject.full-with-waiter-backpressured"]
+  initial := capInit 7 1
+
+/-- Delta 5 (send variant): a full cap-1 mailbox with a parked waiter still
+    backpressures a send. Three tasks owned by actor 7: two park as waiters, a
+    third stays running. A send wakes the head waiter and fills the mailbox to
+    capacity; the second waiter remains parked, and a further send is rejected. -/
+def full_mailbox_with_waiter_send_backpressured : BranchScenario where
+  name := "full_mailbox_with_waiter_send_backpressured"
+  description := "cap-1 full mailbox with a parked waiter still backpressures send"
+  ops := [.spawn 7, .schedule, .spawnChild 0 7, .spawnChild 0 7,
+          .receive 0, .schedule, .receive 1, .schedule,
+          .send 2 7 ⟨1, 100⟩, .send 2 7 ⟨2, 200⟩]
+  expected := [.spawned 0, .scheduled 0, .spawned 1, .spawned 2,
+               .blocked, .scheduled 1, .blocked, .scheduled 2,
+               .ok, .backpressured]
+  finalCheck := fun s => mailboxLen s 7 == 1 && s.taskState 1 == some .waiting
+  covers := ["send.full-with-waiter-backpressured"]
+  initial := capInit 7 1
+
 /-- The full branch-coverage suite. -/
 def branchScenarios : List BranchScenario :=
   [ receiveUntil_timeout_fast_path, receiveUntil_park_future_deadline,
@@ -328,7 +440,12 @@ def branchScenarios : List BranchScenario :=
     waiting_task_cannot_send, waiting_task_cannot_receive,
     cancelled_task_not_schedulable, closed_actor_rejects_send,
     closed_actor_rejects_inject, shutdown_rejects_spawn,
-    shutdown_rejects_inject, stale_timer_cannot_wake_cancelled ]
+    shutdown_rejects_inject, stale_timer_cannot_wake_cancelled,
+    bounded_send_then_backpressured, bounded_receive_frees_capacity,
+    bounded_inject_full_backpressured, capacity_zero_send_backpressured,
+    capacity_zero_inject_backpressured, unbounded_send_never_backpressured,
+    full_mailbox_with_waiter_inject_backpressured,
+    full_mailbox_with_waiter_send_backpressured ]
 
 def branchAllPass : Bool := branchScenarios.all checkBranch
 

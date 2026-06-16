@@ -136,7 +136,7 @@ these names.
 
 | Theorem | Guarantee |
 |---|---|
-| `reachable_wf` | every reachable state satisfies the 28-field `WellFormed` invariant |
+| `reachable_wf` | every reachable state satisfies the 29-field `WellFormed` invariant |
 | `reachable_queue_exact` | a task is in `readyQ` iff it is `.ready` |
 | `reachable_waiters_exact` | a task is in `mailboxWaiters a` iff it is `.waiting` and owned by `a` |
 | `reachable_waiter_actor_unique` | a waiting task waits on at most one actor |

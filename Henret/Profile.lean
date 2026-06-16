@@ -27,6 +27,7 @@ inductive SemanticFeature where
   | bridge
   | schedulingPolicy
   | resourceLifetime
+  | boundedMailbox
 deriving DecidableEq, Repr, Inhabited
 
 /-- A semantic profile: a duplicate-free set of features. -/
@@ -76,7 +77,7 @@ def actor : SemanticProfile :=
     timers, supervision (fail/restart), and the bridge. -/
 def full : SemanticProfile :=
   ⟨[.lifecycle, .actorMessaging, .timers, .parking, .supervision,
-    .occurrenceIdentity, .bridge], by decide⟩
+    .occurrenceIdentity, .bridge, .boundedMailbox], by decide⟩
 
 end Profile
 
@@ -97,5 +98,8 @@ theorem actor_has_occurrence : Profile.actor.Has .occurrenceIdentity := by decid
 
 /-- The full profile includes supervision (fail/restart, RFC 049). -/
 theorem full_has_supervision : Profile.full.Has .supervision := by decide
+
+/-- The full profile includes bounded mailboxes / backpressure (RFC 056). -/
+theorem full_has_boundedMailbox : Profile.full.Has .boundedMailbox := by decide
 
 end Henret

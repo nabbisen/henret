@@ -78,6 +78,13 @@ ALLOWLIST = {
     "Henret.Conformance.conformance_suite_passes": (set(), STD),
     "Henret.Conformance.branch_suite_passes": (set(), STD),
     "Henret.Conformance.coverage_complete": (set(), STD),
+    # RFC 056 — bounded mailboxes / backpressure
+    "Henret.reachable_mailbox_within_capacity": (set(), STD_C),
+    "Henret.step_backpressured_unchanged":      (set(), STD),
+    "Henret.send_full_backpressured":           (set(), STD),
+    "Henret.inject_full_backpressured":         (set(), STD),
+    "Henret.send_unbounded_not_backpressured":  (set(), STD),
+    "Henret.inject_unbounded_not_backpressured": (set(), STD),
     # RFC 049 supervision restart policies
     "Henret.reachable_restart_fresh":              (set(), STD_C),
     "Henret.reachable_restart_old_failed":         (set(), STD_C),
