@@ -6,6 +6,7 @@ import Henret.Proofs.Ownership
 import Henret.Proofs.StepFields
 import Henret.Proofs.Invariants
 import Henret.Proofs.InvariantsPreservation
+import Henret.Proofs.ResourceReachable
 import Henret.Proofs.Parenthood
 import Henret.Proofs.Occurrence
 import Henret.Proofs.Supervision

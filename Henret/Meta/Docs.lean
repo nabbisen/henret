@@ -29,7 +29,7 @@ structure FieldDoc where
   summary : String
 deriving Repr
 
-/-- `RuntimeOp` — the 21-operation grammar (`Henret/Scheduler/Op.lean`). -/
+/-- `RuntimeOp` — the 24-operation grammar (`Henret/Scheduler/Op.lean`). -/
 def runtimeOpDocs : List ConstructorDoc :=
   [ { name := "spawn",              since := "RFC 004", category := "lifecycle",   summary := "create a root task owned by an actor" },
     { name := "schedule",           since := "RFC 004", category := "lifecycle",   summary := "select the ready-queue head to run" },
@@ -51,7 +51,10 @@ def runtimeOpDocs : List ConstructorDoc :=
     { name := "restartOne",         since := "RFC 049", category := "supervision", summary := "spawn a fresh replacement for a failed child" },
     { name := "closeActor",         since := "RFC 055", category := "shutdown",    summary := "close an actor; future send/inject rejected" },
     { name := "shutdown",           since := "RFC 055", category := "shutdown",    summary := "begin runtime shutdown" },
-    { name := "stopWhenIdle",       since := "RFC 055", category := "shutdown",    summary := "stop the runtime if quiescent" } ]
+    { name := "stopWhenIdle",       since := "RFC 055", category := "shutdown",    summary := "stop the runtime if quiescent" },
+    { name := "acquire",            since := "RFC 057", category := "resource",    summary := "running task allocates a fresh resource" },
+    { name := "release",            since := "RFC 057", category := "resource",    summary := "owning task releases an allocated resource" },
+    { name := "finalize",           since := "RFC 057", category := "resource",    summary := "environment reclaims a closing resource" } ]
 
 /-- `TaskState` — the 10 task lifecycle states (`Henret/Actor/Task.lean`). -/
 def taskStateDocs : List ConstructorDoc :=
@@ -66,7 +69,7 @@ def taskStateDocs : List ConstructorDoc :=
     { name := "waitingTimed", since := "RFC 040", category := "blocked",   summary := "parked on a mailbox with a deadline" },
     { name := "failed",       since := "RFC 049", category := "terminal",  summary := "failed (supervision)" } ]
 
-/-- `StepResult` — the 8 step outcomes (`Henret/Core/Result.lean`). -/
+/-- `StepResult` — the 10 step outcomes (`Henret/Core/Result.lean`). -/
 def stepResultDocs : List ConstructorDoc :=
   [ { name := "ok",        since := "RFC 004", category := "success", summary := "applied; no interesting value" },
     { name := "spawned",   since := "RFC 004", category := "success", summary := "spawn created this task" },
@@ -76,9 +79,10 @@ def stepResultDocs : List ConstructorDoc :=
     { name := "timedOut",  since := "RFC 040", category := "blocked", summary := "receiveUntil fast path: deadline passed" },
     { name := "woke",      since := "RFC 007", category := "success", summary := "tick woke these tasks" },
     { name := "backpressured", since := "RFC 056", category := "rejected", summary := "valid send/inject rejected: mailbox at capacity (no-op)" },
+    { name := "acquired",  since := "RFC 057", category := "success",  summary := "acquire allocated this resource id" },
     { name := "invalid",   since := "RFC 004", category := "rejected", summary := "not valid in the current state (no-op)" } ]
 
-/-- `WellFormed` — the 29 reachability-invariant fields
+/-- `WellFormed` — the 33 reachability-invariant fields
     (`Henret/Proofs/Invariants.lean`). -/
 def wellFormedDocs : List FieldDoc :=
   [ { name := "readyQ_nodup",            group := "scheduling",  since := "RFC 013", summary := "the ready queue has no duplicates" },
@@ -109,6 +113,10 @@ def wellFormedDocs : List FieldDoc :=
     { name := "timed_waiters_valid",     group := "timed-wait",  since := "RFC 040", summary := "every timed waiter is waitingTimed" },
     { name := "timed_waiters_nodup",     group := "timed-wait",  since := "RFC 040", summary := "timed-waiter lists are duplicate-free" },
     { name := "timed_waiters_exclusive", group := "timed-wait",  since := "RFC 040", summary := "a task waits on at most one timed mailbox" },
-    { name := "mailbox_within_capacity", group := "capacity",    since := "RFC 056", summary := "no mailbox exceeds its configured capacity" } ]
+    { name := "mailbox_within_capacity", group := "capacity",    since := "RFC 056", summary := "no mailbox exceeds its configured capacity" },
+    { name := "resource_fresh",          group := "resource",    since := "RFC 057", summary := "ids at or above the counter are unallocated" },
+    { name := "resource_owner_spawned",  group := "resource",    since := "RFC 057", summary := "every resource is owned by a spawned task" },
+    { name := "allocated_owner_nonterminal", group := "resource", since := "RFC 057", summary := "an allocated resource's owner is live" },
+    { name := "closing_owner_terminal",  group := "resource",    since := "RFC 057", summary := "a closing resource's owner is terminal" } ]
 
 end Henret.Meta

@@ -3,6 +3,7 @@
 --  InvariantsPreservation.lean imported Supervision.lean transitively.)
 import Henret.Proofs.Invariants
 import Henret.Proofs.Ownership
+import Henret.Proofs.Resource
 
 namespace Henret
 
@@ -151,7 +152,27 @@ theorem cancelTree_removes_from_waiters {s : RuntimeState} {root t : TaskId}
 theorem preserves_wf_cancelTree {s : RuntimeState} (h : WellFormed s) (root : TaskId) :
     WellFormed ((step s (.cancelTree root)).1) := by
   simp only [cancelTree_step_eq]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  have hres_eq : (applyCancelTree s (descendantsOf s root)).resources
+      = markClosingIf (fun u => decide (u ∈ descendantsOf s root)) s.resources := rfl
+  have hnext_eq : (applyCancelTree s (descendantsOf s root)).nextResourceId
+      = s.nextResourceId := rfl
+  have hmarked : ∀ u st, decide (u ∈ descendantsOf s root) = true → s.taskState u = some st →
+      ∃ st', (applyCancelTree s (descendantsOf s root)).taskState u = some st' ∧ st'.isTerminal := by
+    intro u st hp hsu
+    have hmem : u ∈ descendantsOf s root := of_decide_eq_true hp
+    simp only [applyCancelTree, if_pos hmem, hsu]
+    by_cases ht : st.isTerminal
+    · exact ⟨st, by simp [ht], ht⟩
+    · exact ⟨.cancelled, by simp [ht], by decide⟩
+  have hunmarked : ∀ u st, decide (u ∈ descendantsOf s root) = false → s.taskState u = some st →
+      ∃ st', (applyCancelTree s (descendantsOf s root)).taskState u = some st'
+        ∧ st'.isTerminal = st.isTerminal := by
+    intro u st hp hsu
+    have hmem : u ∉ descendantsOf s root := of_decide_eq_false hp
+    exact ⟨st, by simp only [applyCancelTree, if_neg hmem]; exact hsu, rfl⟩
+  obtain ⟨hrf, hros, haon, hcot⟩ :=
+    wf_resource_terminal h (fun u => decide (u ∈ descendantsOf s root)) hres_eq hnext_eq hmarked hunmarked
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
   · -- 1. readyQ_nodup
     exact List.Nodup.sublist (List.filter_sublist _) h.readyQ_nodup
   · -- 2. readyQ_queued: t ∈ filtered readyQ → t ∉ tc → taskState unchanged → runnable

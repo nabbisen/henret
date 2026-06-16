@@ -1,4 +1,5 @@
 import Henret.Proofs.Invariants
+import Henret.Proofs.Resource
 import Henret.Proofs.Messaging
 import Henret.Proofs.Ownership
 import Henret.Proofs.StepFields
@@ -34,6 +35,19 @@ private theorem nextMsgId_fresh {s : RuntimeState} (h : WellFormed s)
 theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
     {t : TaskId} {b : ActorId} {m : Message} :
     WellFormed ((step s (.send t b m)).1) := by
+  have hres_eq : (step s (.send t b m)).1.resources = s.resources := by
+    simp only [step]; (repeat' split) <;> rfl
+  have hnext_eq : (step s (.send t b m)).1.nextResourceId = s.nextResourceId := by
+    simp only [step]; (repeat' split) <;> rfl
+  have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+      ∃ st', (step s (.send t b m)).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+    intro u stu hsu hntm
+    simp only [step]
+    (repeat' split) <;>
+      first
+      | exact ⟨stu, hsu, hntm⟩
+      | exact upd_nonterminal hsu hntm (by decide)
+  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.send t b m) hres_eq hnext_eq hnt
   by_cases hcl : s.actorStatus b = .closed
   · simpa [step, hcl] using h
   · by_cases hrt : s.running = some t
@@ -60,11 +74,12 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                         nextMsgId := s.nextMsgId + 1 } := by
                     simp [step, hcl, hrt, hts, how, hmb, hw, htw, hfull]
                   rw [hstep]
+                  rw [hstep] at hrf hros haon hcot
                   refine ⟨h.readyQ_nodup, fun u hm => h.readyQ_queued u hm, h.running_runs,
                     h.timers_nodup, h.timers_sleep, h.fresh_none, h.timers_sorted,
                     h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
                     h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-                    ?_, ?_, ?_, ?_, ?_, ?_, h.timed_waiters_exclusive, ?_⟩
+                    ?_, ?_, ?_, ?_, ?_, ?_, h.timed_waiters_exclusive, ?_, hrf, hros, haon, hcot⟩
                   · intro u cc hown
                     obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                     by_cases hcc : cc = b
@@ -149,7 +164,7 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                   have hwne : w ≠ t := by
                     intro he; subst he; exact absurd hwtt (by rw [h.running_runs w hrt]; simp)
                   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-                 ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+                 ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
                   · -- readyQ_nodup
                     simp [step, hcl, hrt, hts, how, hmb, hw, hwws, hfull]
                     exact nodup_append_singleton h.readyQ_nodup hwq
@@ -377,7 +392,7 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
                 have hwq  : w ∉ s.readyQ := waiting_not_in_readyQ h hwt
                 have hwne : w ≠ t := waiter_ne_running h hwt hrt
                 -- The step wakes w to .ready and bumps nextMsgId
-                refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+                refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
                 · -- readyQ_nodup
                   simp [step, hcl, hrt, hts, how, hmb, hw, hfull]
                   exact nodup_append_singleton h.readyQ_nodup hwq
@@ -573,6 +588,19 @@ theorem preserves_wf_send {s : RuntimeState} (h : WellFormed s)
 theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
     {t : TaskId} :
     WellFormed ((step s (.receive t)).1) := by
+  have hres_eq : (step s (.receive t)).1.resources = s.resources := by
+    simp only [step]; (repeat' split) <;> rfl
+  have hnext_eq : (step s (.receive t)).1.nextResourceId = s.nextResourceId := by
+    simp only [step]; (repeat' split) <;> rfl
+  have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+      ∃ st', (step s (.receive t)).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+    intro u stu hsu hntm
+    simp only [step]
+    (repeat' split) <;>
+      first
+      | exact ⟨stu, hsu, hntm⟩
+      | exact upd_nonterminal hsu hntm (by decide)
+  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.receive t) hres_eq hnext_eq hnt
   by_cases hrt : s.running = some t
   · cases hts : s.taskState t with
     | none => simpa [step, hrt, hts] using h
@@ -592,12 +620,13 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
               have hcons : mb.messages = env :: rest.messages := by
                 have := Mailbox.dequeue_spec mb; rw [hd] at this; exact this
               rw [hstep_d]
+              rw [hstep_d] at hrf hros haon hcot
               refine ⟨h.readyQ_nodup, fun u hm => h.readyQ_queued u hm, h.running_runs,
                 h.timers_nodup, h.timers_sleep, h.fresh_none, h.timers_sorted,
                 h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
                 h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
                 h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer, h.timed_is_waiter,
-                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_⟩
+                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_, hrf, hros, haon, hcot⟩
               · intro u cc hown
                 obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                 by_cases hcc : cc = a
@@ -666,7 +695,8 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
                                                         else s.mailboxWaiters ac } := by
                 simp [step, hrt, hts, how, hmb, hd]
               rw [hstep_p]
-              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              rw [hstep_p] at hrf hros haon hcot
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
               · exact h.readyQ_nodup
               · intro u hm
                 by_cases hut : u = t
@@ -805,6 +835,19 @@ theorem preserves_wf_receive {s : RuntimeState} (h : WellFormed s)
 theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
     {a : ActorId} {m : Message} :
     WellFormed ((step s (.inject a m)).1) := by
+  have hres_eq : (step s (.inject a m)).1.resources = s.resources := by
+    simp only [step]; (repeat' split) <;> rfl
+  have hnext_eq : (step s (.inject a m)).1.nextResourceId = s.nextResourceId := by
+    simp only [step]; (repeat' split) <;> rfl
+  have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+      ∃ st', (step s (.inject a m)).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+    intro u stu hsu hntm
+    simp only [step]
+    (repeat' split) <;>
+      first
+      | exact ⟨stu, hsu, hntm⟩
+      | exact upd_nonterminal hsu hntm (by decide)
+  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.inject a m) hres_eq hnext_eq hnt
   by_cases hg : s.runtimeStatus ≠ .running ∨ s.actorStatus a = .closed
   · simpa [step, hg] using h
   · obtain ⟨hrs0, hopen⟩ := not_or.mp hg
@@ -828,12 +871,13 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
                 nextMsgId := s.nextMsgId + 1 } := by
             simp [step, hrs, hopen, hmb, hw, hfull, htw]
           rw [hstep]
+          rw [hstep] at hrf hros haon hcot
           refine ⟨h.readyQ_nodup, fun u hm => h.readyQ_queued u hm, h.running_runs,
             h.timers_nodup, h.timers_sleep, h.fresh_none, h.timers_sorted,
             h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
             h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
             h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer, h.timed_is_waiter,
-            h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_⟩
+            h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_, hrf, hros, haon, hcot⟩
           · intro u cc hown
             obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
             by_cases hcc : cc = a
@@ -912,7 +956,8 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
                 waitDeadline := fun u => if u = w then none else s.waitDeadline u } := by
             simp [step, hrs, hopen, hmb, hw, hfull, htw]
           rw [hstep]
-          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+          rw [hstep] at hrf hros haon hcot
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
           · -- readyQ_nodup
             exact nodup_append_singleton h.readyQ_nodup hwq
           · -- readyQ_queued
@@ -1084,7 +1129,7 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
       | cons w ws =>
         have hwt  : s.taskState w = some .waiting := h.waiters_waiting a w (hw ▸ List.mem_cons_self w ws)
         have hwq  : w ∉ s.readyQ := waiting_not_in_readyQ h hwt
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
         · simp [step, hrs, hopen, hmb, hw, hfull]; exact nodup_append_singleton h.readyQ_nodup hwq
         · intro u hm; simp [step, hrs, hopen, hmb, hw, hfull] at hm ⊢
           rcases hm with hm | rfl
@@ -1259,6 +1304,19 @@ theorem preserves_wf_inject {s : RuntimeState} (h : WellFormed s)
 theorem preserves_wf_receiveUntil {s : RuntimeState} (h : WellFormed s)
     {t : TaskId} {deadline : Nat} :
     WellFormed ((step s (.receiveUntil t deadline)).1) := by
+  have hres_eq : (step s (.receiveUntil t deadline)).1.resources = s.resources := by
+    simp only [step]; (repeat' split) <;> rfl
+  have hnext_eq : (step s (.receiveUntil t deadline)).1.nextResourceId = s.nextResourceId := by
+    simp only [step]; (repeat' split) <;> rfl
+  have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+      ∃ st', (step s (.receiveUntil t deadline)).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+    intro u stu hsu hntm
+    simp only [step]
+    (repeat' split) <;>
+      first
+      | exact ⟨stu, hsu, hntm⟩
+      | exact upd_nonterminal hsu hntm (by decide)
+  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.receiveUntil t deadline) hres_eq hnext_eq hnt
   by_cases hrt : s.running = some t
   · cases hts : s.taskState t with
     | none => simpa [step, hrt, hts] using h
@@ -1277,12 +1335,13 @@ theorem preserves_wf_receiveUntil {s : RuntimeState} (h : WellFormed s)
               have hcons : mb.messages = env :: rest.messages := by
                 have := Mailbox.dequeue_spec mb; rw [hd] at this; exact this
               rw [hstep]
+              rw [hstep] at hrf hros haon hcot
               refine ⟨h.readyQ_nodup, fun u hm => h.readyQ_queued u hm, h.running_runs,
                 h.timers_nodup, h.timers_sleep, h.fresh_none, h.timers_sorted,
                 h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
                 h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
                 h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer, h.timed_is_waiter,
-                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_⟩
+                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_, hrf, hros, haon, hcot⟩
               · intro u cc hown
                 obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                 by_cases hcc : cc = a
@@ -1359,7 +1418,8 @@ theorem preserves_wf_receiveUntil {s : RuntimeState} (h : WellFormed s)
                         waitDeadline := upd s.waitDeadline t (some deadline) } := by
                   simp [step, hrt, hts, how, hmb, hd, hdl]
                 rw [hstep]
-                refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+                rw [hstep] at hrf hros haon hcot
+                refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
                 · -- readyQ_nodup
                   exact h.readyQ_nodup
                 · -- readyQ_queued
@@ -1521,6 +1581,19 @@ theorem preserves_wf_receiveUntil {s : RuntimeState} (h : WellFormed s)
 theorem preserves_wf_receiveByOccurrence {s : RuntimeState} (h : WellFormed s)
     {t : TaskId} {occ : MessageId} :
     WellFormed ((step s (.receiveByOccurrence t occ)).1) := by
+  have hres_eq : (step s (.receiveByOccurrence t occ)).1.resources = s.resources := by
+    simp only [step]; (repeat' split) <;> rfl
+  have hnext_eq : (step s (.receiveByOccurrence t occ)).1.nextResourceId = s.nextResourceId := by
+    simp only [step]; (repeat' split) <;> rfl
+  have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+      ∃ st', (step s (.receiveByOccurrence t occ)).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+    intro u stu hsu hntm
+    simp only [step]
+    (repeat' split) <;>
+      first
+      | exact ⟨stu, hsu, hntm⟩
+      | exact upd_nonterminal hsu hntm (by decide)
+  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.receiveByOccurrence t occ) hres_eq hnext_eq hnt
   by_cases hrt : s.running = some t
   · cases hts : s.taskState t with
     | none => simpa [step, hrt, hts] using h
@@ -1542,12 +1615,13 @@ theorem preserves_wf_receiveByOccurrence {s : RuntimeState} (h : WellFormed s)
                 fun {x} hx => (Mailbox.dequeueFirst_sublist _ mb hd).mem hx
               have hsubnodup : (rest.messages.map Envelope.occurrence).Nodup → True := fun _ => trivial
               rw [hstep_d]
+              rw [hstep_d] at hrf hros haon hcot
               refine ⟨h.readyQ_nodup, fun u hm => h.readyQ_queued u hm, h.running_runs,
                 h.timers_nodup, h.timers_sleep, h.fresh_none, h.timers_sorted,
                 h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
                 h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
                 h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer, h.timed_is_waiter,
-                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_⟩
+                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_, hrf, hros, haon, hcot⟩
               · intro u cc hown
                 obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                 by_cases hcc : cc = a
@@ -1616,7 +1690,8 @@ theorem preserves_wf_receiveByOccurrence {s : RuntimeState} (h : WellFormed s)
                                                         else s.mailboxWaiters ac } := by
                 simp [step, hrt, hts, how, hmb, hd]
               rw [hstep_p]
-              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              rw [hstep_p] at hrf hros haon hcot
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
               · exact h.readyQ_nodup
               · intro u hm
                 by_cases hut : u = t
@@ -1754,6 +1829,19 @@ theorem preserves_wf_receiveByOccurrence {s : RuntimeState} (h : WellFormed s)
 theorem preserves_wf_receiveFrom {s : RuntimeState} (h : WellFormed s)
     {t : TaskId} {src : ActorId} :
     WellFormed ((step s (.receiveFrom t src)).1) := by
+  have hres_eq : (step s (.receiveFrom t src)).1.resources = s.resources := by
+    simp only [step]; (repeat' split) <;> rfl
+  have hnext_eq : (step s (.receiveFrom t src)).1.nextResourceId = s.nextResourceId := by
+    simp only [step]; (repeat' split) <;> rfl
+  have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+      ∃ st', (step s (.receiveFrom t src)).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+    intro u stu hsu hntm
+    simp only [step]
+    (repeat' split) <;>
+      first
+      | exact ⟨stu, hsu, hntm⟩
+      | exact upd_nonterminal hsu hntm (by decide)
+  obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.receiveFrom t src) hres_eq hnext_eq hnt
   by_cases hrt : s.running = some t
   · cases hts : s.taskState t with
     | none => simpa [step, hrt, hts] using h
@@ -1775,12 +1863,13 @@ theorem preserves_wf_receiveFrom {s : RuntimeState} (h : WellFormed s)
                 fun {x} hx => (Mailbox.dequeueFirst_sublist _ mb hd).mem hx
               have hsubnodup : (rest.messages.map Envelope.occurrence).Nodup → True := fun _ => trivial
               rw [hstep_d]
+              rw [hstep_d] at hrf hros haon hcot
               refine ⟨h.readyQ_nodup, fun u hm => h.readyQ_queued u hm, h.running_runs,
                 h.timers_nodup, h.timers_sleep, h.fresh_none, h.timers_sorted,
                 h.spawned_has_owner, ?_, fun u st hts' hrun => h.runnable_queued u st hts' hrun,
                 h.waiters_waiting, h.waiters_owned, h.waiting_queued, h.waiters_nodup, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
                 h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer, h.timed_is_waiter,
-                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_⟩
+                h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive, ?_, hrf, hros, haon, hcot⟩
               · intro u cc hown
                 obtain ⟨mbc, hmbc⟩ := h.owned_has_mailbox u cc hown
                 by_cases hcc : cc = a
@@ -1849,7 +1938,8 @@ theorem preserves_wf_receiveFrom {s : RuntimeState} (h : WellFormed s)
                                                         else s.mailboxWaiters ac } := by
                 simp [step, hrt, hts, how, hmb, hd]
               rw [hstep_p]
-              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              rw [hstep_p] at hrf hros haon hcot
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
               · exact h.readyQ_nodup
               · intro u hm
                 by_cases hut : u = t

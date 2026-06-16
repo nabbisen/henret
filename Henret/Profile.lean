@@ -14,9 +14,9 @@
 -/
 namespace Henret
 
-/-- The semantic features Henret can model. `schedulingPolicy` and
-    `resourceLifetime` are reserved for future RFCs (058 / 057) and do not
-    yet appear in any named profile. -/
+/-- The semantic features Henret can model. `schedulingPolicy` is reserved
+    for a future RFC (058) and does not yet appear in any named profile;
+    `resourceLifetime` (RFC 057) is part of the `full` profile. -/
 inductive SemanticFeature where
   | lifecycle
   | actorMessaging
@@ -77,7 +77,7 @@ def actor : SemanticProfile :=
     timers, supervision (fail/restart), and the bridge. -/
 def full : SemanticProfile :=
   ⟨[.lifecycle, .actorMessaging, .timers, .parking, .supervision,
-    .occurrenceIdentity, .bridge, .boundedMailbox], by decide⟩
+    .occurrenceIdentity, .bridge, .boundedMailbox, .resourceLifetime], by decide⟩
 
 end Profile
 
@@ -101,5 +101,8 @@ theorem full_has_supervision : Profile.full.Has .supervision := by decide
 
 /-- The full profile includes bounded mailboxes / backpressure (RFC 056). -/
 theorem full_has_boundedMailbox : Profile.full.Has .boundedMailbox := by decide
+
+/-- The full profile includes resource lifetime / finalization (RFC 057). -/
+theorem full_has_resourceLifetime : Profile.full.Has .resourceLifetime := by decide
 
 end Henret

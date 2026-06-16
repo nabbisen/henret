@@ -2,6 +2,7 @@ import Henret.Proofs.Invariants
 import Henret.Proofs.Ownership
 import Henret.Proofs.StepFields
 import Henret.Proofs.Timers
+import Henret.Proofs.Resource
 
 namespace Henret
 
@@ -23,7 +24,18 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
           obtain ⟨e, he, hee⟩ := hm
           have h1 := h.timers_sleep e he; rw [hee, hts] at h1
           rcases h1 with h1 | h1 <;> simp at h1
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        have hres_eq : (step s (.sleep t d)).1.resources = s.resources := by
+          simp [step, hrt, hts]
+        have hnext_eq : (step s (.sleep t d)).1.nextResourceId = s.nextResourceId := by
+          simp [step, hrt, hts]
+        have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+            ∃ st', (step s (.sleep t d)).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+          intro u stu hsu hntm
+          by_cases hut : u = t
+          · subst hut; exact ⟨.sleeping, by simp [step, hrt, hts], by decide⟩
+          · exact ⟨stu, by simp [step, hrt, hts, upd, hut, hsu], hntm⟩
+        obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.sleep t d) hres_eq hnext_eq hnt
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
         · simp [step, hrt, hts]; exact h.readyQ_nodup
         · intro u hm
           simp [step, hrt, hts] at hm ⊢
@@ -163,6 +175,22 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
 
+/-- `wakeMany` only ever moves a task to `.ready`, so it preserves
+non-terminality — the resource-ledger non-terminal-owner invariant survives
+`tick` and `wake` (RFC 057). -/
+theorem wakeMany_nonterminal {ts : TaskMap} {u : TaskId} {stu : TaskState}
+    (h : ts u = some stu) (hntm : ¬ stu.isTerminal) (l : List TaskId) :
+    ∃ st', wakeMany ts l u = some st' ∧ ¬ st'.isTerminal := by
+  by_cases hsleep : stu = .sleeping ∨ stu = .waitingTimed
+  · by_cases hmem : u ∈ l
+    · refine ⟨.ready, wakeMany_wakes hmem ?_, by decide⟩
+      rcases hsleep with h' | h' <;> subst h'
+      · exact Or.inl h
+      · exact Or.inr h
+    · exact ⟨stu, by rw [wakeMany_preserves_other hmem]; exact h, hntm⟩
+  · rw [not_or] at hsleep
+    exact ⟨stu, wakeMany_preserves_of_ne_sleeping h hsleep.1 hsleep.2 l, hntm⟩
+
 theorem preserves_wf_tick {s : RuntimeState} (h : WellFormed s) :
     WellFormed ((step s (.tick t)).1) := by
   by_cases hle : s.now ≤ t
@@ -199,7 +227,17 @@ theorem preserves_wf_tick {s : RuntimeState} (h : WellFormed s) :
       rcases hwoken u hm with h2 | h2
       · exact hs h2
       · exact ht h2
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    have hres_eq : (step s (.tick t)).1.resources = s.resources := by
+      simp [step, if_pos hle]
+    have hnext_eq : (step s (.tick t)).1.nextResourceId = s.nextResourceId := by
+      simp [step, if_pos hle]
+    have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+        ∃ st', (step s (.tick t)).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+      intro u stu hsu hntm
+      simp only [step, if_pos hle]
+      exact wakeMany_nonterminal hsu hntm _
+    obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.tick t) hres_eq hnext_eq hnt
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
     · -- readyQ_nodup
       rw [hstep_rq]; exact nodup_append h.readyQ_nodup hwoken_nodup hnotReadyQ
     · -- readyQ_queued
@@ -429,7 +467,18 @@ theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
       have hnq : t ∉ s.readyQ := fun hm => by
         have h1 := h.readyQ_queued t hm; rw [hts] at h1
         simp [Option.any, TaskState.isRunnable] at h1
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      have hres_eq : (step s (.wake t)).1.resources = s.resources := by
+        simp [step, hts]
+      have hnext_eq : (step s (.wake t)).1.nextResourceId = s.nextResourceId := by
+        simp [step, hts]
+      have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+          ∃ st', (step s (.wake t)).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+        intro u stu hsu hntm
+        by_cases hut : u = t
+        · subst hut; exact ⟨.ready, by simp [step, hts], by decide⟩
+        · exact ⟨stu, by simp [step, hts, upd, hut, hsu], hntm⟩
+      obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.wake t) hres_eq hnext_eq hnt
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
       · simp [step, hts]; exact nodup_append_singleton h.readyQ_nodup hnq
       · intro u hm
         simp [step, hts] at hm ⊢; rcases hm with hm | rfl

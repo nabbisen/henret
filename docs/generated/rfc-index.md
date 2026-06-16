@@ -2,7 +2,7 @@
 
 # RFC index
 
-87 RFCs: 64 implemented, 22 proposed/in-wave, 1 archived. Generated from RFC front matter.
+87 RFCs: 65 implemented, 21 proposed/in-wave, 1 archived. Generated from RFC front matter.
 
 ## Implemented (`done/`)
 
@@ -64,6 +64,7 @@
 | [54](done/054-semantic-profiles-and-capability-sets.md) | Semantic Profiles and Capability Sets | v0.16.0 | profiles |
 | [55](done/055-structured-cancellation-and-shutdown.md) | Structured Cancellation and Shutdown | v0.17.0 | model-semantics |
 | [56](done/056-bounded-mailboxes-and-backpressure.md) | Bounded Mailboxes and Backpressure | v0.18.0 | model-semantics |
+| [57](done/057-resource-lifetime-and-finalization-ledger.md) | Resource Lifetime and Finalization Ledger | v0.19.0 | model-semantics |
 | [75](done/075-model-to-documentation-extraction.md) | Model-to-Documentation Extraction | v0.17.7 | documentation |
 | [80](done/080-release-gate-integrity-and-evidence-manifest.md) | Release Gate Integrity and Evidence Manifest | v0.17.2 | release-process |
 | [81](done/081-package-boundary-and-evidence-ledger.md) | Package Boundary and Evidence Ledger | v0.17.3 | governance |
@@ -77,7 +78,6 @@
 
 | RFC | Title | Status | Category |
 |---|---|---|---|
-| [57](proposed/057-resource-lifetime-and-finalization-ledger.md) | Resource Lifetime and Finalization Ledger | Proposed | model-semantics |
 | [58](proposed/058-scheduling-policy-layer.md) | Scheduling Policy Layer | Proposed | model-semantics |
 | [59](proposed/059-deadline-and-priority-semantics.md) | Deadline and Priority Semantics | Proposed | model-semantics |
 | [60](proposed/060-trace-based-refinement-certification.md) | Trace-Based Refinement Certification | Proposed | refinement |

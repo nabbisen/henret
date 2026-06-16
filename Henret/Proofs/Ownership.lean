@@ -363,6 +363,9 @@ theorem step_preserves_spawned {s : RuntimeState} {u : TaskId} {st : TaskState}
   | closeActor a => exact ⟨st, by simp only [step]; split <;> simp [upd, h]⟩
   | shutdown => exact ⟨st, by simp [step, h]⟩
   | stopWhenIdle => exact ⟨st, by simp only [step]; split <;> simp [h]⟩
+  | acquire t => exact ⟨st, by simp only [step] <;> (repeat' split) <;> simp [h]⟩
+  | release t r => exact ⟨st, by simp only [step] <;> (repeat' split) <;> simp [h]⟩
+  | finalize r => exact ⟨st, by simp only [step] <;> (repeat' split) <;> simp [h]⟩
 
 /-- One step never moves a task out of a terminal state.
 Requires `WellFormed s` because send/inject wake-one can write `.ready`
@@ -685,6 +688,9 @@ theorem step_preserves_terminal {s : RuntimeState} {u : TaskId}
   | closeActor a => simp only [step]; split <;> simp [upd]<;> exact h
   | shutdown => simp [step]; exact h
   | stopWhenIdle => simp only [step]; split <;> simp <;> exact h
+  | acquire t => simp only [step] <;> (repeat' split) <;> simp <;> exact h
+  | release t r => simp only [step] <;> (repeat' split) <;> simp <;> exact h
+  | finalize r => simp only [step] <;> (repeat' split) <;> simp <;> exact h
 theorem step_preserves_completed {s : RuntimeState} {u : TaskId}
     (h_wf : WellFormed s) (h : s.taskState u = some .completed) (op : RuntimeOp) :
     ((step s op).1).taskState u = some .completed :=
@@ -953,6 +959,9 @@ theorem step_invalid_unchanged {s : RuntimeState} {op : RuntimeOp}
     by_cases hq : s.running = none ∧ s.readyQ = [] ∧ s.timers = []
     · simp [step, hq] at h
     · simp [step, hq]
+  | acquire t => simp only [step] at h ⊢ <;> (repeat' split at h) <;> simp_all
+  | release t r => simp only [step] at h ⊢ <;> (repeat' split at h) <;> simp_all
+  | finalize r => simp only [step] at h ⊢ <;> (repeat' split at h) <;> simp_all
 
 /-- A backpressured operation never mutates state: `.backpressured` is a strict
     no-op result (RFC 056). The bounded-mailbox analogue of

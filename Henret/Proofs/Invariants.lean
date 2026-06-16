@@ -198,6 +198,22 @@ structure WellFormed (s : RuntimeState) : Prop where
   mailbox_within_capacity :
     ∀ a n mb, (s.mailboxPolicy a).capacity = some n → s.mailboxes a = some mb →
       mb.messages.length ≤ n
+  /-- Resource ids at or above the fresh counter are unallocated (RFC 057). -/
+  resource_fresh :
+    ∀ r, r ≥ s.nextResourceId → s.resources r = none
+  /-- Every resource's owning task was spawned (RFC 057). -/
+  resource_owner_spawned :
+    ∀ r rr, s.resources r = some rr → ∃ st, s.taskState rr.owner = some st
+  /-- An `allocated` resource is owned by a **non-terminal** task: a live
+      handle is never held by a dead task (RFC 057). -/
+  allocated_owner_nonterminal :
+    ∀ r t, s.resources r = some ⟨t, .allocated⟩ →
+      ∃ st, s.taskState t = some st ∧ ¬ st.isTerminal
+  /-- A `closing` resource is owned by a **terminal** task: a cleanup
+      obligation only exists once the owner can no longer act (RFC 057). -/
+  closing_owner_terminal :
+    ∀ r t, s.resources r = some ⟨t, .closing⟩ →
+      ∃ st, s.taskState t = some st ∧ st.isTerminal
 
 /-- From `mailboxFull = false` at a bounded policy, the mailbox has strict room.
     The bridge between the computable `send`/`inject` guard and the capacity
@@ -208,9 +224,9 @@ theorem lt_capacity_of_not_full {s : RuntimeState} {b : ActorId} {mb : Mailbox} 
   simp only [RuntimeState.mailboxFull, hcap, decide_eq_false_iff_not, Nat.not_le] at hfull
   exact hfull
 
-/-- The initial state is well-formed (29 fields). -/
+/-- The initial state is well-formed (33 fields). -/
 theorem wf_init : WellFormed RuntimeState.init := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     simp [RuntimeState.init]
 
 /-- Changing only `restartOf` preserves well-formedness: no `WellFormed`
@@ -223,7 +239,7 @@ theorem WellFormed.restartOf_irrel {s : RuntimeState} (f : TaskId → Option Tas
    h.parent_spawned, h.occ_fresh, h.occ_nodup, h.occ_disjoint, h.owner_spawned,
    h.parent_child_spawned, h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer,
    h.timed_is_waiter, h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive,
-   h.mailbox_within_capacity⟩
+   h.mailbox_within_capacity, h.resource_fresh, h.resource_owner_spawned, h.allocated_owner_nonterminal, h.closing_owner_terminal⟩
 
 /-- Changing the RFC-055 admission-status fields (`actorStatus`,
     `runtimeStatus`) preserves `WellFormed`: no invariant field mentions
@@ -238,7 +254,7 @@ theorem WellFormed.status_irrel {s : RuntimeState}
    h.parent_spawned, h.occ_fresh, h.occ_nodup, h.occ_disjoint, h.owner_spawned,
    h.parent_child_spawned, h.timed_has_deadline, h.deadline_is_timed, h.timed_has_timer,
    h.timed_is_waiter, h.timed_waiters_valid, h.timed_waiters_nodup, h.timed_waiters_exclusive,
-   h.mailbox_within_capacity⟩
+   h.mailbox_within_capacity, h.resource_fresh, h.resource_owner_spawned, h.allocated_owner_nonterminal, h.closing_owner_terminal⟩
 
 /-! ## Ownership uniqueness corollaries (RFC 004 acceptance) -/
 

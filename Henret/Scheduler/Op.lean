@@ -1,5 +1,6 @@
 import Henret.Core.Id
 import Henret.Actor.Mailbox
+import Henret.Resource.Ledger
 
 namespace Henret
 
@@ -117,6 +118,12 @@ inductive RuntimeOp where
       (no running task, empty ready queue, no pending timers). Invalid
       otherwise (RFC 055). -/
   | stopWhenIdle : RuntimeOp
+  /-- Running task `t` acquires a fresh resource (RFC 057). -/
+  | acquire (t : TaskId) : RuntimeOp
+  /-- Running task `t` releases its live resource `r` (RFC 057). -/
+  | release (t : TaskId) (r : ResourceId) : RuntimeOp
+  /-- The environment reclaims a `closing` resource `r` (RFC 057). -/
+  | finalize (r : ResourceId) : RuntimeOp
 deriving Repr, DecidableEq
 
 end Henret

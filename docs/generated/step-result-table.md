@@ -2,7 +2,7 @@
 
 # StepResult outcomes
 
-Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Core/Result.lean` (9 constructors).
+Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Core/Result.lean` (10 constructors).
 
 | # | Constructor | Since | Category | Summary |
 |---|---|---|---|---|
@@ -14,4 +14,5 @@ Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Core/Result.le
 | 6 | `timedOut` | RFC 040 | blocked | receiveUntil fast path: deadline passed |
 | 7 | `woke` | RFC 007 | success | tick woke these tasks |
 | 8 | `backpressured` | RFC 056 | rejected | valid send/inject rejected: mailbox at capacity (no-op) |
-| 9 | `invalid` | RFC 004 | rejected | not valid in the current state (no-op) |
+| 9 | `acquired` | RFC 057 | success | acquire allocated this resource id |
+| 10 | `invalid` | RFC 004 | rejected | not valid in the current state (no-op) |

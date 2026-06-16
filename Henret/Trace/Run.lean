@@ -184,6 +184,25 @@ def traceEvents (s : RuntimeState) (op : RuntimeOp) : List TraceEvent :=
   | .stopWhenIdle =>
       if s.running = none ∧ s.readyQ = [] ∧ s.timers = []
       then [.stoppedWhenIdle] else [.invalid op]
+  | .acquire t =>
+      if s.running = some t then
+        match s.taskState t with
+        | some .running => [.noEffect op (.acquired s.nextResourceId)]
+        | _ => [.invalid op]
+      else [.invalid op]
+  | .release t r =>
+      if s.running = some t then
+        match s.taskState t with
+        | some .running =>
+          match s.resources r with
+          | some ⟨o, .allocated⟩ => if o = t then [.noEffect op .ok] else [.invalid op]
+          | _ => [.invalid op]
+        | _ => [.invalid op]
+      else [.invalid op]
+  | .finalize r =>
+      match s.resources r with
+      | some ⟨_, .closing⟩ => [.noEffect op .ok]
+      | _ => [.invalid op]
 
 /-- One step, with its event ledger.  State and result are *exactly*
     `step s op`; only the third component is new. -/

@@ -675,6 +675,18 @@ theorem bridge_step_single_worker (s : RuntimeState) (op : RuntimeOp) (wqs : Wor
     simp only [step]
     split <;> (try split) <;> (try split) <;> (try split) <;>
       (try split) <;> (try split) <;> simp
+  | .acquire t =>
+    rw [show toQOps s (.acquire t) = [] from rfl, applyQOps_nil]
+    apply bridge_stable hbs
+    simp only [step]; (repeat' split) <;> rfl
+  | .release t r =>
+    rw [show toQOps s (.release t r) = [] from rfl, applyQOps_nil]
+    apply bridge_stable hbs
+    simp only [step]; (repeat' split) <;> rfl
+  | .finalize r =>
+    rw [show toQOps s (.finalize r) = [] from rfl, applyQOps_nil]
+    apply bridge_stable hbs
+    simp only [step]; (repeat' split) <;> rfl
 
 /-! ## applyQOps append lemma -/
 

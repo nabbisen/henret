@@ -2,7 +2,7 @@
 
 # RuntimeOp operation grammar
 
-Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Scheduler/Op.lean` (21 constructors).
+Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Scheduler/Op.lean` (24 constructors).
 
 | # | Constructor | Since | Category | Summary |
 |---|---|---|---|---|
@@ -27,3 +27,6 @@ Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Scheduler/Op.l
 | 19 | `closeActor` | RFC 055 | shutdown | close an actor; future send/inject rejected |
 | 20 | `shutdown` | RFC 055 | shutdown | begin runtime shutdown |
 | 21 | `stopWhenIdle` | RFC 055 | shutdown | stop the runtime if quiescent |
+| 22 | `acquire` | RFC 057 | resource | running task allocates a fresh resource |
+| 23 | `release` | RFC 057 | resource | owning task releases an allocated resource |
+| 24 | `finalize` | RFC 057 | resource | environment reclaims a closing resource |

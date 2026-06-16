@@ -76,7 +76,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [054](done/054-semantic-profiles-and-capability-sets.md) | Semantic Profiles and Capability Sets | Implemented (v0.16.0) | — |
 | [055](done/055-structured-cancellation-and-shutdown.md) | Structured Cancellation and Shutdown | Implemented (v0.17.0) | — |
 | [056](done/056-bounded-mailboxes-and-backpressure.md) | Bounded Mailboxes and Backpressure | Implemented (v0.18.0) | — |
-| [057](proposed/057-resource-lifetime-and-finalization-ledger.md) | Resource Lifetime and Finalization Ledger | — | — |
+| [057](done/057-resource-lifetime-and-finalization-ledger.md) | Resource Lifetime and Finalization Ledger | Implemented (v0.19.0) | v0.19.0 |
 | [058](proposed/058-scheduling-policy-layer.md) | Scheduling Policy Layer | — | — |
 | [059](proposed/059-deadline-and-priority-semantics.md) | Deadline and Priority Semantics | — | — |
 | [060](proposed/060-trace-based-refinement-certification.md) | Trace-Based Refinement Certification | — | — |

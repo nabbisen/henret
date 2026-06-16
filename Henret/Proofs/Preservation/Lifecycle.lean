@@ -2,6 +2,7 @@ import Henret.Proofs.Invariants
 import Henret.Proofs.Ownership
 import Henret.Proofs.StepFields
 import Henret.Proofs.StepFields
+import Henret.Proofs.Resource
 
 namespace Henret
 
@@ -18,7 +19,17 @@ theorem preserves_wf_spawn (h : WellFormed s) (a : ActorId) :
     | none =>
       have hnq : s.nextId ∉ s.readyQ := fun hm => by
         have h1 := h.readyQ_queued _ hm; rw [hts] at h1; simp [Option.any] at h1
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      have hres_eq : (step s (.spawn a)).1.resources = s.resources := by
+        simp [step, hrs, hts]
+      have hnext_eq : (step s (.spawn a)).1.nextResourceId = s.nextResourceId := by
+        simp [step, hrs, hts]
+      have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+          ∃ st', (step s (.spawn a)).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+        intro u stu hsu hntm
+        have hune : u ≠ s.nextId := by rintro rfl; rw [hts] at hsu; exact absurd hsu (by simp)
+        exact ⟨stu, by simp [step, hrs, hts, upd, hune, hsu], hntm⟩
+      obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.spawn a) hres_eq hnext_eq hnt
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
       · simp only [step, hrs, hts, if_true]
         exact nodup_append_singleton h.readyQ_nodup hnq
       · intro u hm
@@ -252,7 +263,18 @@ theorem preserves_wf_schedule (h : WellFormed s) :
           cases hto : s.taskState t with
           | none => rw [hto] at hrun; simp [Option.any] at hrun
           | some x => exact ⟨x, rfl⟩
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        have hres_eq : (step s .schedule).1.resources = s.resources := by
+          simp [step, hr, hq, if_pos hrun]
+        have hnext_eq : (step s .schedule).1.nextResourceId = s.nextResourceId := by
+          simp [step, hr, hq, if_pos hrun]
+        have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+            ∃ st', (step s .schedule).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+          intro u stu hsu hntm
+          by_cases hut : u = t
+          · subst hut; exact ⟨.running, by simp [step, hr, hq, if_pos hrun], by decide⟩
+          · exact ⟨stu, by simp [step, hr, hq, if_pos hrun, upd, hut, hsu], hntm⟩
+        obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h .schedule hres_eq hnext_eq hnt
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
         · simp only [step, hr, hq, if_pos hrun]; exact hnodup.2
         · intro u hm
           simp only [step, hr, hq, if_pos hrun] at hm ⊢
@@ -424,7 +446,18 @@ theorem preserves_wf_yield (h : WellFormed s) :
         have hnq : t ∉ s.readyQ := fun hm => by
           have h1 := h.readyQ_queued t hm; rw [hts] at h1
           simp [Option.any, TaskState.isRunnable] at h1
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        have hres_eq : (step s (.yield t)).1.resources = s.resources := by
+          simp [step, hrt, hts]
+        have hnext_eq : (step s (.yield t)).1.nextResourceId = s.nextResourceId := by
+          simp [step, hrt, hts]
+        have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+            ∃ st', (step s (.yield t)).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+          intro u stu hsu hntm
+          by_cases hut : u = t
+          · subst hut; exact ⟨.yielded, by simp [step, hrt, hts], by decide⟩
+          · exact ⟨stu, by simp [step, hrt, hts, upd, hut, hsu], hntm⟩
+        obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.yield t) hres_eq hnext_eq hnt
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
         · simp only [step, hrt, hts, if_pos rfl]; simp only [if_pos]
           exact nodup_append_singleton h.readyQ_nodup hnq
         · intro u hm
@@ -581,7 +614,21 @@ theorem preserves_wf_complete (h : WellFormed s) :
     | some s' =>
       cases s' with
       | running =>
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        have hres_eq : (step s (.complete t)).1.resources = markClosingIf (· == t) s.resources := by
+          simp [step, hrt, hts]
+        have hnext_eq : (step s (.complete t)).1.nextResourceId = s.nextResourceId := by
+          simp [step, hrt, hts]
+        have hmarked : ∀ u st, (u == t) = true → s.taskState u = some st →
+            ∃ st', (step s (.complete t)).1.taskState u = some st' ∧ st'.isTerminal := by
+          intro u st hu hsu; simp only [beq_iff_eq] at hu; subst hu
+          exact ⟨.completed, by simp [step, hrt, hts], by decide⟩
+        have hunmarked : ∀ u st, (u == t) = false → s.taskState u = some st →
+            ∃ st', (step s (.complete t)).1.taskState u = some st' ∧ st'.isTerminal = st.isTerminal := by
+          intro u st hu hsu; simp only [beq_eq_false_iff_ne, ne_eq] at hu
+          exact ⟨st, by simp [step, hrt, hts, upd, hu, hsu], rfl⟩
+        obtain ⟨hrf, hros, haon, hcot⟩ :=
+          wf_resource_terminal h (· == t) hres_eq hnext_eq hmarked hunmarked
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
         · simp [step, hrt, hts]; exact h.readyQ_nodup
         · intro u hm
           simp [step, hrt, hts] at hm ⊢
@@ -741,7 +788,18 @@ theorem preserves_wf_cancel (h : WellFormed s) :
     by_cases hterm : s'.isTerminal = true
     · simpa [step, hts, hterm] using h
     · simp at hterm
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      have hres_eq : (step s (.cancel t)).1.resources = markClosingIf (· == t) s.resources := by
+        simp [step, hts, hterm]
+      have hnext_eq : (step s (.cancel t)).1.nextResourceId = s.nextResourceId := by
+        simp [step, hts, hterm]
+      have hmarked : ∀ u st, (u == t) = true → s.taskState u = some st → ∃ st', (step s (.cancel t)).1.taskState u = some st' ∧ st'.isTerminal := by
+        intro u st hu hsu; simp only [beq_iff_eq] at hu; subst hu
+        exact ⟨.cancelled, by simp [step, hts, hterm], by decide⟩
+      have hunmarked : ∀ u st, (u == t) = false → s.taskState u = some st → ∃ st', (step s (.cancel t)).1.taskState u = some st' ∧ st'.isTerminal = st.isTerminal := by
+        intro u st hu hsu; simp only [beq_eq_false_iff_ne, ne_eq] at hu
+        exact ⟨st, by simp [step, hts, hterm, upd, hu, hsu], rfl⟩
+      obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_terminal h (· == t) hres_eq hnext_eq hmarked hunmarked
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
       · simp [step, hts, hterm]; exact h.readyQ_nodup.filter _
       · intro u hm
         simp [step, hts, hterm] at hm ⊢
@@ -974,7 +1032,18 @@ theorem preserves_wf_fail (h : WellFormed s) :
     by_cases hterm : s'.isTerminal = true
     · simpa [step, hts, hterm] using h
     · simp at hterm
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      have hres_eq : (step s (.fail t)).1.resources = markClosingIf (· == t) s.resources := by
+        simp [step, hts, hterm]
+      have hnext_eq : (step s (.fail t)).1.nextResourceId = s.nextResourceId := by
+        simp [step, hts, hterm]
+      have hmarked : ∀ u st, (u == t) = true → s.taskState u = some st → ∃ st', (step s (.fail t)).1.taskState u = some st' ∧ st'.isTerminal := by
+        intro u st hu hsu; simp only [beq_iff_eq] at hu; subst hu
+        exact ⟨.failed, by simp [step, hts, hterm], by decide⟩
+      have hunmarked : ∀ u st, (u == t) = false → s.taskState u = some st → ∃ st', (step s (.fail t)).1.taskState u = some st' ∧ st'.isTerminal = st.isTerminal := by
+        intro u st hu hsu; simp only [beq_eq_false_iff_ne, ne_eq] at hu
+        exact ⟨st, by simp [step, hts, hterm, upd, hu, hsu], rfl⟩
+      obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_terminal h (· == t) hres_eq hnext_eq hmarked hunmarked
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
       · simp [step, hts, hterm]; exact h.readyQ_nodup.filter _
       · intro u hm
         simp [step, hts, hterm] at hm ⊢
@@ -1227,7 +1296,18 @@ theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
                   mailboxes  := upd s.mailboxes childA (some Mailbox.empty)
                   nextId     := s.nextId + 1 } := by simp [step, hrt, hts, how, hfresh, hma]
               rw [hstep_eq]
-              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              have hres_eq : (step s (.spawnChild t childA)).1.resources = s.resources := by
+                simp [step, hrt, hts, how, hfresh, hma]
+              have hnext_eq : (step s (.spawnChild t childA)).1.nextResourceId = s.nextResourceId := by
+                simp [step, hrt, hts, how, hfresh, hma]
+              have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+                  ∃ st', (step s (.spawnChild t childA)).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+                intro u stu hsu hntm
+                have hune : u ≠ s.nextId := by rintro rfl; rw [hfresh] at hsu; exact absurd hsu (by simp)
+                exact ⟨stu, by simp [step, hrt, hts, how, hfresh, hma, upd, hune, hsu], hntm⟩
+              obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.spawnChild t childA) hres_eq hnext_eq hnt
+              rw [hstep_eq] at hrf hros haon hcot
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
               · exact nodup_append_singleton h.readyQ_nodup hnq
               · intro u hm
                 rw [List.mem_append, List.mem_singleton] at hm
@@ -1408,7 +1488,18 @@ theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
                   readyQ     := s.readyQ ++ [s.nextId]
                   nextId     := s.nextId + 1 } := by simp [step, hrt, hts, how, hfresh, hma]
               rw [hstep_eq]
-              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              have hres_eq : (step s (.spawnChild t childA)).1.resources = s.resources := by
+                simp [step, hrt, hts, how, hfresh, hma]
+              have hnext_eq : (step s (.spawnChild t childA)).1.nextResourceId = s.nextResourceId := by
+                simp [step, hrt, hts, how, hfresh, hma]
+              have hnt : ∀ u stu, s.taskState u = some stu → ¬ stu.isTerminal →
+                  ∃ st', (step s (.spawnChild t childA)).1.taskState u = some st' ∧ ¬ st'.isTerminal := by
+                intro u stu hsu hntm
+                have hune : u ≠ s.nextId := by rintro rfl; rw [hfresh] at hsu; exact absurd hsu (by simp)
+                exact ⟨stu, by simp [step, hrt, hts, how, hfresh, hma, upd, hune, hsu], hntm⟩
+              obtain ⟨hrf, hros, haon, hcot⟩ := wf_resource_inert h (.spawnChild t childA) hres_eq hnext_eq hnt
+              rw [hstep_eq] at hrf hros haon hcot
+              refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hrf, hros, haon, hcot⟩
               · exact nodup_append_singleton h.readyQ_nodup hnq
               · intro u hm
                 rw [List.mem_append, List.mem_singleton] at hm

@@ -2,23 +2,35 @@
 
 # Public theorem index
 
-The 68 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 82 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
 - `Henret.actor_le_full`
 - `Henret.cancelTree_cancels_task`
+- `Henret.cancelTree_marks_descendant_resource_closing`
 - `Henret.cancelTree_preserves_task_state`
+- `Henret.cancel_marks_owned_resource_closing`
 - `Henret.closeActor_sets_closed`
 - `Henret.closed_actor_rejects_inject`
 - `Henret.closed_actor_rejects_send`
+- `Henret.complete_marks_owned_resource_closing`
 - `Henret.core_le_actor`
 - `Henret.core_le_full`
+- `Henret.fail_marks_owned_resource_closing`
+- `Henret.full_has_resourceLifetime`
 - `Henret.inject_full_backpressured`
 - `Henret.inject_stamps_none`
 - `Henret.inject_unbounded_not_backpressured`
+- `Henret.nextResourceId_monotone_run`
+- `Henret.nextResourceId_monotone_step`
 - `Henret.parent_chain_terminates`
+- `Henret.preserves_wf_acquire`
 - `Henret.preserves_wf_cancelTree`
+- `Henret.preserves_wf_finalize`
+- `Henret.preserves_wf_release`
+- `Henret.reachable_allocated_owner_nonterminal`
+- `Henret.reachable_closing_owner_terminal`
 - `Henret.reachable_mailbox_within_capacity`
 - `Henret.reachable_occurrence_unique`
 - `Henret.reachable_owner_has_mailbox`
@@ -26,6 +38,8 @@ The 68 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_a
 - `Henret.reachable_parent_child_spawned`
 - `Henret.reachable_parent_lt`
 - `Henret.reachable_queue_exact`
+- `Henret.reachable_resource_fresh`
+- `Henret.reachable_resource_owner_spawned`
 - `Henret.reachable_restart_fresh`
 - `Henret.reachable_restart_old_failed`
 - `Henret.reachable_restart_parent_consistent`

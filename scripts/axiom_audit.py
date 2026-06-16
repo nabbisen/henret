@@ -115,6 +115,21 @@ ALLOWLIST = {
     # (+ standard + Classical.choice from the opaque NonemptyType).
     # "Henret.Native.nativeDequeModel_qRun_tracks":
     #     (NATIVE_SIX, NATIVE_SIX | STD | {"Classical.choice"}),
+    # RFC 057: resource lifetime & finalization ledger
+    "Henret.preserves_wf_acquire":   (set(), STD),
+    "Henret.preserves_wf_release":   (set(), STD),
+    "Henret.preserves_wf_finalize":  (set(), STD),
+    "Henret.reachable_resource_fresh":              (set(), STD_C),
+    "Henret.reachable_resource_owner_spawned":      (set(), STD_C),
+    "Henret.reachable_allocated_owner_nonterminal": (set(), STD_C),
+    "Henret.reachable_closing_owner_terminal":      (set(), STD_C),
+    "Henret.nextResourceId_monotone_step": (set(), STD),
+    "Henret.nextResourceId_monotone_run":  (set(), STD),
+    "Henret.complete_marks_owned_resource_closing": (set(), STD),
+    "Henret.cancel_marks_owned_resource_closing":   (set(), STD),
+    "Henret.fail_marks_owned_resource_closing":     (set(), STD),
+    "Henret.cancelTree_marks_descendant_resource_closing": (set(), STD),
+    "Henret.full_has_resourceLifetime": (set(), STD),
 }
 
 text = sys.stdin.read()

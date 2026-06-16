@@ -1,8 +1,8 @@
 ---
 rfc: 57
 title: Resource Lifetime and Finalization Ledger
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.19.0
 supersedes: []
 superseded_by: []
 depends_on: []
@@ -14,7 +14,7 @@ category: model-semantics
 
 ## Status
 
-Proposed.
+Implemented (v0.19.0).
 
 ## Summary
 

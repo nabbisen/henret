@@ -75,6 +75,12 @@ structure RuntimeState where
   /-- Per-actor mailbox policy (RFC 056). `unbounded` by default, so a state
       that configures no capacity behaves exactly as pre-RFC-056. -/
   mailboxPolicy : ActorId → MailboxPolicy
+  /-- Resource ledger (RFC 057): `resources r = some ⟨t, st⟩` records that
+      resource `r` is owned by task `t` and is in lifecycle state `st`.
+      `none` = the id was never allocated. -/
+  resources : ResourceId → Option ResourceRecord
+  /-- Fresh-resource counter (RFC 057); monotone, never reused. -/
+  nextResourceId : Nat
 
 namespace RuntimeState
 
@@ -97,6 +103,8 @@ def init : RuntimeState where
   actorStatus    := fun _ => .active
   runtimeStatus  := .running
   mailboxPolicy  := fun _ => .unbounded
+  resources      := fun _ => none
+  nextResourceId := 0
 
 /-- Is actor `b`'s mailbox `mb` at or over its configured capacity? (RFC 056)
     Always `false` for an unbounded policy. `send`/`inject` consult this only
@@ -106,6 +114,35 @@ def mailboxFull (s : RuntimeState) (b : ActorId) (mb : Mailbox) : Bool :=
   match (s.mailboxPolicy b).capacity with
   | some n => decide (n ≤ mb.messages.length)
   | none   => false
+
+/-! ### Resource ledger predicates (RFC 057)
+
+The stable public predicate surface for the resource ledger — the fixed target
+a future native-finalizer (FFI) layer reasons against. Precise names per the
+RFC 057 review (§12): no `ResourceLive`/`ResourceClosed`, which are easy to
+misread. -/
+
+/-- Resource `r` is owned by task `t`. -/
+def ResourceOwnedBy (s : RuntimeState) (r : ResourceId) (t : TaskId) : Prop :=
+  ∃ rr, s.resources r = some rr ∧ rr.owner = t
+
+/-- Resource `r` is live: allocated and usable by its owner. -/
+def ResourceAllocated (s : RuntimeState) (r : ResourceId) : Prop :=
+  ∃ rr, s.resources r = some rr ∧ rr.state = .allocated
+
+/-- Resource `r` is closing: the owner can no longer release it; a
+finalization obligation remains. -/
+def ResourceClosing (s : RuntimeState) (r : ResourceId) : Prop :=
+  ∃ rr, s.resources r = some rr ∧ rr.state = .closing
+
+/-- Resource `r` is released: terminal ledger state; never live again. -/
+def ResourceReleased (s : RuntimeState) (r : ResourceId) : Prop :=
+  ∃ rr, s.resources r = some rr ∧ rr.state = .released
+
+/-- Resource `r` still requires finalization — definitionally `ResourceClosing`
+(RFC 057 review §6/§12). -/
+def ResourcePendingFinalization (s : RuntimeState) (r : ResourceId) : Prop :=
+  ResourceClosing s r
 
 end RuntimeState
 
@@ -173,7 +210,9 @@ def applyCancelTree (s : RuntimeState) (toCancel : List TaskId) : RuntimeState :
     timers         := s.timers.filter (fun e => e.task ∉ toCancel)
     mailboxWaiters := fun a => (s.mailboxWaiters a).filter (· ∉ toCancel)
     timedMailboxWaiters := fun a => (s.timedMailboxWaiters a).filter (· ∉ toCancel)
-    waitDeadline   := fun t => if t ∈ toCancel then none else s.waitDeadline t }
+    waitDeadline   := fun t => if t ∈ toCancel then none else s.waitDeadline t
+    -- Every allocated resource owned by a cancelled task becomes closing (RFC 057).
+    resources      := markClosingIf (· ∈ toCancel) s.resources }
 
 /-- One transition of the model. Total and executable. -/
 def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
@@ -219,7 +258,8 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
       | some .running =>
         ({ s with
             taskState := upd s.taskState t (some .completed)
-            running   := none }, .ok)
+            running   := none
+            resources := markClosingIf (· == t) s.resources }, .ok)
       | _ => (s, .invalid)
     else (s, .invalid)
   | .cancel t =>
@@ -242,7 +282,8 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
             running                 := if s.running = some t then none else s.running
             mailboxWaiters          := ownerWaitersUpdate
             timedMailboxWaiters     := ownerTimedWaitersUpdate
-            waitDeadline            := fun u => if u = t then none else s.waitDeadline u }, .ok)
+            waitDeadline            := fun u => if u = t then none else s.waitDeadline u
+            resources               := markClosingIf (· == t) s.resources }, .ok)
     | none => (s, .invalid)
   | .send t b m =>
     if s.actorStatus b = .closed then (s, .invalid)
@@ -510,7 +551,8 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
             running                 := if s.running = some t then none else s.running
             mailboxWaiters          := ownerWaitersUpdate
             timedMailboxWaiters     := ownerTimedWaitersUpdate
-            waitDeadline            := fun u => if u = t then none else s.waitDeadline u }, .ok)
+            waitDeadline            := fun u => if u = t then none else s.waitDeadline u
+            resources               := markClosingIf (· == t) s.resources }, .ok)
     | none => (s, .invalid)
   | .restartOne parent failedChild actor =>
     -- One-for-one restart: spawn a fresh replacement for a failed child (RFC 049).
@@ -552,6 +594,36 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
     if s.running = none ∧ s.readyQ = [] ∧ s.timers = [] then
       ({ s with runtimeStatus := .stopped }, .ok)
     else (s, .invalid)
+  | .acquire t =>
+    -- A running task allocates a fresh resource (RFC 057).
+    if s.running = some t then
+      match s.taskState t with
+      | some .running =>
+        ({ s with
+            resources := upd s.resources s.nextResourceId (some ⟨t, .allocated⟩)
+            nextResourceId := s.nextResourceId + 1 }, .acquired s.nextResourceId)
+      | _ => (s, .invalid)
+    else (s, .invalid)
+  | .release t r =>
+    -- The owning running task releases a live resource (RFC 057).
+    if s.running = some t then
+      match s.taskState t with
+      | some .running =>
+        match s.resources r with
+        | some ⟨o, .allocated⟩ =>
+          if o = t then
+            ({ s with resources := upd s.resources r (some ⟨t, .released⟩) }, .ok)
+          else (s, .invalid)
+        | _ => (s, .invalid)
+      | _ => (s, .invalid)
+    else (s, .invalid)
+  | .finalize r =>
+    -- The environment reclaims a closing resource (RFC 057); no running-task
+    -- guard, since a closing resource's owner is by construction terminal.
+    match s.resources r with
+    | some ⟨o, .closing⟩ =>
+      ({ s with resources := upd s.resources r (some ⟨o, .released⟩) }, .ok)
+    | _ => (s, .invalid)
 
 /-- Run a list of operations, ignoring results (RFC 005). Invalid
 operations are no-ops by construction of `step`. -/

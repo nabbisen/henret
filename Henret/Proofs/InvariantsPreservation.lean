@@ -4,6 +4,7 @@ import Henret.Proofs.Preservation.Messaging
 import Henret.Proofs.Preservation.Time
 import Henret.Proofs.Supervision
 import Henret.Proofs.Preservation.Time
+import Henret.Proofs.Preservation.Resource
 
 namespace Henret
 
@@ -60,6 +61,9 @@ theorem step_preserves_wf {s : RuntimeState} (h : WellFormed s)
   | closeActor a => exact preserves_wf_closeActor h a
   | shutdown => exact preserves_wf_shutdown h
   | stopWhenIdle => exact preserves_wf_stopWhenIdle h
+  | acquire t => exact preserves_wf_acquire h t
+  | release t r => exact preserves_wf_release h t r
+  | finalize r => exact preserves_wf_finalize h r
 
 /-- Whole-program invariant preservation. -/
 theorem run_preserves_wf {s : RuntimeState} (h : WellFormed s) :

@@ -177,7 +177,7 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 | `parent_chain_terminates` | `Henret/Proofs/Parenthood.lean` | Chains terminate (acyclicity) |
 | `reachable_owner_spawned` | `Henret/Proofs/Parenthood.lean` | Every owned task has a `taskState` (RFC 038, from `WellFormed.owner_spawned`) |
 | `reachable_parent_child_spawned` | `Henret/Proofs/Parenthood.lean` | Every task with a parent has a `taskState` (RFC 038, from `WellFormed.parent_child_spawned`) |
-| `preserves_wf_spawnChild` | `Henret/Proofs/Preservation/Lifecycle.lean` | 29-field WF preservation |
+| `preserves_wf_spawnChild` | `Henret/Proofs/Preservation/Lifecycle.lean` | 33-field WF preservation |
 
 `WellFormed` extended to **twenty-one fields** in RFC 038 (+2 over RFC 033's nineteen):
 - `owner_spawned` (field 20) — every task with a `taskOwner` has a `taskState`.
@@ -330,7 +330,7 @@ extension is deferred to RFC 043. See `docs/bridge-architecture.md`.
 
 | Theorem | File | Notes |
 |---|---|---|
-| `preserves_wf_receiveUntil` | `Henret/Proofs/Preservation/Messaging.lean` | All 29 WellFormed fields |
+| `preserves_wf_receiveUntil` | `Henret/Proofs/Preservation/Messaging.lean` | All 33 WellFormed fields |
 | `WellFormed.timed_has_deadline` | `Henret/Proofs/Invariants.lean` | Field 22 |
 | `WellFormed.deadline_is_timed` | `Henret/Proofs/Invariants.lean` | Field 23 |
 | `WellFormed.timed_has_timer` | `Henret/Proofs/Invariants.lean` | Field 24 |
@@ -620,7 +620,7 @@ Named profiles `Profile.core` / `actor` / `full` carry kernel-proven `nodup` (no
 
 `StepResult` gained `.backpressured` (9 constructors); `RuntimeState` gained
 `mailboxPolicy : ActorId → MailboxPolicy` (default `fun _ => .unbounded`);
-`RuntimeOp` is unchanged (21 constructors). `WellFormed` gained field **29**,
+`RuntimeOp` is unchanged (24 constructors). `WellFormed` gained field **29**,
 `mailbox_within_capacity`. `send`/`inject` consult the policy *after* every
 validity guard; a delivery to a full mailbox is rejected with a no-op
 `.backpressured` and consumes no occurrence id.

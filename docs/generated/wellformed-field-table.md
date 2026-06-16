@@ -2,7 +2,7 @@
 
 # WellFormed invariant fields
 
-Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Proofs/Invariants.lean` (29 fields).
+Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Proofs/Invariants.lean` (33 fields).
 
 | # | Field | Group | Since | Summary |
 |---|---|---|---|---|
@@ -35,3 +35,7 @@ Generated from `Henret/Meta/Docs.lean`, validated against `Henret/Proofs/Invaria
 | 27 | `timed_waiters_nodup` | timed-wait | RFC 040 | timed-waiter lists are duplicate-free |
 | 28 | `timed_waiters_exclusive` | timed-wait | RFC 040 | a task waits on at most one timed mailbox |
 | 29 | `mailbox_within_capacity` | capacity | RFC 056 | no mailbox exceeds its configured capacity |
+| 30 | `resource_fresh` | resource | RFC 057 | ids at or above the counter are unallocated |
+| 31 | `resource_owner_spawned` | resource | RFC 057 | every resource is owned by a spawned task |
+| 32 | `allocated_owner_nonterminal` | resource | RFC 057 | an allocated resource's owner is live |
+| 33 | `closing_owner_terminal` | resource | RFC 057 | a closing resource's owner is terminal |

@@ -1,5 +1,6 @@
 import Henret.Core.Id
 import Henret.Actor.Mailbox
+import Henret.Resource.Ledger
 
 namespace Henret
 
@@ -31,6 +32,8 @@ inductive StepResult where
       `.invalid` (a protocol/admission failure) and from `.blocked` (a parked
       receive). -/
   | backpressured : StepResult
+  /-- `acquire` allocated this fresh resource (RFC 057). -/
+  | acquired (r : ResourceId) : StepResult
   /-- The operation was not valid in the current state.
       The state is guaranteed unchanged. -/
   | invalid : StepResult

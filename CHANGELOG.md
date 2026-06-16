@@ -1,5 +1,59 @@
 # Changelog
 
+## v0.19.0 — Resource Lifetime & Finalization Ledger (RFC 057, Tier 1)
+
+The model now tracks **task-owned resources** through a two-path lifecycle:
+`allocated → released` (synchronous release) and
+`allocated → closing → released` (asynchronous finalization). When an owning
+task goes terminal, every `allocated` resource it owns is automatically moved
+to `closing`, so a live task never holds a dangling-closing resource and a
+finalizer is always reclaiming on behalf of a task that has already stopped.
+The feature is additive: a program that never calls `acquire` is behaviourally
+identical to v0.18. The mathematical core (model + every preservation proof +
+the single-worker bridge) is kernel-checked with **zero `sorry` and zero
+project axioms**.
+
+- **Model.** New `Henret/Resource/Ledger.lean`: `ResourceId := Nat`,
+  `ResourceState` (`allocated`/`closing`/`released`), `ResourceRecord`
+  (`{ owner : TaskId, state : ResourceState }`), and `markClosingIf`.
+  `RuntimeState` gains `resources : ResourceId → Option ResourceRecord` and
+  `nextResourceId : Nat` (init empty / 0). Three operations are added
+  (`RuntimeOp` now has **24 constructors**): `acquire t` (running task
+  allocates a fresh resource → `.acquired id`), `release t r` (owning running
+  task releases an allocated resource → `.ok`), and `finalize r` (environment
+  reclaims a closing resource → `.ok`, no running-task guard). `StepResult`
+  gains `.acquired` (**10 constructors**). `complete`/`cancel`/`fail` and
+  `cancelTree` now also mark owned allocated resources `closing`.
+- **Invariant.** `WellFormed` gains four fields (**33 total**):
+  `resource_fresh` (ids at/above the counter are unallocated),
+  `resource_owner_spawned` (every resource is owned by a spawned task),
+  `allocated_owner_nonterminal` (an allocated resource's owner is live), and
+  `closing_owner_terminal` (a closing resource's owner is terminal). Carried
+  through all of `Preservation/{Lifecycle,Messaging,Time,Resource}` and
+  `Supervision`, and projected by `reachable_resource_fresh`,
+  `reachable_resource_owner_spawned`, `reachable_allocated_owner_nonterminal`,
+  and `reachable_closing_owner_terminal`.
+- **Headline theorems.** `preserves_wf_acquire/release/finalize`;
+  `nextResourceId_monotone_step`/`_run` (allocation ids never decrease);
+  `complete_marks_owned_resource_closing`,
+  `cancel_marks_owned_resource_closing`,
+  `fail_marks_owned_resource_closing`, and
+  `cancelTree_marks_descendant_resource_closing` (terminal coupling).
+- **Proof infrastructure.** New `Henret/Proofs/Resource.lean` with reusable
+  helpers (`markClosingIf` shape lemmas, `wf_resource_inert`,
+  `wf_resource_terminal`, `wf_resources_only`, `wf_flip_to_released`,
+  `upd_nonterminal`, `wakeMany_nonterminal`) that close the 33-field
+  preservation obligations uniformly.
+- **Bridge.** `toQOps` emits `[]` for the three ledger operations (they never
+  touch the ready queue); `bridge_acquire/release/finalize` keep the
+  single-worker projection stable.
+- **Profile.** `resourceLifetime` `SemanticFeature` is now part of
+  `Profile.full`, with `full_has_resourceLifetime`.
+- **Deferred (follow-up).** `released_resource_never_live`, the per-branch
+  result theorems, the §17 conformance scenarios, and the
+  `migration/v0.18-to-v0.19` + `resource-lifetime` guides remain to land in a
+  v0.19.x cleanup; the kernel-proven core above is complete and gate-green.
+
 ## v0.18.0 — Bounded Mailboxes & Backpressure (RFC 056, Option A reject-only)
 
 Mailboxes can now carry a per-actor capacity bound; an over-capacity `send` or

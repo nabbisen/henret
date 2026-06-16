@@ -200,6 +200,22 @@ open Henret Henret.Native Henret.Bridge
 #print axioms Trace.event_parked_sound
 #print axioms Trace.event_timerWoke_sound
 #print axioms Trace.event_spawnChild_sound
+
+-- RFC 057: resource lifetime & finalization ledger
+#print axioms preserves_wf_acquire
+#print axioms preserves_wf_release
+#print axioms preserves_wf_finalize
+#print axioms reachable_resource_fresh
+#print axioms reachable_resource_owner_spawned
+#print axioms reachable_allocated_owner_nonterminal
+#print axioms reachable_closing_owner_terminal
+#print axioms nextResourceId_monotone_step
+#print axioms nextResourceId_monotone_run
+#print axioms complete_marks_owned_resource_closing
+#print axioms cancel_marks_owned_resource_closing
+#print axioms fail_marks_owned_resource_closing
+#print axioms cancelTree_marks_descendant_resource_closing
+#print axioms full_has_resourceLifetime
 LEAN
   lake env lean "$A" | python3 scripts/axiom_audit.py
   rc=$?

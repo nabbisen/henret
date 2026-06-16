@@ -290,7 +290,7 @@ zero-assumption core.
 | # | Claim | Class | Evidence | Location | Verified here |
 |---:|---|---|---|---|:---:|
 | 147 | Failure (`.failed`) is a terminal state distinct from cancellation | PROVEN | `TaskState.failed`, `isTerminal_failed`, `step_preserves_terminal` | in_tree_model_proof | yes |
-| 148 | `fail` and `restartOne` preserve the 29-field WellFormed invariant | PROVEN | `preserves_wf_fail`, `preserves_wf_restartOne` | in_tree_model_proof | yes |
+| 148 | `fail` and `restartOne` preserve the 33-field WellFormed invariant | PROVEN | `preserves_wf_fail`, `preserves_wf_restartOne` | in_tree_model_proof | yes |
 | 149 | A restart creates a fresh task id strictly greater than the failed one | PROVEN | `reachable_restart_fresh` | in_tree_model_proof | yes |
 | 150 | The task replaced by a restart is failed | PROVEN | `reachable_restart_old_failed` | in_tree_model_proof | yes |
 | 151 | A restart replacement shares the failed task's supervising parent | PROVEN | `reachable_restart_parent_consistent` | in_tree_model_proof | yes |
