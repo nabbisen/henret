@@ -1,10 +1,13 @@
 ---
+rfc: 18
 title: Documentation Consistency Sweep
-rfc: RFC-HENRET-018
-status: Implemented (v0.2.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.2.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: documentation
 ---
 
 # RFC-HENRET-018: Documentation Consistency Sweep

@@ -1,10 +1,13 @@
 ---
-title: Release, Docsite, and Community
-rfc: RFC-HENRET-012
-status: Implemented (v0.1.0)
-project: Henret
-package: henret
-namespace: Henret
+rfc: 12
+title: "Release, Docsite, and Community"
+status: Implemented
+implemented_in: v0.1.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: pedagogy
 ---
 
 # RFC-HENRET-012: Release, Docsite, and Community

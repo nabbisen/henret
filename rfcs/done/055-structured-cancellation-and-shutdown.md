@@ -1,3 +1,15 @@
+---
+rfc: 55
+title: Structured Cancellation and Shutdown
+status: Implemented
+implemented_in: v0.17.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
+---
+
 # RFC 055 — Structured Cancellation and Shutdown
 
 ## Status

@@ -1,3 +1,15 @@
+---
+rfc: 52
+title: Semantic Extension Governance
+status: Implemented
+implemented_in: v0.15.3
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: governance
+---
+
 # RFC 052 — Semantic Extension Governance
 
 ## Status

@@ -1,3 +1,15 @@
+---
+rfc: 72
+title: Error and Result Observability Contract
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: observability
+---
+
 # RFC 072 — Error and Result Observability Contract
 
 ## Status

@@ -1,3 +1,15 @@
+---
+rfc: 77
+title: Minimal Verified Actor Patterns
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: pedagogy
+---
+
 # RFC 077 — Minimal Verified Actor Patterns
 
 ## Status

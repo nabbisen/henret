@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.17.1 — RFC Metadata Normalization (RFC 085)
+
+Non-semantic tooling/documentation release. No Lean model, proof, or
+conformance behavior changed; the kernel-proven core, the zero-`sorry` /
+zero-project-axiom invariant, and all 10/10 conformance scenarios are
+unaffected.
+
+- **Canonical RFC front matter.** All 87 RFCs (including the RFC 000 lifecycle
+  policy) now carry a single machine-readable YAML front-matter block:
+  `rfc`, `title`, `status` (`Draft | Proposed | Implemented | Withdrawn |
+  Superseded`), `implemented_in` (`vX.Y.Z` when Implemented, else `null`),
+  `supersedes`, `superseded_by`, `depends_on`, `blocks` (bare-integer RFC-number
+  lists), and `category`. This replaces the three legacy status formats
+  (YAML-ish front matter, `**Status.**`, `## Status`).
+- **Linter (`scripts/rfc_metadata_check.py`).** Dependency-light (stdlib-only)
+  checker enforcing the schema: per-file front-matter validity, `rfc`/filename
+  agreement, closed status set, folder/status consistency, version-pattern for
+  `implemented_in`, bare-integer cross-reference lists pointing to existing
+  RFCs, and unique RFC numbers. Loose slug/title correspondence is advisory.
+  Wired as `check.sh` gate 10/10.
+- **One-shot migration (`scripts/migrate_rfc_frontmatter.py`).** Idempotent;
+  folder is the source of truth for status (RFC 000).
+- **RFC 000 mandates the schema** and moved to `rfcs/done/` (consistent with its
+  own policy); `rfcs/README.md` and `CONTRIBUTING.md` references updated.
+
+Known follow-up (deferred to RFC 084): the `rfcs/README.md` index still lists
+implemented RFCs 040–055 under the "Proposed" table; RFC 084 will regenerate the
+index from this front-matter metadata.
+
 ## v0.17.0 — Structured Cancellation and Shutdown (RFC 055)
 
 The first true semantic-core extension since RFC 040, and deliberately

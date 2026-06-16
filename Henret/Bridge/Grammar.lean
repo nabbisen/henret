@@ -7,7 +7,7 @@ import Henret.Model
 
   ## Design (RFC 036)
 
-  `RuntimeOp` is the full scheduler grammar (12 operations).
+  `RuntimeOp` is the full scheduler grammar.
   The bridge `QOp` grammar mirrors the lean-runtime queue grammar and adds
   `Filter` for the cancellation case (RFC 036):
 

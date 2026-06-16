@@ -1,10 +1,13 @@
 ---
+rfc: 24
 title: Actor-Scoped Operations
-rfc: RFC-HENRET-024
-status: Implemented (v0.3.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.3.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
 ---
 
 # RFC-HENRET-024: Actor-Scoped Operations

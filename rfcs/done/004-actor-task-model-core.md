@@ -1,10 +1,13 @@
 ---
+rfc: 4
 title: Actor/Task Model Core
-rfc: RFC-HENRET-004
-status: Implemented (v0.1.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.1.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
 ---
 
 # RFC-HENRET-004: Actor/Task Model Core

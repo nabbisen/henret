@@ -1,3 +1,15 @@
+---
+rfc: 64
+title: Fault Model and Failure Taxonomy
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: theory
+---
+
 # RFC 064 — Fault Model and Failure Taxonomy
 
 ## Status

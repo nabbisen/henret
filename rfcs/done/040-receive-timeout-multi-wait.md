@@ -1,3 +1,15 @@
+---
+rfc: 40
+title: Receive Timeout and Multi-Wait Semantics
+status: Implemented
+implemented_in: v0.11.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
+---
+
 # RFC 040 — Receive Timeout and Multi-Wait Semantics
 
 **Status.** Implemented (v0.11.0)  

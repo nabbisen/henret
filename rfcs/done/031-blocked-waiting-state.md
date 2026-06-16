@@ -1,11 +1,13 @@
 ---
+rfc: 31
 title: Blocked Waiting State and Mailbox Wait Queue
-rfc: RFC-HENRET-031
-status: Implemented (v0.5.0 core model; v0.5.1 acceptance criteria complete)
-project: Henret
-package: henret
-namespace: Henret
-depends: RFC 029 (blocked result), RFC 028 (queue exactness); RFC 034 recommended first
+status: Implemented
+implemented_in: v0.5.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
 ---
 
 # RFC-HENRET-031: Blocked Waiting State and Mailbox Wait Queue

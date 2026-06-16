@@ -1,10 +1,13 @@
 ---
+rfc: 23
 title: Deque Driver Orientation Cleanup
-rfc: RFC-HENRET-023
-status: Implemented (v0.2.1)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.2.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: documentation
 ---
 
 # RFC-HENRET-023: Deque Driver Orientation Cleanup

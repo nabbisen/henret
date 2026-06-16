@@ -1,10 +1,13 @@
 ---
+rfc: 15
 title: Logical Time State
-rfc: RFC-HENRET-015
-status: Implemented (v0.2.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.2.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
 ---
 
 # RFC-HENRET-015: Logical Time State

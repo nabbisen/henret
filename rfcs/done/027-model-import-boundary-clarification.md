@@ -1,10 +1,13 @@
 ---
+rfc: 27
 title: Model Import Boundary Clarification
-rfc: RFC-HENRET-027
-status: Implemented (v0.3.1) — decision: light import (Option A)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.3.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: tooling
 ---
 
 # RFC-HENRET-027: Model Import Boundary Clarification

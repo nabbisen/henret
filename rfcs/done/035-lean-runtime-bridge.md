@@ -1,3 +1,15 @@
+---
+rfc: 35
+title: Single-Worker Lean-Runtime Bridge Skeleton
+status: Implemented
+implemented_in: v0.8.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: bridge
+---
+
 # RFC 035 — Single-Worker Lean-Runtime Bridge Skeleton
 
 **Status.** Implemented as bridge skeleton in v0.8.0; full single-worker bridge

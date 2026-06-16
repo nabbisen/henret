@@ -1,10 +1,13 @@
 ---
+rfc: 2
 title: Package Identity and Naming
-rfc: RFC-HENRET-002
-status: Implemented (v0.1.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.1.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: foundation
 ---
 
 # RFC-HENRET-002: Package Identity and Naming

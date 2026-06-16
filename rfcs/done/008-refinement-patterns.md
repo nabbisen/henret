@@ -1,10 +1,13 @@
 ---
+rfc: 8
 title: Refinement Patterns
-rfc: RFC-HENRET-008
-status: Implemented (v0.1.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.1.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: refinement
 ---
 
 # RFC-HENRET-008: Refinement Patterns

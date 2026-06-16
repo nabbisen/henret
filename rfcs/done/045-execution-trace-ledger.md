@@ -1,3 +1,15 @@
+---
+rfc: 45
+title: Execution Trace Ledger
+status: Implemented
+implemented_in: v0.13.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: observability
+---
+
 # RFC 045 — Execution Trace Ledger
 
 ## Status

@@ -1,3 +1,15 @@
+---
+rfc: 60
+title: Trace-Based Refinement Certification
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: refinement
+---
+
 # RFC 060 — Trace-Based Refinement Certification
 
 ## Status

@@ -80,7 +80,9 @@ theorem bridge_step_single_worker (s : RuntimeState) (op : RuntimeOp) (wqs : Wor
 ```
 
 For any `RuntimeOp`, if `BridgeState` holds before the step, it holds after, with the
-translated queue effects applied. This covers all 12 operations.
+translated queue effects applied. This is total over `RuntimeOp` — every
+operation in the grammar is covered (most are queue-stable; the
+ready-queue-affecting ones carry their `Push`/`Filter` translation).
 
 ### Trace bridge
 

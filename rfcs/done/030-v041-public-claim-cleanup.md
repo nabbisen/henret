@@ -1,10 +1,13 @@
 ---
+rfc: 30
 title: v0.4.1 Public Claim Cleanup
-rfc: RFC-HENRET-030
-status: Implemented (v0.4.1)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.4.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: documentation
 ---
 
 # RFC-HENRET-030: v0.4.1 Public Claim Cleanup

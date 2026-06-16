@@ -1,3 +1,15 @@
+---
+rfc: 68
+title: Invariant Dependency Graph
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: proofs
+---
+
 # RFC 068 — Invariant Dependency Graph
 
 ## Status

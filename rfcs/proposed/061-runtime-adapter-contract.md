@@ -1,3 +1,15 @@
+---
+rfc: 61
+title: Runtime Adapter Contract
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: integration
+---
+
 # RFC 061 — Runtime Adapter Contract
 
 ## Status

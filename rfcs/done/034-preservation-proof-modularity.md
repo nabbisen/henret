@@ -1,11 +1,13 @@
 ---
+rfc: 34
 title: Preservation-Proof Modularity
-rfc: RFC-HENRET-034
-status: Implemented (v0.5.0)
-project: Henret
-package: henret
-namespace: Henret
-depends: none; recommended FIRST, before RFC 031/032/033
+status: Implemented
+implemented_in: v0.5.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: proofs
 ---
 
 # RFC-HENRET-034: Preservation-Proof Modularity

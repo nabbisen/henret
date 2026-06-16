@@ -1,11 +1,13 @@
 ---
+rfc: 32
 title: Actor-Scoped Spawn and Supervision Groundwork
-rfc: RFC-HENRET-032
-status: Implemented (v0.6.0)
-project: Henret
-package: henret
-namespace: Henret
-depends: RFC 024 (scoped-operation pattern), RFC 019 (ownership invariants); RFC 034 recommended first
+status: Implemented
+implemented_in: v0.6.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
 ---
 
 # RFC-HENRET-032: Actor-Scoped Spawn and Supervision Groundwork

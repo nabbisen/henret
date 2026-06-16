@@ -1,3 +1,15 @@
+---
+rfc: 71
+title: Semantic Profiles for Actor Models
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
+---
+
 # RFC 071 — Semantic Profiles for Actor Models
 
 ## Status

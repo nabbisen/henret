@@ -1,3 +1,15 @@
+---
+rfc: 48
+title: Bounded Model Explorer and Shrinker
+status: Implemented
+implemented_in: v0.14.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: conformance
+---
+
 # RFC 048 — Bounded Model Explorer and Shrinker
 
 ## Status

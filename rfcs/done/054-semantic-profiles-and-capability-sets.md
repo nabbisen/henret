@@ -1,3 +1,15 @@
+---
+rfc: 54
+title: Semantic Profiles and Capability Sets
+status: Implemented
+implemented_in: v0.16.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: profiles
+---
+
 # RFC 054 — Semantic Profiles and Capability Sets
 
 ## Status

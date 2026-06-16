@@ -1,3 +1,15 @@
+---
+rfc: 50
+title: Observability and Pedagogical Visualization
+status: Implemented
+implemented_in: v0.15.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: observability
+---
+
 # RFC 050 — Observability and Pedagogical Visualization
 
 ## Status

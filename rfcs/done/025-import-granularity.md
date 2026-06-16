@@ -1,10 +1,13 @@
 ---
+rfc: 25
 title: Import Granularity
-rfc: RFC-HENRET-025
-status: Implemented (v0.3.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.3.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: tooling
 ---
 
 # RFC-HENRET-025: Import Granularity

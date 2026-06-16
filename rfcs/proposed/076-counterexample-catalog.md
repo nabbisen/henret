@@ -1,3 +1,15 @@
+---
+rfc: 76
+title: Counterexample Catalog
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: pedagogy
+---
+
 # RFC 076 — Counterexample Catalog
 
 ## Status

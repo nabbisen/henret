@@ -1,10 +1,13 @@
 ---
+rfc: 21
 title: Documentation/Test Index Repair
-rfc: RFC-HENRET-021
-status: Implemented (v0.2.1)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.2.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: documentation
 ---
 
 # RFC-HENRET-021: Documentation/Test Index Repair

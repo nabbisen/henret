@@ -1,6 +1,6 @@
 # Henret RFC Index
 
-Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.md).
+Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](done/000-rfc-lifecycle-policy.md).
 New RFCs start from [`TEMPLATE.md`](TEMPLATE.md). Semantic-core changes
 follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-governance.md).
 
@@ -8,6 +8,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 
 | RFC | Title | Shipped |
 |---|---|---|
+| [000](done/000-rfc-lifecycle-policy.md) | RFC Lifecycle Policy | v0.1.0 |
 | [001](done/001-project-positioning-and-scope.md) | Project Positioning and Scope | v0.1.0 |
 | [002](done/002-package-identity-and-naming.md) | Package Identity and Naming | v0.1.0 |
 | [003](done/003-lean-only-core-package.md) | Lean-Only Core Package | v0.1.0 |
@@ -88,11 +89,18 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [072](proposed/072-error-and-result-observability-contract.md) | Error and Result Observability Contract | — | — |
 | [073](proposed/073-runtime-adapter-negative-tests.md) | Runtime Adapter Negative Tests | — | — |
 | [074](proposed/074-bridge-completeness-certificate.md) | Bridge Completeness Certificate | — | — |
-| [075](proposed/075-model-to-documentation-extraction.md) | Model-to-Documentation Extraction | — | — |
+| [075](proposed/075-model-to-documentation-extraction.md) | Model-to-Documentation Extraction | — | P1 |
 | [076](proposed/076-counterexample-catalog.md) | Counterexample Catalog | — | — |
 | [077](proposed/077-minimal-verified-actor-patterns.md) | Minimal Verified Actor Patterns | — | — |
 | [078](proposed/078-security-and-robustness-interpretation.md) | Security and Robustness Interpretation | — | — |
 | [079](proposed/079-publication-and-community-review-plan.md) | Publication and Community Review Plan | — | — |
+| [080](proposed/080-release-gate-integrity-and-evidence-manifest.md) | Release Gate Integrity and Evidence Manifest | — | P0 |
+| [081](proposed/081-package-boundary-and-evidence-ledger.md) | Package Boundary and Evidence Ledger | — | P0 |
+| [082](proposed/082-preservation-proof-ergonomics-v2.md) | Preservation Proof Ergonomics v2 (supersedes 042) | — | P1 |
+| [083](proposed/083-golden-conformance-coverage-expansion.md) | Golden Conformance Coverage Expansion | — | P1 |
+| [084](proposed/084-model-to-documentation-extraction-implementation.md) | Model-to-Documentation Extraction Implementation | — | P1 |
+| [085](done/085-rfc-metadata-normalization.md) | RFC Metadata Normalization | Implemented (v0.17.1) | — |
+| [086](proposed/086-warning-hygiene-and-public-lemma-tightening.md) | Warning Hygiene and Public Lemma Tightening | — | P2 |
 
 ## Archive
 

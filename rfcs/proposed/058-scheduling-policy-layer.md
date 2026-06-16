@@ -1,3 +1,15 @@
+---
+rfc: 58
+title: Scheduling Policy Layer
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
+---
+
 # RFC 058 — Scheduling Policy Layer
 
 ## Status

@@ -1,3 +1,15 @@
+---
+rfc: 49
+title: Supervision Restart Policies
+status: Implemented
+implemented_in: v0.15.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
+---
+
 # RFC 049 — Supervision Restart Policies
 
 ## Status

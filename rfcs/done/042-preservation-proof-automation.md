@@ -1,3 +1,15 @@
+---
+rfc: 42
+title: Preservation Proof Automation and Maintainability
+status: Implemented
+implemented_in: v0.10.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: proofs
+---
+
 # RFC 042 — Preservation Proof Automation and Maintainability
 
 **Status.** Implemented (v0.10.1)  

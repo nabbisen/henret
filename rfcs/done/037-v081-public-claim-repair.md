@@ -1,3 +1,15 @@
+---
+rfc: 37
+title: v0.8.1 Public Claim Repair
+status: Implemented
+implemented_in: v0.9.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: documentation
+---
+
 # RFC 037 — v0.8.1 Public Claim Repair
 
 **Status.** Implemented (v0.9.0)  

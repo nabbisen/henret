@@ -1,10 +1,13 @@
 ---
+rfc: 13
 title: Runtime Invariants and Reachability
-rfc: RFC-HENRET-013
-status: Implemented (v0.2.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.2.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: proofs
 ---
 
 # RFC-HENRET-013: Runtime Invariants and Reachability

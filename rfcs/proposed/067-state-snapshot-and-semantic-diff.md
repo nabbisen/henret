@@ -1,3 +1,15 @@
+---
+rfc: 67
+title: State Snapshot and Semantic Diff
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: observability
+---
+
 # RFC 067 — State Snapshot and Semantic Diff
 
 ## Status

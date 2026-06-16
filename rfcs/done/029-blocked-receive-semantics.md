@@ -1,10 +1,13 @@
 ---
+rfc: 29
 title: Blocked Receive Semantics
-rfc: RFC-HENRET-029
-status: Implemented (v0.4.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.4.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
 ---
 
 # RFC-HENRET-029: Blocked Receive Semantics

@@ -1,3 +1,15 @@
+---
+rfc: 66
+title: Deterministic Replay Format
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: observability
+---
+
 # RFC 066 — Deterministic Replay Format
 
 ## Status

@@ -1,3 +1,15 @@
+---
+rfc: 39
+title: "Supervision Semantics: Cascade Cancel"
+status: Implemented
+implemented_in: v0.10.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
+---
+
 # RFC 039 — Supervision Semantics: Cascade Cancel
 
 **Status.** Implemented (v0.10.0)  

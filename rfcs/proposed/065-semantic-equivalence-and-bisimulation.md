@@ -1,3 +1,15 @@
+---
+rfc: 65
+title: Semantic Equivalence and Bisimulation
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: theory
+---
+
 # RFC 065 — Semantic Equivalence and Bisimulation
 
 ## Status

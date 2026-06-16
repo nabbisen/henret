@@ -1,10 +1,13 @@
 ---
+rfc: 26
 title: Documentation and Public Claim Repair
-rfc: RFC-HENRET-026
-status: Implemented (v0.3.1)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.3.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: documentation
 ---
 
 # RFC-HENRET-026: Documentation and Public Claim Repair

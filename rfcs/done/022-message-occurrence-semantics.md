@@ -1,10 +1,13 @@
 ---
+rfc: 22
 title: Message Occurrence Semantics
-rfc: RFC-HENRET-022
-status: Implemented (v0.2.1) — documentation scope; occurrence model deferred
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.2.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
 ---
 
 # RFC-HENRET-022: Message Occurrence Semantics

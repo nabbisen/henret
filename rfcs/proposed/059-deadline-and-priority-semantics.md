@@ -1,3 +1,15 @@
+---
+rfc: 59
+title: Deadline and Priority Semantics
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
+---
+
 # RFC 059 — Deadline and Priority Semantics
 
 ## Status

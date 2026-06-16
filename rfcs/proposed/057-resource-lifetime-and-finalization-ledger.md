@@ -1,3 +1,15 @@
+---
+rfc: 57
+title: Resource Lifetime and Finalization Ledger
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
+---
+
 # RFC 057 — Resource Lifetime and Finalization Ledger
 
 ## Status

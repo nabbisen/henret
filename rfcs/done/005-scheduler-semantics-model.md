@@ -1,10 +1,13 @@
 ---
+rfc: 5
 title: Scheduler Semantics Model
-rfc: RFC-HENRET-005
-status: Implemented (v0.1.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.1.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
 ---
 
 # RFC-HENRET-005: Scheduler Semantics Model

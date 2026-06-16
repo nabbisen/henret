@@ -1,3 +1,15 @@
+---
+rfc: 41
+title: Selective Receive
+status: Implemented
+implemented_in: v0.11.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
+---
+
 # RFC 041 — Selective Receive
 
 **Status.** Implemented (v0.11.1)  

@@ -17,7 +17,7 @@
 ## Workflow
 
 - Substantive changes start as an RFC in `rfcs/proposed/` following
-  `rfcs/000-rfc-lifecycle-policy.md` (NNN-slug.md, numbers never reused,
+  `rfcs/done/000-rfc-lifecycle-policy.md` (NNN-slug.md, numbers never reused,
   Status mirrors the folder, README index updated in the same commit).
 - Build gate: `lake build && lake exe henret-demo` must pass (demo exits
   non-zero on regression).

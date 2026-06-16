@@ -1,10 +1,13 @@
 ---
+rfc: 1
 title: Project Positioning and Scope
-rfc: RFC-HENRET-001
-status: Implemented (v0.1.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.1.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: foundation
 ---
 
 # RFC-HENRET-001: Project Positioning and Scope

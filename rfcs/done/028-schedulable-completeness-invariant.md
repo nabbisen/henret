@@ -1,10 +1,13 @@
 ---
+rfc: 28
 title: Schedulable Completeness Invariant
-rfc: RFC-HENRET-028
-status: Implemented (v0.4.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.4.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: proofs
 ---
 
 # RFC-HENRET-028: Schedulable Completeness Invariant

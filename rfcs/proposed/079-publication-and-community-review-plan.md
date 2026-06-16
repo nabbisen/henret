@@ -1,3 +1,15 @@
+---
+rfc: 79
+title: Publication and Community Review Plan
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: pedagogy
+---
+
 # RFC 079 — Publication and Community Review Plan
 
 ## Status

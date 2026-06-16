@@ -1,3 +1,15 @@
+---
+rfc: 63
+title: Long-Term Module Architecture
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: tooling
+---
+
 # RFC 063 — Long-Term Module Architecture
 
 ## Status

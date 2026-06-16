@@ -1,11 +1,13 @@
 ---
+rfc: 33
 title: Message Envelope and Occurrence Identity
-rfc: RFC-HENRET-033
-status: Implemented (v0.7.0)
-project: Henret
-package: henret
-namespace: Henret
-depends: RFC 022 (deferred design), RFC 024 (send owner guard); orthogonal to RFC 031/032
+status: Implemented
+implemented_in: v0.7.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: foundation
 ---
 
 # RFC-HENRET-033: Message Envelope and Occurrence Identity

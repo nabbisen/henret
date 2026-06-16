@@ -1,10 +1,13 @@
 ---
+rfc: 11
 title: Examples and Guided Tour
-rfc: RFC-HENRET-011
-status: Implemented (v0.1.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.1.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: documentation
 ---
 
 # RFC-HENRET-011: Examples and Guided Tour

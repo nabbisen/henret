@@ -1,3 +1,15 @@
+---
+rfc: 56
+title: Bounded Mailboxes and Backpressure
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
+---
+
 # RFC 056 — Bounded Mailboxes and Backpressure
 
 ## Status

@@ -1,3 +1,15 @@
+---
+rfc: 36
+title: Bridge Claim Repair and Single-Worker Bridge Completion
+status: Implemented
+implemented_in: v0.9.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: bridge
+---
+
 # RFC 036 — Bridge Claim Repair and Single-Worker Bridge Completion
 
 **Status.** Implemented (v0.9.0)  

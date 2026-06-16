@@ -1,3 +1,15 @@
+---
+rfc: 70
+title: Public Theorem API Stability
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: proofs
+---
+
 # RFC 070 — Public Theorem API Stability
 
 ## Status

@@ -1,8 +1,26 @@
+---
+rfc: 75
+title: Model-to-Documentation Extraction
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: documentation
+---
+
 # RFC 075 — Model-to-Documentation Extraction
 
 ## Status
 
-Proposed strategic RFC.
+Proposed strategic RFC. **Promoted to implementation priority (P1)** in the
+v0.17.0 audit review (item A6, decision **A+B**). This RFC remains the
+*strategic* proposal (what to generate and why); the concrete
+implementation plan — scripts, generated-artifact paths, the immediate
+count-check stopgap, and CI wiring — lives in **RFC 084
+(Model-to-Documentation Extraction Implementation)**. RFC 085 (metadata
+normalization) provides the source metadata for the generated RFC index.
 
 ## Summary
 

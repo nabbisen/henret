@@ -1,3 +1,15 @@
+---
+rfc: 62
+title: Proof Ergonomics Library
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: proofs
+---
+
 # RFC 062 — Proof Ergonomics Library
 
 ## Status

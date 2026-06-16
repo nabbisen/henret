@@ -1,10 +1,13 @@
 ---
+rfc: 17
 title: Release Gate and CI
-rfc: RFC-HENRET-017
-status: Implemented (v0.2.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.2.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: release-process
 ---
 
 # RFC-HENRET-017: Release Gate and CI

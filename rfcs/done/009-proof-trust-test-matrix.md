@@ -1,10 +1,13 @@
 ---
+rfc: 9
 title: Proof/Trust/Test Matrix
-rfc: RFC-HENRET-009
-status: Implemented (v0.1.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.1.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: proofs
 ---
 
 # RFC-HENRET-009: Proof/Trust/Test Matrix

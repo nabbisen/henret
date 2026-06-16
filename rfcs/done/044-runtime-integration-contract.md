@@ -1,3 +1,15 @@
+---
+rfc: 44
+title: Runtime Integration Contract for External Consumers
+status: Implemented
+implemented_in: v0.12.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: integration
+---
+
 # RFC 044 — Runtime Integration Contract for External Consumers
 
 **Status.** Implemented (v0.12.1)  

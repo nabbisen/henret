@@ -1,3 +1,15 @@
+---
+rfc: 73
+title: Runtime Adapter Negative Tests
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: integration
+---
+
 # RFC 073 — Runtime Adapter Negative Tests
 
 ## Status

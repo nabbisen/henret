@@ -1,3 +1,15 @@
+---
+rfc: 78
+title: Security and Robustness Interpretation
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: security
+---
+
 # RFC 078 — Security and Robustness Interpretation
 
 ## Status

@@ -1,3 +1,15 @@
+---
+rfc: 51
+title: "Package, Documentation, and Release Maturity"
+status: Implemented
+implemented_in: v0.15.2
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: release-process
+---
+
 # RFC 051 — Package, Documentation, and Release Maturity
 
 ## Status

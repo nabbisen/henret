@@ -1,10 +1,13 @@
 ---
+rfc: 6
 title: Message and Wake Semantics
-rfc: RFC-HENRET-006
-status: Implemented (v0.1.0)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.1.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: model-semantics
 ---
 
 # RFC-HENRET-006: Message and Wake Semantics

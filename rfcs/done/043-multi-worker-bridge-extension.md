@@ -1,3 +1,15 @@
+---
+rfc: 43
+title: Multi-Worker Bridge Model Extension
+status: Implemented
+implemented_in: v0.12.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: bridge
+---
+
 # RFC 043 — Multi-Worker Bridge Model Extension
 
 **Status.** Implemented (v0.12.0)  

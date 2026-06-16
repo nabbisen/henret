@@ -1,3 +1,15 @@
+---
+rfc: 53
+title: Assurance Case and External Review Playbook
+status: Implemented
+implemented_in: v0.15.4
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: governance
+---
+
 # RFC 053 — Assurance Case and External Review Playbook
 
 ## Status

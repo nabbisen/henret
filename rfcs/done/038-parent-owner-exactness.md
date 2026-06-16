@@ -1,3 +1,15 @@
+---
+rfc: 38
+title: Parent and Owner Exactness Invariants
+status: Implemented
+implemented_in: v0.9.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: general
+---
+
 # RFC 038 — Parent and Owner Exactness Invariants
 
 **Status.** Implemented (v0.9.1)  

@@ -1,3 +1,15 @@
+---
+rfc: 46
+title: Fairness and Conditional Liveness Layer
+status: Implemented
+implemented_in: v0.14.0
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: observability
+---
+
 # RFC 046 — Fairness and Conditional Liveness Layer
 
 ## Status

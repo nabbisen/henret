@@ -1,3 +1,15 @@
+---
+rfc: 74
+title: Bridge Completeness Certificate
+status: Proposed
+implemented_in: null
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: proofs
+---
+
 # RFC 074 — Bridge Completeness Certificate
 
 ## Status

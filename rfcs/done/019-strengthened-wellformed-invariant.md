@@ -1,10 +1,13 @@
 ---
+rfc: 19
 title: Strengthened WellFormed Invariant
-rfc: RFC-HENRET-019
-status: Implemented (v0.2.1)
-project: Henret
-package: henret
-namespace: Henret
+status: Implemented
+implemented_in: v0.2.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: proofs
 ---
 
 # RFC-HENRET-019: Strengthened WellFormed Invariant

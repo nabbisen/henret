@@ -1,3 +1,15 @@
+---
+rfc: 47
+title: Golden Trace Conformance Suite
+status: Implemented
+implemented_in: v0.13.1
+supersedes: []
+superseded_by: []
+depends_on: []
+blocks: []
+category: conformance
+---
+
 # RFC 047 — Golden Trace Conformance Suite
 
 ## Status
