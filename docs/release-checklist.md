@@ -48,6 +48,9 @@ remaining items are reviewed by hand.
 - [ ] new headline theorems added to the `scripts/axiom_audit.py`
       allowlist; new doc-referenced names added to the
       `scripts/doc_symbol_check.py` IGNORE set as appropriate.
+- [ ] assurance case (`docs/assurance-case.md`) C-table updated if a
+      top-level claim was added; risk register reviewed and any new
+      residual risk recorded; release sign-off template completed.
 
 ## Archive hygiene
 

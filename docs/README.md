@@ -30,6 +30,14 @@ the path that matches you.
 
 - [Project positioning](project-positioning.md) — what Henret is and is
   not.
+- [Assurance case](assurance-case.md) — the reviewer's entry point: every
+  top-level claim, its evidence, and known limits.
+- [Review playbook](review-playbook.md) — the external reviewer's
+  checklist.
+- [Risk register](risk-register.md) — known residual risks and their
+  mitigations.
+- [Semantic extension governance](semantic-extension-governance.md) — the
+  Semantic Impact Checklist and bridge-claim rule.
 - [Naming and scope](naming-and-scope.md) — module and identifier scope.
 - [Theorem naming style](theorem-naming.md) — naming conventions for new
   theorems.

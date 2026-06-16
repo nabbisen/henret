@@ -50,6 +50,11 @@ are planned follow-up work.
 - **Audit the claims.** Every correctness statement is classified PROVEN /
   ASSUMED / TESTED / OUTSCOPE in
   [`docs/proof-trust-test-matrix.md`](docs/proof-trust-test-matrix.md).
+  For a reviewer's entry point — the top-level claims, their evidence, and
+  known limits — see the
+  [assurance case](docs/assurance-case.md), the
+  [review playbook](docs/review-playbook.md), and the
+  [risk register](docs/risk-register.md).
 
 ## Quickstart
 

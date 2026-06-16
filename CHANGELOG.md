@@ -1,5 +1,39 @@
 # Changelog
 
+# Changelog
+
+## v0.15.4 — Assurance Case and External Review Playbook (RFC 053)
+
+A reviewability release. **No new semantics, no new theorems, axiom
+budget unchanged** — it turns Henret's existing proof/trust/test
+discipline into a structured argument an external reviewer can audit.
+
+### Assurance case
+
+New `docs/assurance-case.md` states the top-level claim and decomposes it
+into subclaims C1–C10, each linked to its headline theorem, file, axiom
+set, and class (kernel-proven / trusted / tested / conditional /
+out-of-scope). It links to the proof index and matrix rather than copying
+them, and ships a release sign-off template.
+
+### Review playbook and risk register
+
+New `docs/review-playbook.md` is a falsification-oriented checklist for an
+external reviewer (claim integrity, axiom budget, bridge honesty, grammar
+migration, packaging). New `docs/risk-register.md` records seven
+residual risks (R1–R7) with likelihood, impact, mitigation, and status —
+including the bridge's single-worker scope, the trusted C boundary, and
+the demo-codegen cost — and a never-delete retirement policy.
+
+### Wiring
+
+The README claims bullet now points to the assurance case, review
+playbook, and risk register; the docs landing page indexes them under
+maintainers; the release checklist requires the assurance C-table and
+risk register to be updated each release.
+
+---
+
 ## v0.15.3 — Semantic Extension Governance (RFC 052)
 
 Governance for changing the semantic core. **No new semantics, no new
@@ -26,10 +60,10 @@ preservation lemmas, no public stability).
 
 The rule — never call the bridge "complete" without the *single-worker*
 qualifier — is now a stale-phrase gate. Applying it caught and fixed real
-drift: `proof-index.md` called the bridge "complete bridge preservation"
-and still said "all 12 RuntimeOps" (it is 18, and the bridge is a
-single-worker projection). The gate also bans the stale `12-operation`
-grammar count.
+drift: `proof-index.md` described the bridge as complete without the
+single-worker qualifier and still cited a 12-op grammar count (it is 18,
+and the bridge is a single-worker projection). The gate also bans the
+stale grammar-count phrasing.
 
 ### Gate
 
