@@ -841,3 +841,25 @@ twelve RFC 091 conformance scenarios (`acquireActor_*`,
 `task_*_does_not_close_actor_resource`, `closeActor_marks_actor_resource_closing`,
 `finalize_actor_resource_released`, `release_task_on_actor_resource_invalid`,
 `stopWhenDrained_{blocked_by_actor_allocated,blocked_by_actor_closing,succeeds_after_actor_resource_finalized}`).
+
+### RFC 092 — Clean-Stop Predicate (`stopped → Drained` resolution, Option B)
+
+The architect's ruling on the deferred RFC 057 Tier 2 question: do **not** make
+`runtimeStatus = .stopped` globally imply `Drained` (that would collapse
+`stopWhenIdle ≡ stopWhenDrained`, a breaking merge against RFC 087's additive
+design). Instead keep the two stop ops distinct and expose named clean-stop
+predicates (`Henret/Proofs/CleanStop.lean`): `Stopped` (status only),
+`StoppedDrained` (`Stopped ∧ Drained`), `CleanStopped` (`Stopped ∧ Frozen`).
+
+| Theorem | Statement |
+|---|---|
+| `stopWhenDrained_enters_cleanStopped` | a successful `stopWhenDrained` lands in `CleanStopped` |
+| `reachable_stopWhenDrained_enters_cleanStopped` | reachable form of the above |
+| `cleanStopped_drained` / `cleanStopped_quiescent` | a clean stop is drained / scheduler-quiescent |
+| `cleanStopped_run_stays_frozen` | from a clean stop, any run stays `Frozen` (quiescent + drained) |
+| `stopWhenIdle_can_stop_undrained` | **contrast**: `∃ ops`, `stopWhenIdle` reaches `.stopped` with a live resource (refutes "stopped ⇒ drained") |
+
+`.stopped` is an *entry* fact: `shutdown` relabels `.stopped → .shuttingDown`, so
+durable permanence is stated at the `Frozen` level, not the exact label.
+Behaviour is pinned by the conformance pair `stopWhenIdle_stops_with_live_resource`
+(stops while undrained) and the existing `stopWhenDrained_*` scenarios.

@@ -12,6 +12,7 @@ import Henret.Proofs.ResourceDrain
 import Henret.Proofs.DrainedPersistence
 import Henret.Proofs.SleepingTimer
 import Henret.Proofs.Frozen
+import Henret.Proofs.CleanStop
 import Henret.Proofs.Policy
 import Henret.Proofs.Metadata
 import Henret.Proofs.MetaPolicy

@@ -106,3 +106,32 @@ additionally marks actor-owned resources closing (RFC 091). Bridge:
 not touch `readyQ`).
 
 See [`examples/16_structured_shutdown.lean`](../examples/16_structured_shutdown.lean).
+
+## Stopped vs. clean-stopped (RFC 092)
+
+`runtimeStatus = .stopped` is reached by **either** `stopWhenIdle` (scheduler
+quiescence only) **or** `stopWhenDrained` (quiescence + drained ledger). These
+two stops are **intentionally distinct** — `stopWhenIdle` models "no executable
+scheduler work remains, but cleanup obligations may remain" (e.g. a parked task
+or an actor-owned resource still holding a handle). The architect's ruling on the
+`stopped → Drained` question was to **keep them distinct** rather than merge them
+(which would be a breaking change to `stopWhenIdle`), and to expose a named
+clean-stop predicate instead:
+
+| Predicate | Meaning |
+|---|---|
+| `Stopped` | `runtimeStatus = .stopped`. **No** claim about resources. |
+| `StoppedDrained` | `Stopped` ∧ `Drained`. |
+| `CleanStopped` | `Stopped` ∧ `Frozen` (quiescent, non-running, drained). |
+
+`stopWhenDrained_enters_cleanStopped` certifies a successful `stopWhenDrained`
+lands in `CleanStopped`; `stopWhenIdle_can_stop_undrained` certifies (by witness)
+that `stopWhenIdle` may reach `.stopped` with a live resource — so the two ops can
+never silently be conflated. Note `.stopped` is an *entry* fact: a later
+`shutdown` relabels `.stopped → .shuttingDown` (both `≠ .running`), so durable
+permanence is exposed at the `Frozen` level (`cleanStopped_run_stays_frozen`),
+not over the exact `.stopped` label.
+
+**Contract rule.** Downstream consumers (bridge/adapter/replay/observability/API)
+must treat "clean shutdown" as `CleanStopped` (or `StoppedDrained`), never as bare
+`.stopped`.

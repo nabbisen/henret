@@ -2,14 +2,14 @@
 
 # Axiom budget
 
-Every one of the 146 audited public theorems depends only on Lean's kernel axioms (`propext`, `Quot.sound`, and — for reachability theorems using `by_cases`/`obtain` — `Classical.choice`); the optional native layer adds typed FFI axioms. No project-specific axioms, no `native_decide`.
+Every one of the 154 audited public theorems depends only on Lean's kernel axioms (`propext`, `Quot.sound`, and — for reachability theorems using `by_cases`/`obtain` — `Classical.choice`); the optional native layer adds typed FFI axioms. No project-specific axioms, no `native_decide`.
 
 ## Axiom classes
 
 | Class | Axioms | Theorems |
 |---|---|---|
-| STD | propext, Quot.sound | 114 |
-| STD_C | propext, Quot.sound, Classical.choice | 31 |
+| STD | propext, Quot.sound | 120 |
+| STD_C | propext, Quot.sound, Classical.choice | 33 |
 | native | STD(_C) + NativeDeque FFI axioms | 1 |
 
 ## Trusted native axioms (`Henret.Native`, RFC 010)

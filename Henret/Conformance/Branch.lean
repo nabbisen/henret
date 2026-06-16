@@ -654,6 +654,20 @@ def stopWhenDrained_succeeds_after_actor_resource_finalized : BranchScenario whe
   finalCheck := fun s => s.runtimeStatus == .stopped && s.resources 0 == some ⟨.actor 7, .released⟩
   covers := ["stopWhenDrained.succeeds-after-actor-finalize"]
 
+/-- RFC 092 contrast: `stopWhenIdle` (scheduler-quiescent stop) reaches `.stopped`
+    even with a live actor-owned resource — the runtime is *stopped* but **not**
+    drained. The positive complement to the architect's `stopWhenIdle_can_stop_undrained`
+    theorem: bare `.stopped` does not certify a clean shutdown. -/
+def stopWhenIdle_stops_with_live_resource : BranchScenario where
+  name := "stopWhenIdle_stops_with_live_resource"
+  description := "stopWhenIdle reaches stopped with a live (undrained) actor-owned resource"
+  ops := [.spawn 7, .acquireActor 7, .schedule, .complete 0, .stopWhenIdle]
+  expected := [.spawned 0, .acquired 0, .scheduled 0, .ok, .ok]
+  finalCheck := fun s =>
+    s.runtimeStatus == .stopped && s.resourceDrained == false &&
+    s.resources 0 == some ⟨.actor 7, .allocated⟩
+  covers := ["stopWhenIdle.stops-with-live-resource"]
+
 
 /-- The full branch-coverage suite. -/
 def branchScenarios : List BranchScenario :=
@@ -692,7 +706,8 @@ def branchScenarios : List BranchScenario :=
     release_task_on_actor_resource_invalid,
     stopWhenDrained_blocked_by_actor_allocated_resource,
     stopWhenDrained_blocked_by_actor_closing_resource,
-    stopWhenDrained_succeeds_after_actor_resource_finalized ]
+    stopWhenDrained_succeeds_after_actor_resource_finalized,
+    stopWhenIdle_stops_with_live_resource ]
 
 def branchAllPass : Bool := branchScenarios.all checkBranch
 

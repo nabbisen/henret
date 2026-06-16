@@ -18,8 +18,12 @@ inductive ActorStatus where
 deriving DecidableEq, Repr, Inhabited
 
 /-- Runtime admission status (RFC 055). `running` is normal; `shuttingDown`
-    rejects new root `spawn`s and environment `inject`s; `stopped` is the
-    quiescent terminal status reached via `stopWhenIdle`. -/
+    rejects new root `spawn`s and environment `inject`s; `stopped` is a quiescent
+    terminal status reached via `stopWhenIdle` **or** `stopWhenDrained`.
+
+    `stopped` alone does **not** certify the resource ledger is drained — a
+    `stopWhenIdle` stop may leave resources live (RFC 092). A clean shutdown is
+    `CleanStopped` (stopped ∧ `Frozen`), reached by `stopWhenDrained`. -/
 inductive RuntimeStatus where
   | running
   | shuttingDown
@@ -610,12 +614,14 @@ def step (s : RuntimeState) : RuntimeOp → RuntimeState × StepResult
     -- Begin runtime shutdown; idempotent (RFC 055).
     ({ s with runtimeStatus := .shuttingDown }, .ok)
   | .stopWhenIdle =>
-    -- Transition to stopped only if quiescent (RFC 055).
+    -- Stop iff the SCHEDULER is quiescent. Resource-blind: may stop with live
+    -- resources (RFC 055; the distinction is intentional, see RFC 092).
     if s.running = none ∧ s.readyQ = [] ∧ s.timers = [] then
       ({ s with runtimeStatus := .stopped }, .ok)
     else (s, .invalid)
   | .stopWhenDrained =>
-    -- Transition to stopped only if quiescent AND fully drained (RFC 087).
+    -- Stop iff quiescent AND the ledger is fully drained; enters CleanStopped
+    -- (RFC 087 / RFC 092).
     if s.running = none ∧ s.readyQ = [] ∧ s.timers = [] ∧ s.resourceDrained = true then
       ({ s with runtimeStatus := .stopped }, .ok)
     else (s, .invalid)

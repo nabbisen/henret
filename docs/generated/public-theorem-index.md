@@ -2,7 +2,7 @@
 
 # Public theorem index
 
-The 146 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 154 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
@@ -18,6 +18,11 @@ The 146 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.cancelTree_marks_descendant_resource_closing`
 - `Henret.cancelTree_preserves_task_state`
 - `Henret.cancel_marks_owned_resource_closing`
+- `Henret.cleanStopped_drained`
+- `Henret.cleanStopped_quiescent`
+- `Henret.cleanStopped_run_stays_frozen`
+- `Henret.cleanStopped_step_stays_frozen`
+- `Henret.cleanStopped_stoppedDrained`
 - `Henret.closeActor_marks_actor_resources_closing`
 - `Henret.closeActor_sets_closed`
 - `Henret.closed_actor_rejects_inject`
@@ -80,6 +85,7 @@ The 146 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.reachable_runnable_is_queued`
 - `Henret.reachable_sleepingHasTimer`
 - `Henret.reachable_spawned_has_owner`
+- `Henret.reachable_stopWhenDrained_enters_cleanStopped`
 - `Henret.reachable_stopWhenDrained_stays_drained`
 - `Henret.reachable_stopWhenDrained_stays_quiescent`
 - `Henret.reachable_waiter_actor_unique`
@@ -117,11 +123,13 @@ The 146 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.step_preserves_sleepingHasTimer`
 - `Henret.step_preserves_terminal`
 - `Henret.step_resources_none_run_none`
+- `Henret.stopWhenDrained_enters_cleanStopped`
 - `Henret.stopWhenDrained_enters_frozen`
 - `Henret.stopWhenDrained_noop`
 - `Henret.stopWhenDrained_stops`
 - `Henret.stopWhenDrained_stops_drained`
 - `Henret.stopWhenDrained_then_step_drained`
+- `Henret.stopWhenIdle_can_stop_undrained`
 - `Henret.stopWhenIdle_requires_quiescent`
 - `Henret.stopWhenIdle_sets_stopped`
 - `Henret.timedOut_not_fault`

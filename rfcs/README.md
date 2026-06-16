@@ -111,6 +111,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [089](done/089-sleeping-timer-coherence.md) | Sleeping-Timer Coherence (RFC 057 Tier 2 groundwork) | Implemented (v0.25.0) | v0.25.0 |
 | [090](done/090-drained-permanence.md) | Drained Permanence (Frozen invariant, RFC 057 Tier 2 payoff) | Implemented (v0.26.0) | v0.26.0 |
 | [091](done/091-actor-owned-resources.md) | Actor-Owned Resources (RFC 057 Tier 2) | Implemented (v0.27.0) | v0.27.0 |
+| [092](done/092-clean-stop-predicate.md) | Clean-Stop Predicate (stopped → Drained resolution) | Implemented (v0.28.0) | v0.28.0 |
 
 ## Archive
 

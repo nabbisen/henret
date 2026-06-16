@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.28.0 — Clean-Stop Predicate (RFC 092 / stopped → Drained resolution)
+
+Resolves the last deferred RFC 057 Tier 2 question — whether `.stopped` should
+globally imply `Drained` — per the architect's ruling (**Option B**). Additive,
+non-breaking, zero `sorry`, no new axiom kinds.
+
+- **Decision.** Keep `stopWhenIdle` (scheduler-quiescent stop) and
+  `stopWhenDrained` (quiescent + drained stop) **distinct**; do not add a global
+  `stopped → Drained` invariant (which would collapse the two ops — a breaking
+  change against RFC 087's additive design).
+- **`Henret/Proofs/CleanStop.lean`** (new): `Stopped` (status only),
+  `StoppedDrained` (`Stopped ∧ Drained`), `CleanStopped` (`Stopped ∧ Frozen`) as
+  the contract handle for clean shutdown. `stopWhenDrained_enters_cleanStopped`
+  (+ reachable form); projections `cleanStopped_drained` / `_quiescent`;
+  permanence `cleanStopped_run_stays_frozen`. `.stopped` is an *entry* fact —
+  `shutdown` relabels `.stopped → .shuttingDown` — so durable permanence is at the
+  `Frozen` level.
+- **Contrast theorem** `stopWhenIdle_can_stop_undrained` + golden scenario
+  `stopWhenIdle_stops_with_live_resource`: a named witness that `stopWhenIdle`
+  reaches `.stopped` with a live resource, so bare `.stopped` can never be
+  silently claimed clean.
+- **Docs.** `RuntimeStatus` / stop-op docstrings corrected; clean-stop section in
+  shutdown-semantics; security reading in resource-drain (bare `.stopped` is not a
+  cleanup guarantee); proof-index RFC 092; matrix 223–226. Contract rule for
+  RFC 070/072/061/060/066/074: clean shutdown is `CleanStopped`, never bare
+  `.stopped`.
+
 ## v0.27.0 — Actor-Owned Resources (RFC 091 / RFC 057 Tier 2)
 
 Resources are no longer task-only. RFC 091 generalizes the ledger owner from a

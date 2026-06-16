@@ -203,6 +203,15 @@ ALLOWLIST = {
     "Henret.frozen_run_drained":       (set(), STD_C),
     "Henret.reachable_stopWhenDrained_stays_drained":   (set(), STD_C),
     "Henret.reachable_stopWhenDrained_stays_quiescent": (set(), STD_C),
+    # RFC 092 — clean-stop predicate (stopped→Drained resolution, Option B)
+    "Henret.stopWhenDrained_enters_cleanStopped":           (set(), STD),
+    "Henret.reachable_stopWhenDrained_enters_cleanStopped": (set(), STD_C),
+    "Henret.cleanStopped_drained":          (set(), STD),
+    "Henret.cleanStopped_quiescent":        (set(), STD),
+    "Henret.cleanStopped_stoppedDrained":   (set(), STD),
+    "Henret.cleanStopped_step_stays_frozen": (set(), STD),
+    "Henret.cleanStopped_run_stays_frozen":  (set(), STD_C),
+    "Henret.stopWhenIdle_can_stop_undrained": (set(), STD),
 }
 
 text = sys.stdin.read()

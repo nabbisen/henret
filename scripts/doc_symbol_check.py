@@ -194,6 +194,8 @@ IGNORE = {
     "stopWhenDrained_blocked_by_actor_allocated_resource",
     "stopWhenDrained_blocked_by_actor_closing_resource",
     "stopWhenDrained_succeeds_after_actor_resource_finalized",
+    # RFC 092 contrast scenario
+    "stopWhenIdle_stops_with_live_resource",
     # RFC 058 SchedulingPolicy field referenced bare (dotted form is checked)
     "choose_sound",
 }

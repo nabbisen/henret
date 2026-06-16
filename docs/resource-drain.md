@@ -117,3 +117,13 @@ surface — a control-plane op gated on `runtimeStatus = .running` — from
 re-leaking a resource after a drained stop. Under `Drained`, `closeActor` is
 inert on the ledger (`markActorResourcesClosing_eq_of_drained`), so the
 permanence spine is unaffected.
+
+## Security reading: bare `.stopped` is not a cleanup guarantee (RFC 092)
+
+`runtimeStatus = .stopped` says only that the runtime accepted a stop transition;
+it does **not** by itself certify that resource handles were released. A
+security-sensitive consumer that needs "all resources cleaned up" must depend on
+`CleanStopped` (or at least `runtimeStatus = .stopped ∧ Drained`), not on bare
+`.stopped`. This is the safe contract — it makes the audit-able predicate explicit
+and prevents an accidental handle-leak assumption. `stopWhenIdle_can_stop_undrained`
+is the named refutation that the weaker reading is unsafe.

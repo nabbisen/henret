@@ -124,7 +124,8 @@ def coverageRegistry : List CoverageEntry :=
     { op := "release",      branchId := "release.actor-owned-invalid",           scenario := "release_task_on_actor_resource_invalid" },
     { op := "stopWhenDrained", branchId := "stopWhenDrained.blocked-by-actor-allocated", scenario := "stopWhenDrained_blocked_by_actor_allocated_resource" },
     { op := "stopWhenDrained", branchId := "stopWhenDrained.blocked-by-actor-closing",   scenario := "stopWhenDrained_blocked_by_actor_closing_resource" },
-    { op := "stopWhenDrained", branchId := "stopWhenDrained.succeeds-after-actor-finalize", scenario := "stopWhenDrained_succeeds_after_actor_resource_finalized" } ]
+    { op := "stopWhenDrained", branchId := "stopWhenDrained.succeeds-after-actor-finalize", scenario := "stopWhenDrained_succeeds_after_actor_resource_finalized" },
+    { op := "stopWhenIdle", branchId := "stopWhenIdle.stops-with-live-resource", scenario := "stopWhenIdle_stops_with_live_resource" } ]
 
 /-- The names of every available golden scenario (trace + branch). -/
 def allScenarioNames : List String :=

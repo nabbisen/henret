@@ -280,6 +280,14 @@ open Henret Henret.Native Henret.Bridge
 #print axioms frozen_run_drained
 #print axioms reachable_stopWhenDrained_stays_drained
 #print axioms reachable_stopWhenDrained_stays_quiescent
+#print axioms stopWhenDrained_enters_cleanStopped
+#print axioms reachable_stopWhenDrained_enters_cleanStopped
+#print axioms cleanStopped_drained
+#print axioms cleanStopped_quiescent
+#print axioms cleanStopped_stoppedDrained
+#print axioms cleanStopped_step_stays_frozen
+#print axioms cleanStopped_run_stays_frozen
+#print axioms stopWhenIdle_can_stop_undrained
 LEAN
   lake env lean "$A" | python3 scripts/axiom_audit.py
   rc=$?
