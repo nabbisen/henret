@@ -200,4 +200,20 @@ theorem wf_timed_waiters_nodup_pass {s s' : RuntimeState} (h : WellFormed s)
     (htw : ∀ a, s'.timedMailboxWaiters a = s.timedMailboxWaiters a)
     (a : ActorId) : (s'.timedMailboxWaiters a).Nodup := by
   rw [htw]; exact h.timed_waiters_nodup a
+
+/-- `mailbox_within_capacity` (RFC 056) reads only the mailbox policy and the
+mailbox contents. Any step that leaves both `mailboxPolicy` and `mailboxes`
+pointwise-stable preserves it verbatim — used by every operation that touches
+neither (the time and metadata operations). Introduced as the RFC 062 Phase 1
+pilot extraction: the three time blocks (`sleep`/`tick`/`wake`) previously
+discharged this field with the same five lines apiece. -/
+theorem wf_mailbox_capacity_pass {s s' : RuntimeState} (h : WellFormed s)
+    (hpol : ∀ a, s'.mailboxPolicy a = s.mailboxPolicy a)
+    (hmb : ∀ a, s'.mailboxes a = s.mailboxes a)
+    (a : ActorId) (n : Nat) (mb : Mailbox)
+    (hcap : (s'.mailboxPolicy a).capacity = some n)
+    (hmbx : s'.mailboxes a = some mb) :
+    mb.messages.length ≤ n := by
+  rw [hpol] at hcap; rw [hmb] at hmbx
+  exact h.mailbox_within_capacity a n mb hcap hmbx
 end Henret

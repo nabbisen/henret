@@ -325,6 +325,9 @@ gate_doc_consistency() {
   python3 scripts/extract_model_docs.py --check || return 1
   python3 scripts/extract_theorem_docs.py --check || return 1
   python3 scripts/extract_rfc_index.py --check || return 1
+  # Public-theorem name diff gate (RFC 062 §9.2): the prefix-defined public
+  # theorem surface must not silently drift.
+  python3 scripts/public_theorem_index.py --check || return 1
   # Fault-taxonomy doc<->code sync gate (RFC 064)
   python3 scripts/fault_taxonomy_check.py || return 1
   echo "docs consistency ok"

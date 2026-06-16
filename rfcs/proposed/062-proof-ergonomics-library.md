@@ -14,7 +14,9 @@ category: proofs
 
 ## Status
 
-Proposed.
+Proposed. **Phase 1 implemented in v0.30.0** (see _Architect ruling_ and _Phase 1
+implementation_ below). The RFC as a whole stays Proposed because Phases 2–3 are
+gated on a separate architect review; `implemented_in` is therefore left `null`.
 
 ## Summary
 
@@ -30,31 +32,48 @@ Henret has many operation × invariant preservation proofs. They are auditable b
 - Do not introduce brittle metaprogramming unless simpler helper lemmas fail.
 - Do not make reviews harder by replacing readable proofs with magic tactics.
 
-## Design
+## Architect ruling (v0.29.0 review)
 
-Create:
+Approved as a **phased, lemma-first proof-style modernization**, not strong proof
+automation. Decisions: auditability over brevity (compress only when the
+obligation stays named); **no macros in Phase 1–2**; bulk-first (the 33-field
+record build before inert-arm consolidation); **keep explicit per-op
+classification — never `| _ =>`**; gradual, phase-gated rollout. The governing
+sentence (now in `docs/proof-style.md`):
 
-```text
-Henret/Proofs/Automation/Simp.lean
-Henret/Proofs/Automation/Preservation.lean
-Henret/Proofs/Automation/Cases.lean
-```
+> Proof ergonomics may remove syntactic repetition, but it must not remove
+> semantic accountability. Each preservation obligation must remain named either
+> by a theorem, a field-specific lemma, or an explicit operation classification.
 
-Add named simp sets:
+This supersedes the original _Design_ below: no macros, no `Automation/Cases.lean`,
+and named simp-sets only where they demonstrably help (with governance).
 
-```lean
-attribute [simp, henret_step] ...
-attribute [simp, henret_proj] ...
-```
+## Phase 1 implementation (v0.30.0)
 
-Add small tactics only for repeated local shapes, for example:
+Shipped:
 
-```lean
-macro "close_unchanged_field" : tactic
-macro "split_task_eq" ident : tactic
-```
+- `docs/proof-style.md` — the full proof-style guide (preservation principles,
+  helper-lemma style, simp-set policy + governance, operation-classification and
+  no-catch-all rules, macro policy, public-theorem stability, how-to-add a
+  RuntimeOp / WellFormed field, measurement metric).
+- **Theorem-name diff gate** — `scripts/public_theorem_index.py` +
+  `docs/generated/public-theorems.md` + `docs/proof-api-stability.md`, wired into
+  `check.sh` gate 7. Snapshots the 101-name prefix-defined public theorem surface
+  and fails on undocumented rename/removal.
+- **`Time.lean` pilot** — extracted `wf_mailbox_capacity_pass` (the three time
+  blocks now share one field-specific helper for `mailbox_within_capacity`); same
+  theorem statements and public names, axioms unchanged, all nine fast gates
+  green.
 
-Prefer helper lemmas over macros where possible.
+Deliberately **not** done in Phase 1 (per the ruling): macros; `Automation/Cases.lean`;
+catch-all classification; public-statement changes; sweeping Messaging/Lifecycle
+rewrite. The `henret_upd` named simp-set was prototyped and **withdrawn** — the
+point-update lemmas do not compose under a named `simp only` set, and registering
+one would pull a `Lean.Meta.*` import into the prelude-only proof tree for no
+payoff (governance rule §13.4 applied at design time). Simp-set adoption is
+deferred to the Phase-2 dense files.
+
+## Original design (superseded by the ruling above)
 
 ## Formal model changes
 

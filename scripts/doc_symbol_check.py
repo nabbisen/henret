@@ -202,6 +202,11 @@ IGNORE = {
     "releaseActor_enables_drained_stop", "releaseActor_not_running_invalid",
     # RFC 058 SchedulingPolicy field referenced bare (dotted form is checked)
     "choose_sound",
+    # RFC 062 §9.2 public-theorem name *prefixes* (documentation vocabulary, not
+    # theorems): the diff gate snapshots names beginning with these.
+    "preserves_wf_", "step_preserves_", "reachable_", "bridge_", "run_preserves_",
+    # RFC 062 §13 withdrawn point-update simp-set (prototyped, never shipped)
+    "henret_upd",
 }
 
 NAME_RE = re.compile(r"`([A-Za-z][A-Za-z0-9_.']*)`")

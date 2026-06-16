@@ -168,9 +168,9 @@ theorem preserves_wf_sleep {s : RuntimeState} (h : WellFormed s) :
             (by simpa [step, if_pos hrt, hts] using hmb')
         · -- mailbox_within_capacity (RFC 056): sleep touches neither mailboxes nor policy
           intro a' n mbx hcap hmbx
-          exact h.mailbox_within_capacity a' n mbx
-            (by simpa [step, if_pos hrt, hts] using hcap)
-            (by simpa [step, if_pos hrt, hts] using hmbx)
+          exact wf_mailbox_capacity_pass h
+            (by simp [step, if_pos hrt, hts]) (by simp [step, if_pos hrt, hts])
+            a' n mbx hcap hmbx
       | new | ready | yielded | sleeping | completed | cancelled | waiting | waitingTimed | failed =>
         simpa [step, hrt, hts] using h
   · simpa [step, hrt] using h
@@ -452,9 +452,9 @@ theorem preserves_wf_tick {s : RuntimeState} (h : WellFormed s) :
         (List.mem_filter.mp hma).1 (List.mem_filter.mp hmb').1
     · -- mailbox_within_capacity (RFC 056): tick touches neither mailboxes nor policy
       intro a' n mbx hcap hmbx
-      exact h.mailbox_within_capacity a' n mbx
-        (by simpa [step, if_pos hle] using hcap)
-        (by simpa [step, if_pos hle] using hmbx)
+      exact wf_mailbox_capacity_pass h
+        (by simp [step, if_pos hle]) (by simp [step, if_pos hle])
+        a' n mbx hcap hmbx
   · simpa [step, hle] using h
 
 theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
@@ -606,9 +606,9 @@ theorem preserves_wf_wake {s : RuntimeState} (h : WellFormed s) :
           (by simpa [step, hts] using hma) (by simpa [step, hts] using hmb')
       · -- mailbox_within_capacity (RFC 056): wake touches neither mailboxes nor policy
         intro a' n mbx hcap hmbx
-        exact h.mailbox_within_capacity a' n mbx
-          (by simpa [step, hts] using hcap)
-          (by simpa [step, hts] using hmbx)
+        exact wf_mailbox_capacity_pass h
+          (by simp [step, hts]) (by simp [step, hts])
+          a' n mbx hcap hmbx
     | new | ready | running | yielded | completed | cancelled | waiting | waitingTimed | failed =>
       simpa [step, hts] using h
 

@@ -886,3 +886,32 @@ hypotheses. Behaviour is pinned by six conformance scenarios (`releaseActor_ok`,
 `releaseActor_wrong_actor_invalid`, `releaseActor_on_task_resource_invalid`,
 `releaseActor_double_invalid`, `releaseActor_enables_drained_stop`,
 `releaseActor_not_running_invalid`).
+
+### RFC 062 — Proof Ergonomics Library (Phase 1)
+
+Phase 1 of a phased, architect-gated proof-style modernization (full policy in
+[`docs/proof-style.md`](proof-style.md); API tiers in
+[`docs/proof-api-stability.md`](proof-api-stability.md)). The governing rule:
+proof ergonomics may remove syntactic repetition but must not remove semantic
+accountability — every preservation obligation stays named by a theorem, a
+field-specific lemma, or an explicit operation classification.
+
+**Pilot extraction** (`Henret/Proofs/StepFields.lean`): `wf_mailbox_capacity_pass`
+discharges the `mailbox_within_capacity` field (RFC 056) for any step that leaves
+`mailboxPolicy` and `mailboxes` stable. The three time blocks
+(`preserves_wf_sleep` / `preserves_wf_tick` / `preserves_wf_wake`) now share it
+instead of repeating the same five lines apiece — same theorem statements and
+public names, axioms unchanged.
+
+**Theorem-name diff gate** (`scripts/public_theorem_index.py`, wired into gate 7):
+snapshots the 101-name prefix-defined public theorem surface
+(`preserves_wf_`/`step_preserves_`/`reachable_`/`bridge_`/`run_preserves_`) to
+`docs/generated/public-theorems.md`; a rename/removal fails CI without a recorded
+migration, catching drift the audit allowlist alone does not.
+
+**No simp-set in Phase 1.** A named point-update simp-set was prototyped and
+withdrawn — the `upd` lemmas do not compose under a named `simp only` set, and
+registering one would pull a `Lean.Meta.*` import into the otherwise prelude-only
+proof tree for no payoff. Named simp-sets remain sanctioned; adoption is deferred
+to the Phase-2 dense files (`Messaging.lean` / `Lifecycle.lean`) where the payoff
+is measurable. Phases 2–3 are gated on a separate review.

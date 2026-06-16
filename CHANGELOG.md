@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.30.0 — Proof Ergonomics Library, Phase 1 (RFC 062)
+
+First slice of a phased, architect-gated proof-style modernization. **No model
+change, no new op** — additive proof-engineering only; same theorem statements
+and public names, axioms unchanged, all nine fast gates green. RFC 062 stays
+Proposed (Phases 2–3 gated on a separate review); Phase 1 is recorded in the RFC
+body.
+
+- **Proof-style guide** — `docs/proof-style.md` codifies the policy: auditability
+  over brevity (every preservation obligation stays named by a theorem,
+  field-specific lemma, or explicit op classification); never `| _ =>` for op
+  classification; governed named simp-sets; no Phase 1–2 macros; how-to-add a
+  RuntimeOp / WellFormed field; the files-touched-per-op measurement metric.
+- **Theorem-name diff gate** — `scripts/public_theorem_index.py` snapshots the
+  101-name prefix-defined public theorem surface
+  (`preserves_wf_`/`step_preserves_`/`reachable_`/`bridge_`/`run_preserves_`) to
+  `docs/generated/public-theorems.md`, wired into gate 7. A public theorem cannot
+  be renamed or removed without a recorded migration
+  (`docs/proof-api-stability.md`) — catching drift the audit allowlist alone does
+  not. `extract_theorem_docs.py` continues to cover the audit-allowlist surface.
+- **`Time.lean` pilot** — `wf_mailbox_capacity_pass` (new in
+  `Henret/Proofs/StepFields.lean`) discharges `mailbox_within_capacity` (RFC 056)
+  for any step that leaves `mailboxPolicy` and `mailboxes` stable; the three time
+  blocks (`preserves_wf_sleep`/`tick`/`wake`) now share it instead of repeating
+  five lines apiece.
+- **No simp-set in Phase 1 (documented finding).** A `henret_upd` named
+  point-update simp-set was prototyped and withdrawn: the `upd` lemmas do not
+  compose under a named `simp only` set, and registering one would pull a
+  `Lean.Meta.*` import into the prelude-only proof tree for no payoff. Named
+  simp-sets remain sanctioned; adoption is deferred to the Phase-2 dense files.
+- **Matrix.** Claims 230–232 (through 232).
+
 ## v0.29.0 — Manual Actor-Resource Release (RFC 093)
 
 Adds `releaseActor`, the voluntary-release counterpart to RFC 091's
