@@ -328,6 +328,9 @@ gate_doc_consistency() {
   # Public-theorem name diff gate (RFC 062 §9.2): the prefix-defined public
   # theorem surface must not silently drift.
   python3 scripts/public_theorem_index.py --check || return 1
+  # Proof-dependency-budget diff gate (RFC 069): the per-theorem tier/weight/
+  # stability budget must not silently drift (e.g. a constructive->classical move).
+  python3 scripts/proof_dependency_budget.py --check || return 1
   # Fault-taxonomy doc<->code sync gate (RFC 064)
   python3 scripts/fault_taxonomy_check.py || return 1
   echo "docs consistency ok"

@@ -67,9 +67,14 @@ remaining items are reviewed by hand.
       (`henret-vX.Y.Z.tar.gz`).
 
 ```bash
-tar --exclude='./.lake' -czf henret-vX.Y.Z.tar.gz \
+tar --exclude='./.lake' --exclude='__pycache__' --exclude='*.pyc' \
+    --exclude='./release' --exclude='./.git' \
+    -czf henret-vX.Y.Z.tar.gz \
     --transform 's|^\./||' -C <project-root> .
 ```
+
+(`__pycache__` / `*.pyc` are produced by running the gate scripts and are
+version-specific bytecode — they must not ship in a release archive.)
 
 ## Note on the demo executable
 

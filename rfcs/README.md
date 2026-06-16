@@ -88,7 +88,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [066](proposed/066-deterministic-replay-format.md) | Deterministic Replay Format | — | — |
 | [067](proposed/067-state-snapshot-and-semantic-diff.md) | State Snapshot and Semantic Diff | — | — |
 | [068](proposed/068-invariant-dependency-graph.md) | Invariant Dependency Graph | — | — |
-| [069](proposed/069-proof-dependency-budget.md) | Proof Dependency Budget | — | — |
+| [069](done/069-proof-dependency-budget.md) | Proof Dependency Budget | Implemented (v0.33.0) | v0.33.0 |
 | [070](proposed/070-public-theorem-api-stability.md) | Public Theorem API Stability | — | — |
 | [071](proposed/071-semantic-profiles-for-actor-models.md) | Semantic Profiles for Actor Models | — | — |
 | [072](proposed/072-error-and-result-observability-contract.md) | Error and Result Observability Contract | — | — |

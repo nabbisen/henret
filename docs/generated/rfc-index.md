@@ -2,7 +2,7 @@
 
 # RFC index
 
-94 RFCs: 75 implemented, 18 proposed/in-wave, 1 archived. Generated from RFC front matter.
+94 RFCs: 76 implemented, 17 proposed/in-wave, 1 archived. Generated from RFC front matter.
 
 ## Implemented (`done/`)
 
@@ -68,6 +68,7 @@
 | [58](done/058-scheduling-policy-layer.md) | Scheduling Policy Layer | v0.21.0 | model-semantics |
 | [59](done/059-deadline-and-priority-semantics.md) | Deadline and Priority Semantics | v0.22.0 | model-semantics |
 | [64](done/064-fault-model-and-failure-taxonomy.md) | Fault Model and Failure Taxonomy | v0.20.0 | theory |
+| [69](done/069-proof-dependency-budget.md) | Proof Dependency Budget | v0.33.0 | proofs |
 | [75](done/075-model-to-documentation-extraction.md) | Model-to-Documentation Extraction | v0.17.7 | documentation |
 | [80](done/080-release-gate-integrity-and-evidence-manifest.md) | Release Gate Integrity and Evidence Manifest | v0.17.2 | release-process |
 | [81](done/081-package-boundary-and-evidence-ledger.md) | Package Boundary and Evidence Ledger | v0.17.3 | governance |
@@ -96,7 +97,6 @@
 | [66](proposed/066-deterministic-replay-format.md) | Deterministic Replay Format | Proposed | observability |
 | [67](proposed/067-state-snapshot-and-semantic-diff.md) | State Snapshot and Semantic Diff | Proposed | observability |
 | [68](proposed/068-invariant-dependency-graph.md) | Invariant Dependency Graph | Proposed | proofs |
-| [69](proposed/069-proof-dependency-budget.md) | Proof Dependency Budget | Proposed | proofs |
 | [70](proposed/070-public-theorem-api-stability.md) | Public Theorem API Stability | Proposed | proofs |
 | [71](proposed/071-semantic-profiles-for-actor-models.md) | Semantic Profiles for Actor Models | Proposed | model-semantics |
 | [72](proposed/072-error-and-result-observability-contract.md) | Error and Result Observability Contract | Proposed | observability |

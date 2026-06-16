@@ -93,6 +93,11 @@ Use `*_pass` only when the field is genuinely unchanged; if the operation
 transforms the relevant state, name the transformation in the suffix and keep the
 proof explicit (this is why occurrence-under-enqueue is *not* a `*_pass` helper).
 
+> A helper may be named `*_pass` only if the final state reads the same relevant
+> projection values as the initial state — i.e. its hypotheses explicitly state
+> pointwise equality of exactly the projections the field reads. A mutating
+> operation must never be hidden behind a pass-sounding helper.
+
 `HENRET_HELPER_RESERVED` is the only sanctioned way to keep an exported
 `wf_*_pass` helper that is not yet used (RFC 082); the helper-usage gate
 otherwise requires every exported helper to have a real call site.

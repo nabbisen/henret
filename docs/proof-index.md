@@ -961,3 +961,20 @@ discipline added in `docs/proof-style.md` (`*_pass` = unchanged field;
 implying more generality than it has. `Lifecycle.lean`: 1692 → 1680 lines; total
 exported `wf_*_pass`: 13 → 18 (all used). Same statements/names, axioms unchanged.
 Phase 2B-2 (an optional one-projection Shape-A pilot) remains review-gated.
+
+### RFC 069 — Proof Dependency Budget
+
+A generated, diff-gated per-theorem budget over the 156 audited theorems, joining
+the axiom tier (from `scripts/axiom_audit.py`) with the public-theorem snapshot
+(`docs/generated/public-theorems.md`). `scripts/proof_dependency_budget.py`
+classifies each theorem by **constructiveness** (constructive / classical /
+trusted — 122 / 33 / 1), **import weight** (core / bridge / standard /
+conformance / native, a stable namespace proxy), and **stability**
+(public-stable / internal — 47 / 109), and lists every `Classical.choice` user
+explicitly so a constructive→classical move is a visible diff. A `--check` mode
+is wired into `check.sh` gate 7. The human-facing policy page is
+[`docs/proof-dependency-budget.md`](proof-dependency-budget.md); the generated
+table is [`docs/generated/proof-dependency-budget.md`](generated/proof-dependency-budget.md).
+The axiom-footprint *summary counts* remain in
+[`docs/generated/axiom-budget.md`](generated/axiom-budget.md) (RFC 084); RFC 069
+adds the per-theorem view on top, with no model or proof change.

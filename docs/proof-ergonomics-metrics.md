@@ -12,6 +12,22 @@ op-specific decision that should stay) or *mechanical* (a pass-through obligatio
 that a helper should absorb). The metric exposes whether a refactor reduced real
 cost or merely moved text around.
 
+### Stable observation schema (for RFC 069)
+
+Each numbered observation below follows a fixed shape so downstream tooling (RFC
+069 proof-dependency budget) can cite it without re-parsing prose:
+
+- **header line:** `## Observation N — <RFC/phase> (<file> <kind>)`
+- **front-matter list:** `baseline version` (before → after), `date`, `subject`;
+- **a measurement table** with the columns `| | value |` (metric name → value);
+- **a meaningful-vs-mechanical classification** (prose bullets);
+- **an honest-reading** paragraph distinguishing Shape-B (lines/duplication) from
+  Shape-A (file-count) effects.
+
+Metric rows that RFC 069 may consume include: file line count (before → after),
+adoption/definition sites, exported `wf_*_pass` count, ops covered, and the
+dummy-op file-touch count.
+
 ---
 
 ## Observation 1 — RFC 062 Phase 2A (Messaging.lean occurrence-trio extraction)

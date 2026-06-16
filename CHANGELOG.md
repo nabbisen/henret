@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.33.0 — Proof Dependency Budget (RFC 069)
+
+Additive proof-observability slice — **no model change, no new op**; axioms
+unchanged, all nine fast gates green. Closes RFC 069 (moved to `rfcs/done/`,
+Implemented in v0.33.0).
+
+- `scripts/proof_dependency_budget.py` generates
+  `docs/generated/proof-dependency-budget.md`: a per-theorem budget over the 156
+  audited theorems, classifying each by **constructiveness** (constructive /
+  classical / trusted = 122 / 33 / 1), **import weight** (core / bridge /
+  standard / conformance / native, a stable namespace proxy), and **stability**
+  (public-stable / internal = 47 / 109). Every `Classical.choice` user is listed
+  explicitly.
+- `--check` wired into `check.sh` gate 7: the budget cannot drift silently — a
+  `constructive → classical` move or a new audited theorem fails the gate until
+  the table is regenerated, making the classical budget a conscious decision.
+- `docs/proof-dependency-budget.md` is the human-facing policy page (categories +
+  four policy rules + a map to `axiom-budget.md` / `public-theorems.md` /
+  `proof-api-stability.md` / `proof-ergonomics-metrics.md`).
+- RFC 062 follow-ups recorded before RFC 069 (review §11): added the `*_pass`
+  discipline rule to `docs/proof-style.md`; gave `docs/proof-ergonomics-metrics.md`
+  a stable, citable observation schema. Phase 2B-2 (Shape-A pilot) deferred.
+- Public theorem surface unchanged (101 names). Matrix claim 236.
+
 ## v0.32.0 — Proof Ergonomics Library, Phase 2B-1 (RFC 062)
 
 Lifecycle-only proof-ergonomics slice, architect-approved (Phase 2B-1: Shape-B,

@@ -3,3 +3,7 @@
 
 # generated release evidence (RFC 080); CI regenerates and uploads
 release/
+
+# Python bytecode caches produced by scripts/*.py (gate tooling)
+__pycache__/
+*.pyc

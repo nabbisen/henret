@@ -1,11 +1,11 @@
 ---
 rfc: 69
 title: Proof Dependency Budget
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.33.0
 supersedes: []
 superseded_by: []
-depends_on: []
+depends_on: [62]
 blocks: []
 category: proofs
 ---
@@ -14,7 +14,9 @@ category: proofs
 
 ## Status
 
-Proposed strategic RFC.
+**Implemented in v0.33.0.** Shipped as a generated, diff-gated per-theorem budget
+(see _Implementation_ below); the manual-table risk the draft flagged is avoided
+by generating from the audit allowlist + public-theorem snapshot.
 
 ## Summary
 
@@ -100,6 +102,41 @@ This RFC should not become bureaucracy. The table should focus on public theorem
 4. Update README to mention theorem API levels.
 5. Optionally extend `axiom_audit.py` output with category annotations.
 6. Define release policy: public-stable theorem renames require changelog entry.
+
+## Implementation (v0.33.0)
+
+Shipped as an additive proof-observability slice — no model change, no new op,
+axioms unchanged, all nine fast gates green.
+
+- `scripts/proof_dependency_budget.py` generates
+  `docs/generated/proof-dependency-budget.md` from the audit allowlist
+  (`scripts/axiom_audit.py`, tier per theorem) joined with the public-theorem
+  snapshot (`docs/generated/public-theorems.md`, stability). It classifies the
+  156 audited theorems by **constructiveness** (constructive / classical /
+  trusted), **import weight** (core / bridge / standard / conformance / native,
+  a coarse namespace proxy — full import-graph precision is a v1 non-goal), and
+  **stability** (public-stable / internal), and lists every `Classical.choice`
+  user explicitly.
+- A `--check` mode is wired into `check.sh` gate 7: the budget cannot silently
+  drift, so a `constructive → classical` move (or a new audited theorem) fails the
+  gate until the table is regenerated and committed — making the classical budget
+  a conscious decision.
+- `docs/proof-dependency-budget.md` is the human-facing policy page (categories +
+  the four policy rules + a map to the related artifacts).
+
+Mapping to the draft tasks: task 1 (human doc) and task 2 (classify the headline
+theorems, via the generated table) are done; task 5 (category annotations over the
+audit output) is done by the generator. Task 3 (stability labels) is satisfied by
+the `stability` column joined from the public-theorem snapshot rather than by
+hand-labelling the proof index. Task 4 (README) is recorded in the docs index.
+Task 6 (rename policy) is already enforced for public-stable theorems by the
+RFC 062 §9.2 name-diff gate, now complemented by this tier/weight/stability gate.
+
+Deliberately out of scope (per the draft non-goals and the design note "should not
+become bureaucracy"): proof-term import-graph introspection (the namespace proxy
+is honest and stable); per-helper-lemma classification (`wf_*_pass` /
+`*_under_enqueue` helpers stay governed by `proof-style.md`); RFC 075 automation
+of the table beyond the present generator.
 
 ## Acceptance criteria
 
