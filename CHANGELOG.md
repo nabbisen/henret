@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.32.0 — Proof Ergonomics Library, Phase 2B-1 (RFC 062)
+
+Lifecycle-only proof-ergonomics slice, architect-approved (Phase 2B-1: Shape-B,
+per-field, no Shape-A). **No model change, no new op** — additive proof
+engineering; same theorem statements and public names, axioms unchanged, all nine
+fast gates green. RFC 062 stays Proposed (Phase 2B-2 / Phase 3 gated).
+
+- Five per-field pass-through helpers in `Henret/Proofs/StepFields.lean`:
+  `wf_waiters_owned_pass`, `wf_waiters_nodup_pass`, `wf_owned_has_mailbox_pass`,
+  `wf_timer_nodup_pass`, `wf_timer_sorted_pass`. Each takes exactly the
+  projection-stability proof(s) the field reads.
+- Adopted at 22 sites across `Preservation/Lifecycle.lean`
+  (`spawn`/`schedule`/`yield`/`complete`/`cancel`/`fail`/`spawnChild`). Removed a
+  defensive `by_cases u = t … simp_all` from the `waiters_owned` bullet in three
+  blocks (the op never touches `mailboxWaiters`/`taskOwner`, so the split was
+  unnecessary). `Lifecycle.lean`: 1692 → 1680 lines; total exported `wf_*_pass`:
+  13 → 18 (all used).
+- `taskState`-reading fields (`waiters_waiting`/`timers_sleep`/
+  `spawned_has_owner`/`owner_spawned`) left explicit — lifecycle ops mutate
+  `taskState`, so those are not pass-through and keep their `by_cases`.
+- Docs: helper suffix discipline (`*_pass` vs `*_under_enqueue` vs `*_of_*`) added
+  to `docs/proof-style.md`; Phase 2B-1 measurement recorded in
+  `docs/proof-ergonomics-metrics.md` (Observation 2; Phase-2A private helper names
+  back-filled per review §5). Matrix claim 235.
+- Public theorem surface unchanged (still 101 names). Shape-A enumeration cascade
+  untouched, by ruling.
+
 ## v0.31.0 — Proof Ergonomics Library, Phase 2A (RFC 062)
 
 Messaging-only proof-ergonomics slice, architect-approved (Phase 2A). **No model

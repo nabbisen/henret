@@ -14,10 +14,11 @@ category: proofs
 
 ## Status
 
-Proposed. **Phase 1 implemented in v0.30.0; Phase 2A (Messaging.lean) in v0.31.0**
-(see _Architect ruling_ and the _Phase 1 / Phase 2A implementation_ sections
-below). The RFC as a whole stays Proposed because Phases 2B–3 are gated on a
-separate architect review; `implemented_in` is therefore left `null`.
+Proposed. **Phase 1 in v0.30.0; Phase 2A (Messaging.lean) in v0.31.0; Phase 2B-1
+(Lifecycle.lean) in v0.32.0** (see _Architect ruling_ and the
+_Phase 1 / 2A / 2B-1 implementation_ sections below). The RFC as a whole stays
+Proposed because Phase 2B-2 (Shape-A pilot) and Phase 3 are gated on a separate
+architect review; `implemented_in` is therefore left `null`.
 
 ## Summary
 
@@ -107,6 +108,37 @@ Deliberately **not** done in Phase 2A: macros; catch-all/Shape-A classification;
 broad `step` simp-set; any change to the explicit capacity reasoning. Phase 2B
 (`Lifecycle.lean`) and Phase 2C (`Resource.lean`, only if warranted) remain gated
 on a Phase-2A review.
+
+## Phase 2B-1 implementation (v0.32.0) — Lifecycle.lean
+
+Architect-approved (Phase 2A checkpoint review): Shape-B only, per-field first, no
+Shape-A migration, no macros, no forced simp-set, measurement recorded.
+
+Shipped:
+
+- Five per-field pass-through helpers in `Henret/Proofs/StepFields.lean` —
+  `wf_waiters_owned_pass` (`mailboxWaiters`+`taskOwner` stable),
+  `wf_waiters_nodup_pass` (`mailboxWaiters`), `wf_owned_has_mailbox_pass`
+  (`taskOwner`+`mailboxes`), `wf_timer_nodup_pass` / `wf_timer_sorted_pass`
+  (`timers`). Each takes exactly the stability proof(s) for the projections its
+  field reads.
+- Adopted at 22 sites across `Preservation/Lifecycle.lean`
+  (`spawn`/`schedule`/`yield`/`complete`/`cancel`/`fail`/`spawnChild`); three
+  `waiters_owned` bullets dropped a now-unnecessary defensive `by_cases`.
+- `taskState`-reading fields (`waiters_waiting`/`timers_sleep`/
+  `spawned_has_owner`/`owner_spawned`) left explicit — not pass-through.
+- Helper suffix discipline (`*_pass` vs `*_under_enqueue` vs `*_of_*`) recorded in
+  `docs/proof-style.md`; measurement in `docs/proof-ergonomics-metrics.md`
+  (Observation 2).
+
+`Lifecycle.lean`: 1692 → 1680 lines; exported `wf_*_pass`: 13 → 18 (all used).
+Same theorem statements/names; axioms unchanged; public surface unchanged (101
+names); all nine fast gates green. Matrix claim 235.
+
+Deliberately **not** done in Phase 2B-1: macros; Shape-A classification (deferred
+to a review-gated Phase 2B-2 pilot); simp-set; any `*_pass` helper for a
+`taskState`-reading field. Phase 2C (`Resource.lean`) remains out of scope unless
+a concrete repeated proof mass appears.
 
 ## Original design (superseded by the ruling above)
 

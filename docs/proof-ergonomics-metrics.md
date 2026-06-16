@@ -89,3 +89,70 @@ touches: the occurrence obligation no longer has to be re-derived per op.
 a Shape-A (file-count) one. The file-touch number is the right metric to keep
 watching, but the lever Phase 2A pulled is per-op proof duplication inside the
 file a new op already had to touch.
+
+### Helper names introduced (Phase 2A)
+
+For future reviewers looking for the first accepted `*_under_enqueue` pattern
+(architect §5): `wf_occ_fresh_under_enqueue`, `wf_occ_nodup_under_enqueue`,
+`wf_occ_disjoint_under_enqueue` — all `private` in `Preservation/Messaging.lean`.
+
+---
+
+## Observation 2 — RFC 062 Phase 2B-1 (Lifecycle.lean per-field pass-through extraction)
+
+- **baseline version:** v0.31.0 (before) → v0.32.0 (after)
+- **date:** 2026-06-16
+- **subject:** five per-field pass-through helpers extracted into
+  `Henret/Proofs/StepFields.lean` and adopted across `Preservation/Lifecycle.lean`,
+  for the fields a lifecycle operation leaves *pointwise-stable*.
+
+### Helpers introduced (Phase 2B-1)
+
+| helper | field discharged | stability hypotheses |
+|---|---|---|
+| `wf_waiters_owned_pass` | `waiters_owned` | `mailboxWaiters`, `taskOwner` |
+| `wf_waiters_nodup_pass` | `waiters_nodup` | `mailboxWaiters` |
+| `wf_owned_has_mailbox_pass` | `owned_has_mailbox` | `taskOwner`, `mailboxes` |
+| `wf_timer_nodup_pass` | `timers_nodup` | `timers` |
+| `wf_timer_sorted_pass` | `timers_sorted` | `timers` |
+
+Each takes exactly the stability proof(s) for the projections its field reads
+(`by simp [step, guards]` at the call site, or `rfl` where defeq). The name says
+which field is closed; the hypotheses say why.
+
+### Adoption
+
+| | value |
+|---|---|
+| `Lifecycle.lean` total lines | 1692 → 1680 (−12) |
+| adoption sites | 22 (timer-nodup 5, timer-sorted 5, owned-has-mailbox 5, waiters-nodup 4, waiters-owned 3) |
+| ops covered | `spawn`, `schedule`, `yield`, `complete`, `cancel`, `fail`, `spawnChild` |
+| total exported `wf_*_pass` | 13 → 18 (all used; helper-usage gate green) |
+
+### Meaningful vs mechanical classification
+
+- **Pure pass-through fields — mechanical; centralized.** `waiters_owned`,
+  `waiters_nodup`, `owned_has_mailbox`, `timers_nodup`, `timers_sorted` are
+  preserved by any op that leaves their projections stable; the reasoning ("field
+  transfers under stable projection") is now in one helper apiece. Notably this
+  removed a *defensive* `by_cases u = t … simp_all` from the `waiters_owned`
+  bullet in three blocks — the op never touches `mailboxWaiters`/`taskOwner`, so
+  the case split was unnecessary and is gone.
+- **`taskState`-reading fields — meaningful; left explicit.** `waiters_waiting`,
+  `timers_sleep`, `spawned_has_owner`, `owner_spawned` read `taskState`, which
+  lifecycle ops mutate. Those bullets keep their explicit `by_cases` on the
+  changed task — no `*_pass` helper was forced for them (it would not be a
+  pass-through).
+- **Mutating ops left alone.** For `cancel`/`fail`, only `owned_has_mailbox` is a
+  pure pass (they change `taskState`, `timers`, and waiter lists); the timer and
+  waiter fields stayed explicit there, as they must.
+
+### Honest reading
+
+As in Phase 2A, the headline is **centralization, not line count** (architect
+§12.2): five field-transfer proofs now live once and are reused at 22 sites,
+with one class of defensive case-split eliminated. The −12 net lines understate
+the change because several converted bullets were already near-minimal; the value
+is the single definition site per field and the removed duplication. The dummy-op
+file-touch count is unchanged (still Shape A) — Phase 2B-1 was Shape-B only, by
+ruling.

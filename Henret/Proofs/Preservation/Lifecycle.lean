@@ -44,7 +44,7 @@ theorem preserves_wf_spawn (h : WellFormed s) (a : ActorId) :
         have h1 := h.running_runs u hr
         have hu : u ≠ s.nextId := fun he => by rw [he, hts] at h1; cases h1
         simp only [upd, if_neg hu]; exact h1
-      · simp only [step, hrs, hts, if_true]; exact h.timers_nodup
+      · exact wf_timer_nodup_pass h (by simp [step, hrs, hts, if_true])
       · intro e he
         simp only [step, hrs, hts, if_true] at he ⊢
         rcases h.timers_sleep e he with h1 | h1
@@ -57,7 +57,7 @@ theorem preserves_wf_spawn (h : WellFormed s) (a : ActorId) :
         have h1 : u ≠ s.nextId := Nat.ne_of_gt hu
         have h2 : s.nextId ≤ u := Nat.le_of_succ_le hu
         simp only [upd, if_neg h1]; exact h.fresh_none u h2
-      · simp only [step, hrs, hts, if_true]; exact h.timers_sorted
+      · exact wf_timer_sorted_pass h (by simp [step, hrs, hts, if_true])
       · intro u st hts'
         simp only [step, hrs, hts, if_true] at hts' ⊢
         by_cases hu : u = s.nextId
@@ -109,7 +109,7 @@ theorem preserves_wf_spawn (h : WellFormed s) (a : ActorId) :
           obtain ⟨a', ha', hmem⟩ := h.waiting_queued u hts'
           exact ⟨a', by simp only [upd, if_neg hu]; exact ha', hmem⟩
       · -- waiters_nodup (RFC 031)
-        intro a; simp only [step, hrs, hts, if_true]; exact h.waiters_nodup a
+        intro a; exact wf_waiters_nodup_pass h (by simp [step, hrs, hts, if_true]) a
       · -- parent_lt (RFC 042)
         intro t p hp
         exact wf_parent_lt_pass h (by simp [step, hrs, hts]) t p hp
@@ -283,7 +283,7 @@ theorem preserves_wf_schedule (h : WellFormed s) :
           exact h.readyQ_queued u (by rw [hq]; exact List.mem_cons_of_mem t hm)
         · intro u hru
           simp only [step, hr, hq, if_pos hrun] at hru ⊢; cases hru; simp [upd]
-        · simp only [step, hr, hq, if_pos hrun]; exact h.timers_nodup
+        · exact wf_timer_nodup_pass h (by simp [step, hr, hq, if_pos hrun])
         · intro e he
           simp only [step, hr, hq, if_pos hrun] at he ⊢
           rcases h.timers_sleep e he with h1 | h1
@@ -299,15 +299,14 @@ theorem preserves_wf_schedule (h : WellFormed s) :
           have h1 : u ≠ t := fun he => by
             rw [← he] at hx; rw [h.fresh_none u hu] at hx; cases hx
           simp only [upd, if_neg h1]; exact h.fresh_none u hu
-        · simp only [step, hr, hq, if_pos hrun]; exact h.timers_sorted
+        · exact wf_timer_sorted_pass h (by simp [step, hr, hq, if_pos hrun])
         · intro u st hts'
           simp only [step, hr, hq, if_pos hrun] at hts' ⊢
           by_cases hu : u = t
           · subst hu; obtain ⟨x, hx⟩ := htsome; exact h.spawned_has_owner u x hx
           · simp only [upd, if_neg hu] at hts'; exact h.spawned_has_owner u st hts'
         · intro u b hown
-          simp only [step, hr, hq, if_pos hrun] at hown ⊢
-          exact h.owned_has_mailbox u b hown
+          exact wf_owned_has_mailbox_pass h (by simp [step, hr, hq, if_pos hrun]) (by simp [step, hr, hq, if_pos hrun]) u b hown
         · intro u st hts' hrun'
           simp only [step, hr, hq, if_pos hrun] at hts' ⊢
           by_cases hu : u = t
@@ -327,13 +326,8 @@ theorem preserves_wf_schedule (h : WellFormed s) :
           · subst hut; simp_all [Option.any, TaskState.isRunnable]
           · simp only [upd, if_neg hut]; exact hts_u
         · -- waiters_owned (RFC 031)
-          intro a u hm; simp only [step, hr, hq, if_pos hrun] at hm ⊢
-          have ho := h.waiters_owned a u hm
-          have hts_u := h.waiters_waiting a u hm
-          obtain ⟨x, hx⟩ := htsome
-          by_cases hut : u = t
-          · subst hut; simp_all [Option.any, TaskState.isRunnable]
-          · exact ho
+          intro a u hm
+          exact wf_waiters_owned_pass h (by simp [step, hr, hq, if_pos hrun]) (by simp [step, hr, hq, if_pos hrun]) a u hm
         · -- waiting_queued (RFC 031)
           intro u hts'; simp only [step, hr, hq, if_pos hrun] at hts' ⊢
           by_cases hut : u = t
@@ -341,8 +335,8 @@ theorem preserves_wf_schedule (h : WellFormed s) :
           · simp only [upd, if_neg hut] at hts'
             exact h.waiting_queued u hts'
         · -- waiters_nodup (RFC 031)
-          intro a; simp only [step, hr, hq, if_pos hrun]
-          exact h.waiters_nodup a
+          intro a
+          exact wf_waiters_nodup_pass h (by simp [step, hr, hq, if_pos hrun]) a
         · -- parent_lt (RFC 042)
           intro u p hp
           exact wf_parent_lt_pass h (by simp [step, hr, hq, if_pos hrun]) u p hp
@@ -467,7 +461,7 @@ theorem preserves_wf_yield (h : WellFormed s) :
             simp only [upd, if_neg hu]; exact h.readyQ_queued u hm
           · simp [upd, Option.any, TaskState.isRunnable]
         · intro u hru; simp [step, hrt, hts] at hru
-        · simp only [step]; simp [hrt, hts]; exact h.timers_nodup
+        · exact wf_timer_nodup_pass h (by simp [step, hrt, hts])
         · intro e he
           simp [step, hrt, hts] at he ⊢
           rcases h.timers_sleep e he with h1 | h1
@@ -480,14 +474,14 @@ theorem preserves_wf_yield (h : WellFormed s) :
           have h1 : u ≠ t := fun he => by
             rw [← he] at hts; rw [h.fresh_none u hu] at hts; cases hts
           simp only [upd, if_neg h1]; exact h.fresh_none u hu
-        · simp [step, hrt, hts]; exact h.timers_sorted
+        · exact wf_timer_sorted_pass h (by simp [step, hrt, hts])
         · intro u st hts'
           simp [step, hrt, hts] at hts' ⊢
           by_cases hu : u = t
           · subst hu; exact h.spawned_has_owner u .running hts
           · simp only [upd, if_neg hu] at hts'; exact h.spawned_has_owner u st hts'
         · intro u b hown
-          simp [step, hrt, hts] at hown ⊢; exact h.owned_has_mailbox u b hown
+          exact wf_owned_has_mailbox_pass h (by simp [step, hrt, hts]) (by simp [step, hrt, hts]) u b hown
         · intro u st hts' hrun
           simp [step, hrt, hts] at hts' ⊢
           by_cases hu : u = t
@@ -501,11 +495,8 @@ theorem preserves_wf_yield (h : WellFormed s) :
           · subst hut; simp_all
           · simp only [upd, if_neg hut]; exact hts_u
         · -- waiters_owned (RFC 031)
-          intro a u hm; simp [step, hrt, hts] at hm ⊢
-          have hts_u := h.waiters_waiting a u hm
-          by_cases hut : u = t
-          · subst hut; simp_all
-          · exact h.waiters_owned a u hm
+          intro a u hm
+          exact wf_waiters_owned_pass h (by simp [step, hrt, hts]) (by simp [step, hrt, hts]) a u hm
         · -- waiting_queued (RFC 031)
           intro u hts'; simp [step, hrt, hts] at hts' ⊢
           by_cases hut : u = t
@@ -513,8 +504,8 @@ theorem preserves_wf_yield (h : WellFormed s) :
           · simp only [upd, if_neg hut] at hts'
             exact h.waiting_queued u hts'
         · -- waiters_nodup (RFC 031)
-          intro a; simp [step, hrt, hts]
-          exact h.waiters_nodup a
+          intro a
+          exact wf_waiters_nodup_pass h (by simp [step, hrt, hts]) a
         · -- parent_lt (RFC 042)
           intro u p hp
           exact wf_parent_lt_pass h (by simp [step, hrt, hts]) u p hp
@@ -637,7 +628,7 @@ theorem preserves_wf_complete (h : WellFormed s) :
             rw [he, hts] at h1; simp [Option.any, TaskState.isRunnable] at h1
           simp only [upd, if_neg hu]; exact h1
         · intro u hru; simp [step, hrt, hts] at hru
-        · simp [step, hrt, hts]; exact h.timers_nodup
+        · exact wf_timer_nodup_pass h (by simp [step, hrt, hts])
         · intro e he
           simp [step, hrt, hts] at he ⊢
           rcases h.timers_sleep e he with h1 | h1
@@ -650,14 +641,14 @@ theorem preserves_wf_complete (h : WellFormed s) :
           have h1 : u ≠ t := fun he => by
             rw [← he] at hts; rw [h.fresh_none u hu] at hts; cases hts
           simp only [upd, if_neg h1]; exact h.fresh_none u hu
-        · simp [step, hrt, hts]; exact h.timers_sorted
+        · exact wf_timer_sorted_pass h (by simp [step, hrt, hts])
         · intro u st hts'
           simp [step, hrt, hts] at hts' ⊢
           by_cases hu : u = t
           · subst hu; exact h.spawned_has_owner u .running hts
           · simp only [upd, if_neg hu] at hts'; exact h.spawned_has_owner u st hts'
         · intro u b hown
-          simp [step, hrt, hts] at hown ⊢; exact h.owned_has_mailbox u b hown
+          exact wf_owned_has_mailbox_pass h (by simp [step, hrt, hts]) (by simp [step, hrt, hts]) u b hown
         · intro u st hts' hrun
           simp [step, hrt, hts] at hts' ⊢
           by_cases hu : u = t
@@ -672,11 +663,8 @@ theorem preserves_wf_complete (h : WellFormed s) :
           · subst hut; simp_all
           · simp only [upd, if_neg hut]; exact hts_u
         · -- waiters_owned (RFC 031)
-          intro a u hm; simp [step, hrt, hts] at hm ⊢
-          have hts_u := h.waiters_waiting a u hm
-          by_cases hut : u = t
-          · subst hut; simp_all
-          · exact h.waiters_owned a u hm
+          intro a u hm
+          exact wf_waiters_owned_pass h (by simp [step, hrt, hts]) (by simp [step, hrt, hts]) a u hm
         · -- waiting_queued (RFC 031)
           intro u hts'; simp [step, hrt, hts] at hts' ⊢
           by_cases hut : u = t
@@ -684,8 +672,8 @@ theorem preserves_wf_complete (h : WellFormed s) :
           · simp only [upd, if_neg hut] at hts'
             exact h.waiting_queued u hts'
         · -- waiters_nodup (RFC 031)
-          intro a; simp [step, hrt, hts]
-          exact h.waiters_nodup a
+          intro a
+          exact wf_waiters_nodup_pass h (by simp [step, hrt, hts]) a
         · -- parent_lt (RFC 042)
           intro u p hp
           exact wf_parent_lt_pass h (by simp [step, hrt, hts]) u p hp
@@ -834,7 +822,7 @@ theorem preserves_wf_cancel (h : WellFormed s) :
         · subst hu; exact h.spawned_has_owner u s' hts
         · simp only [upd, if_neg hu] at hts'; exact h.spawned_has_owner u st hts'
       · intro u b hown
-        simp [step, hts, hterm] at hown ⊢; exact h.owned_has_mailbox u b hown
+        exact wf_owned_has_mailbox_pass h (by simp [step, hts, hterm]) (by simp [step, hts, hterm]) u b hown
       · intro u st hts' hrun
         simp [step, hts, hterm] at hts' ⊢
         by_cases hu : u = t
@@ -1078,7 +1066,7 @@ theorem preserves_wf_fail (h : WellFormed s) :
         · subst hu; exact h.spawned_has_owner u s' hts
         · simp only [upd, if_neg hu] at hts'; exact h.spawned_has_owner u st hts'
       · intro u b hown
-        simp [step, hts, hterm] at hown ⊢; exact h.owned_has_mailbox u b hown
+        exact wf_owned_has_mailbox_pass h (by simp [step, hts, hterm]) (by simp [step, hts, hterm]) u b hown
       · intro u st hts' hrun
         simp [step, hts, hterm] at hts' ⊢
         by_cases hu : u = t
@@ -1319,7 +1307,7 @@ theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
                 have hun : u ≠ s.nextId :=
                   fun he => absurd (Option.some.inj ((he ▸ hru).symm.trans hrt)) (Nat.ne_of_lt hlt).symm
                 simp only [upd, if_neg hun]; exact h.running_runs u hru
-              · exact h.timers_nodup
+              · exact wf_timer_nodup_pass h rfl
               · intro e he
                 rcases h.timers_sleep e he with hts_e | hts_e
                 · have hne : e.task ≠ s.nextId := by
@@ -1332,7 +1320,7 @@ theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
                 have hlt_u := Nat.lt_of_succ_le hnu
                 simp only [upd, if_neg (Nat.ne_of_gt hlt_u)]
                 exact h.fresh_none u (Nat.le_of_lt hlt_u)
-              · exact h.timers_sorted
+              · exact wf_timer_sorted_pass h rfl
               · intro u st' hts'
                 by_cases hun : u = s.nextId
                 · simp only [hun, upd_self] at hts'
@@ -1511,7 +1499,7 @@ theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
                 have hun : u ≠ s.nextId :=
                   fun he => absurd (Option.some.inj ((he ▸ hru).symm.trans hrt)) (Nat.ne_of_lt hlt).symm
                 simp only [upd, if_neg hun]; exact h.running_runs u hru
-              · exact h.timers_nodup
+              · exact wf_timer_nodup_pass h rfl
               · intro e he
                 rcases h.timers_sleep e he with hts_e | hts_e
                 · have hne : e.task ≠ s.nextId := by
@@ -1524,7 +1512,7 @@ theorem preserves_wf_spawnChild {s : RuntimeState} (h : WellFormed s)
                 have hlt_u := Nat.lt_of_succ_le hnu
                 simp only [upd, if_neg (Nat.ne_of_gt hlt_u)]
                 exact h.fresh_none u (Nat.le_of_lt hlt_u)
-              · exact h.timers_sorted
+              · exact wf_timer_sorted_pass h rfl
               · intro u st' hts'
                 by_cases hun : u = s.nextId
                 · simp only [hun, upd_self] at hts'

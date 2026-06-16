@@ -213,6 +213,8 @@ IGNORE = {
     # in-tree Messaging.lean build itself (renaming breaks the call sites).
     "wf_occ_fresh_under_enqueue", "wf_occ_nodup_under_enqueue",
     "wf_occ_disjoint_under_enqueue",
+    # Lean tactic names that match the underscore heuristic (not theorems)
+    "by_cases", "simp_all", "split_ifs",
 }
 
 NAME_RE = re.compile(r"`([A-Za-z][A-Za-z0-9_.']*)`")

@@ -78,6 +78,21 @@ Naming rules (architect §10):
   resource fields of `wf_resource_inert`). A helper must never fill a whole
   `WellFormed` record — that would erase per-field visibility.
 
+**Suffix discipline** (RFC 062 Phase 2A/2B lesson). The suffix should state how
+strong the helper actually is, so a name never implies more generality than it
+has:
+
+| suffix | meaning |
+|---|---|
+| `*_pass` | the field is *unchanged / pass-through* under projection-stability hypotheses (e.g. `wf_waiters_owned_pass`, `wf_timer_nodup_pass`) |
+| `*_under_enqueue` | the field is *preserved by an enqueue transformation* — not a pass-through (e.g. `wf_occ_fresh_under_enqueue`) |
+| `*_under_markClosing` | reserved for a resource-state transition, analogously |
+| `*_of_*` | a theorem-specific fact or projection, not a generic helper |
+
+Use `*_pass` only when the field is genuinely unchanged; if the operation
+transforms the relevant state, name the transformation in the suffix and keep the
+proof explicit (this is why occurrence-under-enqueue is *not* a `*_pass` helper).
+
 `HENRET_HELPER_RESERVED` is the only sanctioned way to keep an exported
 `wf_*_pass` helper that is not yet used (RFC 082); the helper-usage gate
 otherwise requires every exported helper to have a real call site.
@@ -330,6 +345,17 @@ unchanged file count as "no improvement."
 * **Phase 2B (review-gated, after 2A review):** `Lifecycle.lean`; optional
   one-projection Shape-A classification *pilot* only (architect §6). No catch-all,
   ever.
+  * **Phase 2B-1 (v0.32.0):** five per-field pass-through helpers
+    (`wf_waiters_owned_pass`, `wf_waiters_nodup_pass`, `wf_owned_has_mailbox_pass`,
+    `wf_timer_nodup_pass`, `wf_timer_sorted_pass`) in `StepFields.lean`, adopted at
+    22 sites across `Lifecycle.lean` for the fields each op leaves stable; removed
+    a defensive `by_cases` from `waiters_owned` in three blocks. `taskState`-reading
+    fields (`waiters_waiting`, `timers_sleep`, `spawned_has_owner`, `owner_spawned`)
+    left explicit — not pass-through. Same statements/names; axioms unchanged; no
+    macro, no Shape-A, no simp-set. Shape-B only. Measurement in
+    `docs/proof-ergonomics-metrics.md`.
+  * **Phase 2B-2 (review-gated):** optional one-projection Shape-A classification
+    pilot, only if still warranted.
 * **Phase 2C (only if warranted):** `Resource.lean`, only if a concrete repeated
   proof mass appears.
 * **Phase 3 (new review required):** at most one small, goal-local macro, only if

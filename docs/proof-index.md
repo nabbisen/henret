@@ -940,3 +940,24 @@ measurement is recorded in
 [`docs/proof-ergonomics-metrics.md`](proof-ergonomics-metrics.md); the honest
 reading is that Phase 2A is a Shape-B (lines/duplication) win, not a Shape-A
 (file-count) one. Phase 2B (`Lifecycle.lean`) is gated on a 2A review.
+
+### RFC 062 — Proof Ergonomics Library (Phase 2B-1, Lifecycle.lean)
+
+Architect-approved Lifecycle-only slice: Shape-B, per-field, no Shape-A. Five
+per-field pass-through helpers in `Henret/Proofs/StepFields.lean` —
+`wf_waiters_owned_pass`, `wf_waiters_nodup_pass`, `wf_owned_has_mailbox_pass`,
+`wf_timer_nodup_pass`, `wf_timer_sorted_pass` — each closing one `WellFormed`
+field for any operation that leaves the projections the field reads pointwise
+stable (the call site supplies `by simp [step, guards]` or `rfl`). Adopted at 22
+sites across `spawn`/`schedule`/`yield`/`complete`/`cancel`/`fail`/`spawnChild`,
+which also let three `waiters_owned` bullets drop a defensive `by_cases` (the op
+never touches `mailboxWaiters`/`taskOwner`).
+
+Fields that read `taskState` — `waiters_waiting`, `timers_sleep`,
+`spawned_has_owner`, `owner_spawned` — are **not** pass-through (lifecycle ops
+mutate `taskState`) and keep their explicit per-task `by_cases`. The suffix
+discipline added in `docs/proof-style.md` (`*_pass` = unchanged field;
+`*_under_enqueue` = preserved-by-transformation) keeps a helper name from
+implying more generality than it has. `Lifecycle.lean`: 1692 → 1680 lines; total
+exported `wf_*_pass`: 13 → 18 (all used). Same statements/names, axioms unchanged.
+Phase 2B-2 (an optional one-projection Shape-A pilot) remains review-gated.

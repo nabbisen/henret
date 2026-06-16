@@ -117,6 +117,47 @@ theorem wf_parent_spawned_pass {s s' : RuntimeState} (h : WellFormed s)
   obtain ⟨st, hst⟩ := h.parent_spawned t p hpar
   exact hsp p ⟨st, hst⟩
 
+/-! ## Waiter / owner / timer pass-through helpers (RFC 062 Phase 2B-1)
+
+These close `WellFormed` fields whose projections a lifecycle operation leaves
+pointwise-stable. Each takes the stability proof(s) for exactly the projections
+the field reads (`by simp [step, guards]` at the call site), so the helper name
+states which field is discharged and the hypotheses state why. Fields that also
+read `taskState` (`waiters_waiting`, `timers_sleep`, `spawned_has_owner`,
+`owner_spawned`) are intentionally absent: lifecycle ops change `taskState`, so
+those obligations are not pass-through and stay explicit at their sites. -/
+
+/-- `waiters_owned` holds in `s'` when `mailboxWaiters` and `taskOwner` are
+    pointwise-stable. -/
+theorem wf_waiters_owned_pass {s s' : RuntimeState} (h : WellFormed s)
+    (hw : s'.mailboxWaiters = s.mailboxWaiters) (ho : s'.taskOwner = s.taskOwner)
+    (a t : TaskId) (hm : t ∈ s'.mailboxWaiters a) : s'.taskOwner t = some a := by
+  rw [hw] at hm; rw [ho]; exact h.waiters_owned a t hm
+
+/-- `waiters_nodup` holds in `s'` when `mailboxWaiters` is pointwise-stable. -/
+theorem wf_waiters_nodup_pass {s s' : RuntimeState} (h : WellFormed s)
+    (hw : s'.mailboxWaiters = s.mailboxWaiters)
+    (a : ActorId) : (s'.mailboxWaiters a).Nodup := by
+  rw [hw]; exact h.waiters_nodup a
+
+/-- `owned_has_mailbox` holds in `s'` when `taskOwner` and `mailboxes` are
+    pointwise-stable. -/
+theorem wf_owned_has_mailbox_pass {s s' : RuntimeState} (h : WellFormed s)
+    (ho : s'.taskOwner = s.taskOwner) (hm : s'.mailboxes = s.mailboxes)
+    (t : TaskId) (a : ActorId) (hown : s'.taskOwner t = some a) :
+    ∃ mb, s'.mailboxes a = some mb := by
+  rw [ho] at hown; rw [hm]; exact h.owned_has_mailbox t a hown
+
+/-- `timers_nodup` holds in `s'` when `timers` is unchanged. -/
+theorem wf_timer_nodup_pass {s s' : RuntimeState} (h : WellFormed s)
+    (ht : s'.timers = s.timers) : (s'.timers.map TimerEntry.task).Nodup := by
+  rw [ht]; exact h.timers_nodup
+
+/-- `timers_sorted` holds in `s'` when `timers` is unchanged. -/
+theorem wf_timer_sorted_pass {s s' : RuntimeState} (h : WellFormed s)
+    (ht : s'.timers = s.timers) : Timer.Sorted s'.timers := by
+  rw [ht]; exact h.timers_sorted
+
 /-! ## Combined all-occ helper
 
 Proves all three occurrence bullets at once and returns them as a triple.
