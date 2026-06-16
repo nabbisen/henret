@@ -108,6 +108,12 @@ if grep -rn "six scenarios\|field 15 of 16\|all 16 fields\|carries no source act
      | grep -v "\.lake" | grep -v "docs/reviews/" | grep -v "rfcs/done/" | grep -v "docs/handoff-"; then
   echo "FAIL: stale v0.8.0 phrase found (RFC 037 gates)"; exit 1
 fi
+# Bridge claim rule + grammar-count drift (RFC 052 governance)
+if grep -rn "complete bridge preservation\|all 12 RuntimeOps\|12-operation\|the bridge is complete" \\
+     README.md docs/ examples/ CHANGELOG.md Henret/ Main.lean 2>/dev/null \\
+     | grep -v "\.lake" | grep -v "docs/reviews/" | grep -v "rfcs/done/" | grep -v "docs/handoff-"; then
+  echo "FAIL: bridge-claim-rule / stale grammar-count phrase found (RFC 052 gates)"; exit 1
+fi
 echo "docs consistency ok"
 echo "== gate 9/9: doc-symbol checker (RFC 026) =="
 DOCSYM=$(mktemp /tmp/henret-docsym-XXXX.lean)

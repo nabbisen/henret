@@ -1,6 +1,8 @@
 # Henret RFC Index
 
 Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.md).
+New RFCs start from [`TEMPLATE.md`](TEMPLATE.md). Semantic-core changes
+follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-governance.md).
 
 ## Done
 
@@ -63,7 +65,7 @@ Lifecycle policy: see [`000-rfc-lifecycle-policy.md`](000-rfc-lifecycle-policy.m
 | [049](done/049-supervision-restart-policies.md) | Supervision Restart Policies | Implemented (v0.15.0) | — |
 | [050](done/050-observability-and-pedagogical-visualization.md) | Observability and Pedagogical Visualization | Implemented (v0.15.1) | — |
 | [051](done/051-package-documentation-release-maturity.md) | Package, Documentation, and Release Maturity | Implemented (v0.15.2) | — |
-| [052](proposed/052-semantic-extension-governance.md) | Semantic Extension Governance | — | — |
+| [052](done/052-semantic-extension-governance.md) | Semantic Extension Governance | Implemented (v0.15.3) | — |
 | [053](proposed/053-assurance-case-and-external-review-playbook.md) | Assurance Case and External Review Playbook | — | — |
 | [054](proposed/054-semantic-profiles-and-capability-sets.md) | Semantic Profiles and Capability Sets | — | — |
 | [055](proposed/055-structured-cancellation-and-shutdown.md) | Structured Cancellation and Shutdown | — | — |

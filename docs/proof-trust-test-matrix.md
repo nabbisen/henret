@@ -163,7 +163,7 @@ zero-assumption core.
 | 78 | `bridge_wake`: wake step preserves BridgeState (`Push 0 t` for sleeping task) | PROVEN | `Henret.Bridge.bridge_wake` |
 | 79 | `bridge_complete`, `bridge_receive`, `bridge_sleep`: readyQ-stable ops preserve BridgeState | PROVEN | `Henret.Bridge.bridge_complete/receive/sleep` |
 | 80 | `bridge_spawnChild`, `bridge_schedule`, `bridge_cancel`, `bridge_send`, `bridge_inject`, `bridge_tick`: all remaining ops preserve BridgeState (RFC 036) | PROVEN | `Henret.Bridge.*` |
-| 81 | `bridge_step_single_worker`: single unified bridge step for all 12 RuntimeOps | PROVEN | `Henret.Bridge.bridge_step_single_worker` |
+| 81 | `bridge_step_single_worker`: single unified bridge step for every RuntimeOp (single-worker) | PROVEN | `Henret.Bridge.bridge_step_single_worker` |
 | 82 | `bridge_run_tracks_single_worker`: trace-level bridge from init through any op sequence | PROVEN | `Henret.Bridge.bridge_run_tracks_single_worker` |
 | 83 | Bridge is a queue projection only: relates `readyQ` to worker 0; no fairness, no actor semantics | OUTSCOPE | Documented in `docs/bridge-architecture.md` |
 | 84 | Multi-worker bridge extension | OUTSCOPE | Deferred to RFC 043 |

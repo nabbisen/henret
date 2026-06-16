@@ -249,13 +249,14 @@ Six typed axioms (ASSUMED) + derived PROVEN results:
 - `applyQOp`, `applyQOps` — queue-model QOp application (Filter case added in RFC 036).
 - `toQOpsTrace` — state-threading trace translation.
 
-**`Henret/Bridge/Preservation.lean`** — complete bridge preservation (RFC 036):
+**`Henret/Bridge/Preservation.lean`** — single-worker bridge preservation (RFC 036):
 - `bridge_stable` — BridgeState is preserved by readyQ-stable steps.
 - `applyQOps_append` — `applyQOps wqs (as ++ bs) = applyQOps (applyQOps wqs as) bs`.
-- Per-op bridge theorems (all 12 RuntimeOps covered):
+- Per-op bridge theorems (all RuntimeOps covered, including `fail`/`restartOne` from RFC 049):
   `bridge_spawn`, `bridge_spawnChild`, `bridge_schedule`, `bridge_yield`, `bridge_wake`,
   `bridge_cancel`, `bridge_send`, `bridge_inject`, `bridge_receive`, `bridge_sleep`,
-  `bridge_tick`, `bridge_complete`, `bridge_cancelTree` (RFC 039).
+  `bridge_tick`, `bridge_complete`, `bridge_cancelTree` (RFC 039),
+  `bridge_fail`, `bridge_restartOne` (RFC 049).
 - **`bridge_step_single_worker`** — unified single-step bridge: for any `RuntimeOp`, if
   `BridgeState s wqs` holds, then `BridgeState (step s op).1 (applyQOps wqs (toQOps s op))`.
 - **`bridge_run_general`** — trace bridge from any starting state.
@@ -520,3 +521,48 @@ Pure-string renderers (no theorems, no axiom impact) in `Henret/Render/` (`Trace
 | `Render.bridgeWorkerQueues` | single-worker bridge projection |
 
 Examples `13_trace_rendering.lean`, `14_state_diagrams.lean`. See `docs/observability.md`.
+
+---
+
+## Theorem stability
+
+Stability levels per `docs/semantic-extension-governance.md`. **Stable**
+names are promised to remain or deprecate with a one-release alias;
+**Experimental** names may change between minor versions; **Internal**
+names carry no public stability.
+
+### Stable — the headline reachability contract
+
+| Theorem | Guarantee |
+|---|---|
+| `reachable_wf` | all 28 `WellFormed` fields hold in every reachable state |
+| `reachable_occurrence_unique` | global message-occurrence uniqueness |
+| `reachable_parent_lt` | parent ids strictly decrease |
+| `parent_chain_terminates` | parent chains are finite |
+| `reachable_spawned_has_owner` | every spawned task has an owner |
+| `reachable_owner_has_mailbox` | every owned actor has a mailbox |
+| `reachable_runnable_is_queued` | every runnable task is in `readyQ` |
+| `reachable_queue_exact` | `readyQ` is exactly the runnable set |
+| `reachable_waiters_exact` | waiter lists are exactly the waiting set |
+| `reachable_waiter_actor_unique` | a task waits on at most one actor |
+| `receive_only_own` | a task receives only from its own actor |
+| `send_appends`, `send_stamps_source`, `inject_stamps_none` | delivery/provenance |
+| `reachable_owner_spawned`, `reachable_parent_child_spawned` | owner/parent exactness |
+
+### Experimental — newer layers, form still settling
+
+| Theorem | Layer |
+|---|---|
+| `reachable_bridge`, `bridge_step_single_worker`, `bridge_run_tracks_single_worker` | bridge (single-worker projection, RFC 035/036) |
+| `reachable_multi_bridge`, `single_bridge_implies_multi_bridge` | multi-worker bridge groundwork |
+| `reachable_restart_fresh`, `reachable_restart_old_failed`, `reachable_restart_parent_consistent`, `restart_preserves_parent_acyclicity`, `restarted_task_has_owner` | supervision restart (RFC 049) |
+| `ready_eventually_scheduled_under_bounded_fairness`, `schedule_schedules_head` | progress / conditional liveness (RFC 046) |
+| `conformance_suite_passes` | golden-trace conformance (RFC 047) |
+| `event_*_sound`, `runTraceLedger_state_eq_run`, `stepTrace_state_eq_step` | trace soundness (RFC 045) |
+
+### Internal — no public stability
+
+Step-local lemmas (`step_*`), preservation lemmas (`preserves_wf_*`),
+projections (`StepProjections`), irrelevance helpers (`*_irrel`), and
+`run_preserves_*` threading lemmas. Consumers should depend on the
+Stable headlines, not these.

@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.15.3 — Semantic Extension Governance (RFC 052)
+
+Governance for changing the semantic core. **No new semantics, no new
+theorems, axiom budget unchanged** — process and documentation that keep
+theorem, doc, and bridge claims from drifting apart.
+
+### Governance doc and RFC template
+
+New `docs/semantic-extension-governance.md` defines the eight
+semantic-core files, the ten-point **Semantic Impact Checklist** required
+for any change to them, theorem stability levels, the deprecation-alias
+rule, the bridge-claim rule, and the stale-phrase registration process.
+New `rfcs/TEMPLATE.md` carries the checklist so new RFCs include it.
+
+### Theorem stability classification
+
+`docs/proof-index.md` gains a stability table classifying public theorems
+as **Stable** (the headline reachability contract — promised to remain or
+deprecate with an alias), **Experimental** (newer bridge / restart /
+progress / conformance / trace layers), or **Internal** (step-local and
+preservation lemmas, no public stability).
+
+### Bridge-claim rule, enforced
+
+The rule — never call the bridge "complete" without the *single-worker*
+qualifier — is now a stale-phrase gate. Applying it caught and fixed real
+drift: `proof-index.md` called the bridge "complete bridge preservation"
+and still said "all 12 RuntimeOps" (it is 18, and the bridge is a
+single-worker projection). The gate also bans the stale `12-operation`
+grammar count.
+
+### Gate
+
+`scripts/check.sh` gains an RFC 052 stale-phrase block enforcing the
+bridge-claim rule and grammar-count phrasing.
+
+---
+
 ## v0.15.2 — Package, Documentation, and Release Maturity (RFC 051)
 
 A consolidation release: **no new semantics, no new theorems, axiom
