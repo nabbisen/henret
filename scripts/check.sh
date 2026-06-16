@@ -270,6 +270,11 @@ open Henret Henret.Native Henret.Bridge
 #print axioms run_preserves_sleepingHasTimer
 #print axioms reachable_sleepingHasTimer
 #print axioms quiescent_no_sleeping
+#print axioms step_preserves_frozen
+#print axioms stopWhenDrained_enters_frozen
+#print axioms frozen_run_drained
+#print axioms reachable_stopWhenDrained_stays_drained
+#print axioms reachable_stopWhenDrained_stays_quiescent
 LEAN
   lake env lean "$A" | python3 scripts/axiom_audit.py
   rc=$?

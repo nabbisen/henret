@@ -2,7 +2,7 @@
 
 # Public theorem index
 
-The 136 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
+The 141 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_audit.py`, validated by the strict axiom audit). Grouped by namespace.
 
 ## Henret
 
@@ -36,6 +36,7 @@ The 136 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.foldl_best_ge`
 - `Henret.foldl_best_mem`
 - `Henret.foldl_winner`
+- `Henret.frozen_run_drained`
 - `Henret.full_has_resourceLifetime`
 - `Henret.full_has_schedulingPolicy`
 - `Henret.inject_full_backpressured`
@@ -76,6 +77,8 @@ The 136 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.reachable_runnable_is_queued`
 - `Henret.reachable_sleepingHasTimer`
 - `Henret.reachable_spawned_has_owner`
+- `Henret.reachable_stopWhenDrained_stays_drained`
+- `Henret.reachable_stopWhenDrained_stays_quiescent`
 - `Henret.reachable_waiter_actor_unique`
 - `Henret.reachable_waiters_exact`
 - `Henret.reachable_wf`
@@ -106,9 +109,11 @@ The 136 gate-audited public theorems (source: the `ALLOWLIST` in `scripts/axiom_
 - `Henret.step_backpressured_unchanged`
 - `Henret.step_clock_monotone`
 - `Henret.step_invalid_unchanged`
+- `Henret.step_preserves_frozen`
 - `Henret.step_preserves_sleepingHasTimer`
 - `Henret.step_preserves_terminal`
 - `Henret.step_resources_none_run_none`
+- `Henret.stopWhenDrained_enters_frozen`
 - `Henret.stopWhenDrained_noop`
 - `Henret.stopWhenDrained_stops`
 - `Henret.stopWhenDrained_stops_drained`

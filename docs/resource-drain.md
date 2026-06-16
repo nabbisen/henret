@@ -88,11 +88,12 @@ so the next operation cannot leak. Pinned by the conformance scenario
 `stopWhenDrained_then_acquire_stays_drained` (a post-stop `acquire` is
 `.invalid` and the ledger stays drained).
 
-> **Single-step only.** Multi-step permanence — *stays* drained across an
-> arbitrary op sequence — needs `running = none` preserved across the whole run,
-> which requires ruling out a `wake` re-populating `readyQ`. That depends on a
-> `sleeping → timer` invariant (the converse of `timers_sleep`) the model does
-> not yet carry; it is deferred to a later Tier-2 slice.
+> **Multi-step permanence (RFC 090).** RFC 089's `quiescent_no_sleeping` closed
+> the gap, and RFC 090 now proves the full result: from any reachable state,
+> after a successful `stopWhenDrained`, the runtime stays drained *and* quiescent
+> across every subsequent operation sequence
+> (`reachable_stopWhenDrained_stays_drained`,
+> `reachable_stopWhenDrained_stays_quiescent`). A drained stop is permanent.
 
 ## Scope (deferred to later Tier-2 slices)
 

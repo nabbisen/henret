@@ -191,6 +191,12 @@ ALLOWLIST = {
     "Henret.run_preserves_sleepingHasTimer":  (set(), STD),
     "Henret.reachable_sleepingHasTimer": (set(), STD),
     "Henret.quiescent_no_sleeping":    (set(), STD),
+    # RFC 090 — Frozen bundle / multi-step drained permanence (RFC 057 Tier 2 payoff)
+    "Henret.step_preserves_frozen":    (set(), STD),
+    "Henret.stopWhenDrained_enters_frozen": (set(), STD),
+    "Henret.frozen_run_drained":       (set(), STD_C),
+    "Henret.reachable_stopWhenDrained_stays_drained":   (set(), STD_C),
+    "Henret.reachable_stopWhenDrained_stays_quiescent": (set(), STD_C),
 }
 
 text = sys.stdin.read()

@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.26.0 — Drained Permanence / Frozen invariant (RFC 090 / RFC 057 Tier 2 payoff)
+
+The end-to-end payoff of the drain/stop thread (RFCs 087–089): a runtime stopped
+via `stopWhenDrained` stays drained — and quiescent — for the rest of *any*
+operation sequence, not just one step. Additive, no model change, no `sorry`.
+
+- **The bundle** (`Henret/Proofs/Frozen.lean`): `Frozen s` = `running = none ∧
+  readyQ = [] ∧ timers = [] ∧ runtimeStatus ≠ running ∧ Drained s`, preserved by
+  every operation (`step_preserves_frozen`). The resource axis reuses RFC 088's
+  `drained_step_drained`; the `wake` that RFC 088 could not rule out is blocked
+  by RFC 089's `quiescent_no_sleeping`; every other repopulating operation is
+  rejected by the guards. `runtimeStatus ≠ running` (not `= stopped`) keeps the
+  bundle stable under `shutdown`.
+- **Headlines**: `reachable_stopWhenDrained_stays_drained` and
+  `reachable_stopWhenDrained_stays_quiescent` — from any reachable state, a
+  successful `stopWhenDrained` stays drained and quiescent across every
+  subsequent op sequence. A drained stop is permanent.
+- **Docs**: proof-index RFC 090; matrix claim 212 discharged (PROVEN) plus
+  claims 213–215.
+- **Deferred (from RFC 087)**: actor-owned resources, the breaking global
+  `stopped → Drained` invariant (covering `stopWhenIdle`), wall-clock liveness.
+
 ## v0.25.0 — Sleeping-Timer Coherence (RFC 089 / RFC 057 Tier 2 groundwork)
 
 Closes the coherence gap that capped RFC 088 at a single step. Additive,

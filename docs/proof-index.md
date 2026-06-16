@@ -798,3 +798,20 @@ registered timer — so an empty timer queue now rules out sleeping tasks.
 Proven as a standalone reachable invariant (not a `WellFormed` field), mirroring
 RFC 057. `quiescent_no_sleeping` is the fact that unblocks multi-step drained
 permanence and a "stopped stays quiescent" result (next slice).
+
+### RFC 090 — Drained Permanence (Frozen invariant)
+
+The end-to-end payoff of the drain/stop thread
+(`Henret/Proofs/Frozen.lean`). `Frozen s` bundles `running = none ∧ readyQ = []
+∧ timers = [] ∧ runtimeStatus ≠ running ∧ Drained s`; it is preserved by every
+operation (`drained_step_drained` for the resource axis, `quiescent_no_sleeping`
+to block `wake`, the guards for the rest), so a runtime stopped via
+`stopWhenDrained` stays drained and quiescent across any subsequent run.
+
+| Theorem | Statement |
+|---|---|
+| `step_preserves_frozen` | every operation preserves the `Frozen` bundle |
+| `stopWhenDrained_enters_frozen` | a successful `stopWhenDrained` lands in `Frozen` |
+| `frozen_run_drained` | `Frozen` is carried across a whole run |
+| `reachable_stopWhenDrained_stays_drained` | a drained stop stays drained, permanently |
+| `reachable_stopWhenDrained_stays_quiescent` | a drained stop stays quiescent, permanently |
