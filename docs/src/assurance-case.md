@@ -117,7 +117,7 @@ reviewer's checklist.
 
 ## 9. Known residual risks
 
-See [`docs/risk-register.md`](risk-register.md).
+See [`docs/risk-register.md`](../risk-register.md).
 
 ## 10. Release sign-off template
 

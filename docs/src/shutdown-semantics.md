@@ -105,7 +105,7 @@ additionally marks actor-owned resources closing (RFC 091). Bridge:
 `bridge_{closeActor,shutdown,stopWhenIdle}` (all queue-stable — these ops do
 not touch `readyQ`).
 
-See [`examples/16_structured_shutdown.lean`](../examples/16_structured_shutdown.lean).
+See [`examples/16_structured_shutdown.lean`](../../examples/16_structured_shutdown.lean).
 
 ## Stopped vs. clean-stopped (RFC 092)
 

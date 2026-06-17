@@ -49,11 +49,11 @@ are planned follow-up work.
   to other Lean systems projects (queues, protocols, storage layers).
 - **Audit the claims.** Every correctness statement is classified PROVEN /
   ASSUMED / TESTED / OUTSCOPE in
-  [`docs/proof-trust-test-matrix.md`](docs/proof-trust-test-matrix.md).
+  [`docs/src/proof-trust-test-matrix.md`](docs/src/proof-trust-test-matrix.md).
   For a reviewer's entry point — the top-level claims, their evidence, and
   known limits — see the
-  [assurance case](docs/assurance-case.md), the
-  [review playbook](docs/review-playbook.md), and the
+  [assurance case](docs/src/assurance-case.md), the
+  [review playbook](docs/src/review-playbook.md), and the
   [risk register](docs/risk-register.md).
 
 ## Quickstart
@@ -162,8 +162,8 @@ open Henret
   `MailboxBackend` refinement contract (`listBackend`, `mailboxBackend`);
   updated for v0.7.0 to operate on `Envelope` (was `Message`).
 
-See [`docs/proof-index.md`](docs/proof-index.md) for the full theorem list and
-[`docs/proof-trust-test-matrix.md`](docs/proof-trust-test-matrix.md) for what
+See [`docs/src/proof-index.md`](docs/src/proof-index.md) for the full theorem list and
+[`docs/src/proof-trust-test-matrix.md`](docs/src/proof-trust-test-matrix.md) for what
 is merely tested or explicitly out of scope.
 
 Every claim also records *where* its evidence lives, machine-readably, in
@@ -171,19 +171,23 @@ Every claim also records *where* its evidence lives, machine-readably, in
 only its in-tree model proofs and in-tree executable checks; the concurrent
 runtime harnesses (differential, linearizability, stress) live in a separately
 versioned sibling package and are **not** verified by this tarball's gates. See
-[`docs/package-boundary.md`](docs/package-boundary.md) for the split.
+[`docs/src/package-boundary.md`](docs/src/package-boundary.md) for the split.
 
 ## Learning path
 
-1. [`docs/guided-tour.md`](docs/guided-tour.md) — read this first.
+The full documentation is an [mdBook](https://rust-lang.github.io/mdBook/) under
+[`docs/src/`](docs/src/introduction.md) (build with `mdbook build docs`),
+organized by reader path. Quick start:
+
+1. [`docs/src/guided-tour.md`](docs/src/guided-tour.md) — read this first.
 2. `Henret/Examples/Basic.lean` — `#eval`-able scenarios (opt-in import; the demo executable drives all regression scenarios).
 3. `Henret/Scheduler/Model.lean` — the `step` function is the semantics.
 4. `Henret/Proofs/Lifecycle.lean` — the flagship monotonicity proof.
-5. [`docs/patterns/refinement-contract.md`](docs/patterns/refinement-contract.md)
+5. [`docs/src/patterns/refinement-contract.md`](docs/src/patterns/refinement-contract.md)
    — how to copy the backend-contract pattern for your own component.
 
 **Using Henret in your own project?** Start with
-[`docs/integration-contract.md`](docs/integration-contract.md) — the stable
+[`docs/src/integration-contract.md`](docs/src/integration-contract.md) — the stable
 boundary contract (stable imports, public theorem surface, operation
 mapping, Mesa-semantics requirements, trust boundary, and versioning
 policy). See `examples/10_integration_contract.lean` for a worked
@@ -203,7 +207,7 @@ can say which subset you depend on:
 
 Profiles are metadata, not a build flag — `import Henret` always brings in
 the full model. The inclusion chain `core ≤ actor ≤ full` is
-kernel-proven. See [`docs/profile-index.md`](docs/profile-index.md) for
+kernel-proven. See [`docs/src/profile-index.md`](docs/src/profile-index.md) for
 the theorem-to-profile mapping.
 
 ## Design notes
@@ -219,7 +223,7 @@ the theorem-to-profile mapping.
 - **Prior art.** Henret's patterns were extracted from an earlier
   runtime-workspace prototype (Lean model + C Chase-Lev deque + typed FFI
   assumptions). See
-  [`docs/prior-art-runtime-workspace.md`](docs/prior-art-runtime-workspace.md)
+  [`docs/src/prior-art-runtime-workspace.md`](docs/src/prior-art-runtime-workspace.md)
   for what was reused and which claims were *not* inherited.
 
 ## Project governance

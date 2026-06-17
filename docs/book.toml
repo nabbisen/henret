@@ -1,0 +1,9 @@
+[book]
+title = "Henret"
+authors = ["nabbisen"]
+description = "Executable, machine-checked actor/task runtime models for Lean 4."
+src = "src"
+language = "en"
+
+[output.html]
+git-repository-url = "https://github.com/nabbisen/henret"

@@ -2,7 +2,7 @@
 """RFC 064 fault-taxonomy consistency gate.
 
 Checks:
-  1. All eight taxonomy classes appear in docs/fault-taxonomy.md.
+  1. All eight taxonomy classes appear in docs/src/fault-taxonomy.md.
   2. The `StepResult` -> class table in the doc matches the Lean `faultClass`
      definition in Henret/Diagnostics/Taxonomy.lean exactly (both directions).
   3. The doc lists every StepResult constructor (no outcome left unclassified).
@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DOC = ROOT / "docs" / "fault-taxonomy.md"
+DOC = ROOT / "docs" / "src" / "fault-taxonomy.md"
 LEAN = ROOT / "Henret" / "Diagnostics" / "Taxonomy.lean"
 RESULT = ROOT / "Henret" / "Core" / "Result.lean"
 

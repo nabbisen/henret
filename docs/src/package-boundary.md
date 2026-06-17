@@ -3,7 +3,7 @@
 Henret is deliberately **two separately versioned packages**. This document
 says what is in each, where each kind of evidence lives, and how the two are
 linked. It is the prose companion to the machine-readable
-[`evidence-ledger.yaml`](evidence-ledger.yaml) (RFC 081).
+[`evidence-ledger.yaml`](../evidence-ledger.yaml) (RFC 081).
 
 ## The two packages
 
@@ -62,7 +62,7 @@ dependency in either direction.
 
 ## See also
 
-- [`evidence-ledger.yaml`](evidence-ledger.yaml) / [`.md`](evidence-ledger.md)
+- [`evidence-ledger.yaml`](../evidence-ledger.yaml) / [`.md`](evidence-ledger.md)
   — the machine-readable per-claim ledger.
 - [`proof-trust-test-matrix.md`](proof-trust-test-matrix.md) — the exhaustive
   in-tree claim matrix, with an evidence-location column.

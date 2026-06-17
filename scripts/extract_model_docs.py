@@ -5,9 +5,9 @@ Reads the checked descriptor source `Henret/Meta/Docs.lean`, validates each
 list against the real Lean declarations (every name resolves to an actual
 constructor/field, names are duplicate-free, the metadata count equals the
 real count — 084-1), and emits the operation / state / result / WellFormed
-tables to `docs/generated/`.
+tables to `docs/src/generated/`.
 
-    extract_model_docs.py            # write docs/generated/*.md
+    extract_model_docs.py            # write docs/src/generated/*.md
     extract_model_docs.py --check    # regenerate and diff committed files
 
 Stdlib only. The theorem index and axiom budget are generated separately
@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(".")
 META = ROOT / "Henret/Meta/Docs.lean"
-OUT = ROOT / "docs/generated"
+OUT = ROOT / "docs/src/generated"
 
 SOURCES = {
     "runtimeOpDocs":  ("ctor",  "Henret/Scheduler/Op.lean",   "RuntimeOp"),

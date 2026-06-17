@@ -17,8 +17,8 @@ import sys
 
 # Strict proof-doc files: every theorem name here must exist in source.
 PROOF_DOC_FILES = [
-    "docs/proof-index.md",
-    "docs/proof-trust-test-matrix.md",
+    "docs/src/proof-index.md",
+    "docs/src/proof-trust-test-matrix.md",
 ]
 
 # Broader live-doc files: README, guides, examples (excludes historical
@@ -26,8 +26,8 @@ PROOF_DOC_FILES = [
 # docs/handoff-*, CHANGELOG.md entries that quote old state).
 LIVE_DOC_FILES = [
     "README.md",
-    "docs/test-index.md",
-    "docs/guided-tour.md",
+    "docs/src/test-index.md",
+    "docs/src/guided-tour.md",
     "examples/README.md",
 ]
 

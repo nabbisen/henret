@@ -1,0 +1,35 @@
+name: docs-gate
+
+# RFC 094: documentation integrity is a separate gate from the Lean release
+# gate (.github/workflows/ci.yml). It builds the mdBook (0.5 line) and runs the
+# orphan / local-link checks. The latest mdBook release is installed from its
+# prebuilt binary so the gate does not depend on a host-provided mdBook.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install latest mdBook
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/rust-lang/mdBook/releases/latest \
+            | grep -oP '"tag_name":\s*"\K[^"]+')
+          curl -fsSL "https://github.com/rust-lang/mdBook/releases/download/${TAG}/mdbook-${TAG}-x86_64-unknown-linux-gnu.tar.gz" | tar xz
+          sudo mv mdbook /usr/local/bin/
+          mdbook --version
+
+      - name: Documentation gate
+        run: bash scripts/check_docs.sh

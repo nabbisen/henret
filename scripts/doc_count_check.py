@@ -92,7 +92,9 @@ HIST_CUE = re.compile(
 )
 
 # Files/dirs that legitimately cite past counts, or are generated.
-EXCLUDE_DIR = ("docs/generated", "docs/reviews", "docs/migration", "rfcs", ".lake")
+# docs/src/migration/ is excluded because migration guides intentionally cite
+# source-version counts (RFC 094 §9); they must mark such numbers as historical.
+EXCLUDE_DIR = ("docs/src/generated", "docs/reviews", "docs/src/migration", "rfcs", ".lake")
 EXCLUDE_NAME_PREFIX = ("handoff",)
 
 

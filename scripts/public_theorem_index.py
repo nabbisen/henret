@@ -14,14 +14,14 @@ The public surface is defined mechanically as every top-level ``theorem`` in
 
 Each name is classified by prefix, and cross-referenced against the audit
 allowlist (``scripts/axiom_audit.py``) to mark which are also axiom-audited.
-The committed snapshot is ``docs/generated/public-theorems.md``.
+The committed snapshot is ``docs/src/generated/public-theorems.md``.
 
     public_theorem_index.py            # regenerate the snapshot
     public_theorem_index.py --check    # regenerate + diff (gate 7); fail on drift
 
 A public name therefore cannot disappear or be renamed without a conscious edit
 to the snapshot — that edit is the migration record (see
-``docs/proof-api-stability.md``). Internal helper names (``wf_*_pass`` etc.) are
+``docs/src/proof-api-stability.md``). Internal helper names (``wf_*_pass`` etc.) are
 deliberately *not* in this surface and may change freely. Stdlib only.
 """
 import re
@@ -31,7 +31,7 @@ from pathlib import Path
 ROOT = Path(".")
 SRC = ROOT / "Henret"
 AUDIT = ROOT / "scripts/axiom_audit.py"
-OUT = ROOT / "docs/generated/public-theorems.md"
+OUT = ROOT / "docs/src/generated/public-theorems.md"
 
 # Stable public-theorem name prefixes (proof-style.md §7). Order = display order.
 PREFIXES = [
@@ -48,7 +48,7 @@ HEADER = (
     "public theorem surface; the source of truth is the `^theorem` declarations "
     "in Henret/. A diff here means a public theorem was added, renamed, or "
     "removed: regenerate with `python3 scripts/public_theorem_index.py` and, for "
-    "a removal/rename, record the migration in docs/proof-api-stability.md. -->\n"
+    "a removal/rename, record the migration in docs/src/proof-api-stability.md. -->\n"
 )
 
 THEOREM_RE = re.compile(r"^theorem\s+([A-Za-z0-9_]+)", re.M)
@@ -110,10 +110,10 @@ def main() -> None:
     if check:
         cur = OUT.read_text() if OUT.exists() else ""
         if cur != content:
-            print("PUBLIC-THEOREM DIVERGENCE: docs/generated/public-theorems.md "
+            print("PUBLIC-THEOREM DIVERGENCE: docs/src/generated/public-theorems.md "
                   "is stale — a public theorem was added, renamed, or removed.")
             print("  Run: python3 scripts/public_theorem_index.py")
-            print("  For a rename/removal, record it in docs/proof-api-stability.md.")
+            print("  For a rename/removal, record it in docs/src/proof-api-stability.md.")
             sys.exit(1)
         print(f"public-theorem index: {len(found)} names, snapshot current")
     else:

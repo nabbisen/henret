@@ -8,8 +8,8 @@ open Lake DSL
 --           refinement, concurrency, runtime-model.
 -- Toolchain: leanprover/lean4:v4.15.0 (see lean-toolchain).
 package henret where
-  -- Conservative versioning until RFC 052 (see docs/release-policy.md).
-  version := v!"0.33.0"
+  -- Conservative versioning until RFC 052 (see docs/src/release-policy.md).
+  version := v!"0.34.0"
 
 /-- Lean-only core.  `import Henret` brings in Model + Proofs + Refinement
     (RFC 025; examples are opt-in via `Henret.Examples.Basic`).

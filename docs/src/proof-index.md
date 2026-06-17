@@ -978,3 +978,15 @@ table is [`docs/generated/proof-dependency-budget.md`](generated/proof-dependenc
 The axiom-footprint *summary counts* remain in
 [`docs/generated/axiom-budget.md`](generated/axiom-budget.md) (RFC 084); RFC 069
 adds the per-theorem view on top, with no model or proof change.
+
+### RFC 094 — mdBook Documentation Layout
+
+No new theorems — a documentation-architecture change. The documentation surface
+moved from flat `docs/*.md` to an mdBook under `docs/src/` (`docs/book.toml`, a
+hand-maintained `docs/src/SUMMARY.md` with three reader paths, and
+`docs/src/introduction.md`). Generated docs and every generator/gate read-write
+path moved to `docs/src/generated/`. A new documentation-integrity gate,
+`scripts/check_docs.sh` — `scripts/doc_summary_check.py` (orphan + SUMMARY-target
++ local-link checks) plus an mdBook build — runs separately from `scripts/check.sh`,
+which stays the Lean proof/model path. No model or proof change; the public
+theorem surface is unchanged (101 names).

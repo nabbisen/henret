@@ -1,5 +1,62 @@
 # Changelog
 
+## v0.34.0 — mdBook Documentation Layout (RFC 094)
+
+Documentation-architecture cleanup — **no model change, no new op, no proof
+change**; axioms unchanged, all nine fast gates green and the new docs gate
+(`scripts/check_docs.sh`) green. Closes RFC 094 (moved to `rfcs/done/`,
+Implemented in v0.34.0). One atomic move/relink/gate-update commit, no semantic
+content rewrite.
+
+- **Documentation is now an [mdBook](https://rust-lang.github.io/mdBook/).** All
+  reader-facing, integration-facing, proof-facing, and maintainer-facing docs
+  moved from flat `docs/*.md` to `docs/src/*.md`, with `docs/book.toml`, a
+  hand-maintained `docs/src/SUMMARY.md` (organized into three reader paths — new
+  users, integrators, maintainers/contributors), and a new
+  `docs/src/introduction.md`. Generated docs moved to `docs/src/generated/`;
+  migration guides to `docs/src/migration/`; the refinement-contract pattern to
+  `docs/src/patterns/`.
+- **Book/internal boundary (RFC 094 §5).** Kept *out* of the book, at `docs/`
+  root: `reviews/`, `handoff-*.md`, `risk-register.md`, and the machine-data
+  `evidence-ledger.yaml` (its reader-facing rendering, `evidence-ledger.md`, is
+  in the book). `release-policy`, `release-checklist`, `progress-policy`, and
+  `review-playbook` are in the book's maintainer section.
+- **Docs gate, separate from the Lean fast gate (RFC 094 §6).** New
+  `scripts/check_docs.sh` runs `scripts/doc_summary_check.py` (orphan + every
+  SUMMARY target exists + every local Markdown link resolves) and `mdbook build
+  docs`. `mdbook` is intentionally **not** in `check.sh --fast`: blocking for
+  documentation/layout PRs and release candidates, not on the Lean proof path.
+- **Generator and gate repointing (RFC 094 §8).** `extract_model_docs.py`,
+  `extract_theorem_docs.py`, `extract_rfc_index.py`, `public_theorem_index.py`,
+  `proof_dependency_budget.py` now write/read `docs/src/generated/`;
+  `doc_symbol_check.py` scan list, `doc_count_check.py` `EXCLUDE_DIR`,
+  `forbidden_claim_check.py` ledger path, and `fault_taxonomy_check.py` doc path
+  all updated. `extract_rfc_index.py` now emits RFC links that resolve from the
+  book tree (`../../../rfcs/...`), fixing links that were latently broken before
+  the move.
+- **doc_count convention (RFC 094 §9).** `docs/src/migration/` stays excluded
+  from the stale-current-count gate; the migration template now requires
+  historical counts to be marked as historical.
+- **Compatibility note.** This is a path-breaking documentation change: external
+  links to `docs/generated/...` or other `docs/*.md` pages now live under
+  `docs/src/...`. Henret is pre-contract-freeze, so no symlink shim is provided.
+  The public *theorem* surface is unchanged (still 101 names); only file paths moved.
+- **mdBook 0.5 line.** The book targets mdBook 0.5 (last verified with 0.5.3).
+  A separate `.github/workflows/docs.yml` runs the docs gate on PRs, pushes,
+  and tags, installing the latest mdBook release from its prebuilt binary;
+  `scripts/check_docs.sh` reports the detected version. `book.toml` no longer
+  forces `default-theme`, so the book follows the reader's light/dark
+  preference. The migration template's angle-bracket placeholders were
+  rewritten as `[...]` so the stricter 0.5 HTML parser builds with no warnings.
+- **Migration landing page.** New `docs/src/migration/README.md` explains the
+  guides, links the template and every version-to-version guide, and states the
+  historical-count convention; `SUMMARY.md` points the migration section at this
+  index, with the template as a child page.
+
+Deferred from the implementation review: reader-facing path-label normalization
+(a separate low-priority pass, not mixed into the layout work) and monitoring the
+flat `docs/src/` page count (no action until navigation becomes painful).
+
 ## v0.33.0 — Proof Dependency Budget (RFC 069)
 
 Additive proof-observability slice — **no model change, no new op**; axioms

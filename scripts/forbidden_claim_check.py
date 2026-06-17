@@ -22,7 +22,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 LEDGER_YAML = ROOT / "docs" / "evidence-ledger.yaml"
-LEDGER_MD = ROOT / "docs" / "evidence-ledger.md"
+LEDGER_MD = ROOT / "docs" / "src" / "evidence-ledger.md"
 
 TIERS = {"PROVEN", "TRUSTED", "TESTED", "OUTSCOPE", "PLANNED"}
 LOCATIONS = {"in_tree_model_proof", "in_tree_model_test",
@@ -154,7 +154,7 @@ ALLOWED_CONTEXT = re.compile(
 
 SCAN_DIRS = ("docs",)
 SCAN_FILES = ("README.md",)
-EXCLUDE = ("docs/reviews", "docs/handoff", "docs/evidence-ledger.md")
+EXCLUDE = ("docs/reviews", "docs/handoff", "docs/src/evidence-ledger.md")
 
 
 def scan_targets():
@@ -198,7 +198,7 @@ def main():
         return
     actual = LEDGER_MD.read_text() if LEDGER_MD.exists() else ""
     if actual.rstrip() != expected.rstrip():
-        err("docs/evidence-ledger.md is out of sync with the YAML "
+        err("docs/src/evidence-ledger.md is out of sync with the YAML "
             "(run: forbidden_claim_check.py --generate)")
 
     for e in errors:
