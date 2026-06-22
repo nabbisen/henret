@@ -60,7 +60,7 @@ Each release publishes, together:
 
 ```
 henret-vX.Y.Z.tar.gz                      # canonical archive
-henret-vX.Y.Z.release-verification.json   # the RFC 080 manifest
+henret-X.Y.Z.release-verification.json   # the RFC 080 manifest
 henret-vX.Y.Z.GATE-RUN.md                 # human-readable gate summary
 ```
 
@@ -141,7 +141,9 @@ left to a follow-up so this RFC can ship the addressable-provenance step now.
 
 - **Signing.** minisign vs sigstore; whether the henret release key is
   documented in the integration contract. Follow-up RFC.
-- **Filename convention.** Per-version-prefixed names (above) vs bare
+- **Filename convention.** Resolved in v0.34.4: published GitHub release
+  assets are no-`v` (`henret-X.Y.Z.*`); local/dev tarballs keep the `v`-prefix.
+  (Originally posed as per-version-prefixed vs bare
   `release-verification.json` plus a version field inside. Prefixed names are
   unambiguous when several releases are mirrored in one directory.
 - **Mirroring.** Whether a stack consumer (RFC 096) re-hosts the henret manifest

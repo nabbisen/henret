@@ -9,7 +9,7 @@ open Lake DSL
 -- Toolchain: leanprover/lean4:v4.15.0 (see lean-toolchain).
 package henret where
   -- Conservative versioning until RFC 052 (see docs/src/release-policy.md).
-  version := v!"0.34.3"
+  version := v!"0.34.4"
 
 /-- Lean-only core.  `import Henret` brings in Model + Proofs + Refinement
     (RFC 025; examples are opt-in via `Henret.Examples.Basic`).
@@ -50,3 +50,10 @@ lean_exe «henret-explore» where
     (no model/proof dependency). See `scripts/extract_model_docs.py`. -/
 lean_lib HenretMeta where
   globs := #[.submodules `Henret.Meta]
+
+/-- Demo/example scenarios used by the `henret-demo` executable (RFC 003: examples
+    are opt-in, outside the default `import Henret` path). Declared as a library so
+    the example oleans can be built without natively compiling the demo executable
+    — CI runs the demo interpreted (`lake env lean --run Main.lean`). -/
+lean_lib HenretExamples where
+  globs := #[.submodules `Henret.Examples]

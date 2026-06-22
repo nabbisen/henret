@@ -59,3 +59,11 @@ names, module boundaries, and the operation grammar may change between
 minor versions. The proof/trust/test matrix and the axiom budget are the
 stable contract — what is proven stays proven, and the axiom set does not
 grow silently.
+
+## Release profiles (RFC 097)
+
+The CI-authoritative sidecar is produced by the `ci-core-v1` release-core
+profile (kernel-checked evidence + packaging). The demo and exhaustive
+conformance executables are advisory and run non-blocking in the
+release-validation workflow; see the release checklist and the
+[release manifest schema](release-manifest-schema.md).

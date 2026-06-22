@@ -55,13 +55,50 @@ inside = git("rev-parse", "--is-inside-work-tree")
 if inside and inside.returncode == 0 and inside.stdout.strip() == "true":
     commit = git("rev-parse", "HEAD").stdout.strip()
     st = git("status", "--porcelain").stdout.splitlines()
-    # 080-4: generated release/ artifacts do not count as a dirty source tree.
-    dirty = any(line.strip() and not line[3:].startswith("release/") for line in st)
+    # 080-4 dirty-tree exception (RFC 097, tightened per architect review §3):
+    # the exception is for excluded *generated/tool* artifacts ONLY, and applies
+    # solely to UNTRACKED entries ("??"). A tracked modification (M/A/D/R/C/T,
+    # staged or not) is real source change and stays dirty even if its path
+    # resembles an excluded cache/tool path. Path exclusions are safe for
+    # untracked artifacts; they would be dangerous for tracked source edits.
+    DIRTY_IGNORE = ("release/", ".lake/", "__pycache__", "docs/book/",
+                    ".elan/", ".cache/", "elan-init", "elan.tar.gz")
+
+    def _excusable(line):
+        status, path = line[:2], line[3:].strip().strip('"')
+        if status != "??":          # tracked change -> never excused
+            return False
+        return path.endswith(".pyc") or any(seg in path for seg in DIRTY_IGNORE)
+
+    dirty_paths = [line[3:] for line in st if line.strip() and not _excusable(line)]
+    dirty = bool(dirty_paths)
     local_precheck = False
 else:
-    commit, dirty, local_precheck = None, False, True
+    commit, dirty, local_precheck, dirty_paths = None, False, True, []
 
 gates = [json.loads(l) for l in Path(records_path).read_text().splitlines() if l.strip()]
+
+# RFC 097 — gate criticality. CORE gates are required and block sidecar
+# publication; the demo (2) and exhaustive conformance (4) executables are
+# advisory and run in --release-validation, recorded separately. Under the
+# ci-core-v1 profile they do not run here, so the manifest carries honest
+# `not_run_in_release_core` placeholders rather than silently omitting them.
+release_profile = os.environ.get("HENRET_RELEASE_PROFILE", "full")
+ADVISORY_IDS = {2: "demo regression scenarios", 4: "golden conformance suite"}
+for g in gates:
+    g["criticality"] = "advisory" if g.get("id") in ADVISORY_IDS else "required"
+if release_profile == "ci-core-v1":
+    present = {g.get("id") for g in gates}
+    for gid, name in sorted(ADVISORY_IDS.items()):
+        if gid not in present:
+            gates.append({
+                "id": gid, "name": name, "criticality": "advisory",
+                "status": "not_run_in_release_core",
+                "reason": "advisory executable validation; runs in the "
+                          "release-validation workflow (RFC 097)",
+            })
+required_gates_passed = all(
+    g.get("status") == "pass" for g in gates if g.get("criticality") == "required")
 
 POLICY = ["check.sh", "check_selftest.py", "axiom_audit.py", "doc_symbol_check.py",
           "doc_count_check.py", "rfc_metadata_check.py", "forbidden_claim_check.py",
@@ -80,12 +117,21 @@ tarball_size = Path(tarball).stat().st_size if Path(tarball).exists() else None
 
 manifest = {
     "manifest_schema": 1,
-    "generated_by": "scripts/check.sh --release",
+    "generated_by": "scripts/check.sh --release-core",
     "package": "henret",
     "version": version,
+    # RFC 097: which gate profile produced this manifest, and whether every
+    # required (sidecar-blocking) gate passed.
+    # RFC 097 §4: gate IDs are now part of retained release evidence, so the
+    # registry that defines their meaning is named explicitly. This is the
+    # current 10-gate (0-9) registry, distinct from older RFC 080 stage lists.
+    "gate_registry": "rfc097-ci-core-v1",
+    "release_profile": release_profile,
+    "required_gates_passed": required_gates_passed,
     "timestamp_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     "git_commit": commit,
     "git_dirty": dirty,
+    "git_dirty_paths": dirty_paths,
     "local_precheck": local_precheck,
     # RFC 095 §D2: named, sized source archive (consumer-friendly), beside the
     # legacy hash field which is retained for compatibility (RFC 095 §3.2).
@@ -101,6 +147,9 @@ manifest = {
     "runner": runner,
     "gate_policy": gate_policy,
     "gates": gates,
+    # RFC 097: optional references to advisory validation reports (populated when
+    # a release-validation run is linked; empty otherwise).
+    "validation_reports": [],
     "runtime_package": {
         "included": False,
         "version_or_commit": None,
@@ -116,16 +165,19 @@ def render_gate_run(m):
     out = []
     out.append(f"# Henret release gate run - v{m['version']}\n")
     out.append(f"- generated_by: `{m['generated_by']}`")
+    out.append(f"- release_profile: {m.get('release_profile')}  "
+               f"(required_gates_passed: {m.get('required_gates_passed')})")
     out.append(f"- timestamp_utc: {m['timestamp_utc']}")
     out.append(f"- git_commit: {m['git_commit']}  (dirty: {m['git_dirty']})")
     out.append(f"- tarball: `{m['source_archive']['name']}` "
                f"({m['source_archive']['size_bytes']} bytes)")
     out.append(f"- tarball_sha256: `{m['tarball_sha256']}`")
     out.append(f"- os: {m['os']}  runner: {m['runner']}\n")
-    out.append("| id | gate | status | ms |")
-    out.append("|----|------|--------|----|")
-    for g in m["gates"]:
-        out.append(f"| {g['id']} | {g['name']} | {g['status']} | {g['duration_ms']} |")
+    out.append("| id | gate | criticality | status | ms |")
+    out.append("|----|------|-------------|--------|----|")
+    for g in sorted(m["gates"], key=lambda x: x.get("id", 0)):
+        out.append(f"| {g['id']} | {g['name']} | {g.get('criticality','required')} "
+                   f"| {g['status']} | {g.get('duration_ms','-')} |")
     return "\n".join(out) + "\n"
 
 

@@ -1,0 +1,68 @@
+name: release-validation
+
+# RFC 097: advisory executable validation — the demo (gate 2) and exhaustive
+# conformance (gate 4), run interpreted. NON-BLOCKING: this workflow is separate
+# from release-gate, so a slow or failing validation never blocks publication of
+# the RFC 095 sidecar. It also serves as the §4 diagnostic (per-gate timings are
+# in the validation report). Runs on version-tag pushes and on manual dispatch.
+
+# Attaches the validation report to the release, so it needs contents:write
+# (same as the release-gate workflow).
+permissions:
+  contents: write
+
+on:
+  push:
+    tags: ["[0-9]*.[0-9]*.[0-9]*"]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45    # bound the non-blocking waste; demo runs before
+    # conformance, so even a timeout yields the per-gate diagnostic timing
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install elan + Lean toolchain
+        run: |
+          # Install into /tmp so the elan-init binary never lands in the
+          # checkout (it is untracked + not in the tarball excludes, so it
+          # would otherwise dirty the source tree AND pollute the archive).
+          curl -sSfL https://github.com/leanprover/elan/releases/latest/download/elan-x86_64-unknown-linux-gnu.tar.gz -o /tmp/elan.tar.gz
+          tar xzf /tmp/elan.tar.gz -C /tmp
+          /tmp/elan-init -y --default-toolchain "$(cat lean-toolchain)"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Lake build
+        uses: actions/cache@v4
+        with:
+          path: .lake
+          key: lake-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}
+
+      - name: Release-validation (advisory, non-blocking)
+        env:
+          HENRET_PUBLISH_NAME: "1"
+        run: bash scripts/check.sh --release-validation
+
+      - name: Upload validation report (workflow artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-validation-report
+          path: |
+            release/*.validation-report.json
+            release/*.validation-GATE-RUN.md
+            release/logs/
+          if-no-files-found: warn
+
+      - name: Attach validation report to release (tag only)
+        if: always() && startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 || exit 0
+          gh release upload "${GITHUB_REF_NAME}" \
+            release/henret-${GITHUB_REF_NAME}.validation-report.json \
+            release/henret-${GITHUB_REF_NAME}.validation-GATE-RUN.md \
+            --clobber || true

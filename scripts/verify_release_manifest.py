@@ -65,12 +65,17 @@ def main() -> int:
                           f"manifest {sa.get('size_bytes')}")
 
     gates = m.get("gates", [])
-    failed = [g for g in gates if g.get("status") != "pass"]
     if not gates:
         errors.append("manifest lists no gate records")
-    for g in failed:
-        errors.append(f"gate {g.get('id')} ({g.get('name')}) status="
-                      f"{g.get('status')!r}")
+    # RFC 097: only required-criticality gates are release-blocking; advisory
+    # gates (demo, exhaustive conformance) may be not-run in the ci-core profile.
+    required = [g for g in gates if g.get("criticality", "required") == "required"]
+    for g in required:
+        if g.get("status") != "pass":
+            errors.append(f"required gate {g.get('id')} ({g.get('name')}) status="
+                          f"{g.get('status')!r}")
+    if m.get("required_gates_passed") is False:
+        errors.append("manifest required_gates_passed is false")
 
     if gate_run is not None:
         hs = m.get("human_summary")
@@ -85,8 +90,9 @@ def main() -> int:
             print(f"verify: FAIL — {e}", file=sys.stderr)
         return 1
 
-    print(f"verify: OK — {m.get('package')} v{m.get('version')}; "
-          f"tarball sha256 {actual[:16]}…; {len(gates)} gates pass")
+    print(f"verify: OK — {m.get('package')} v{m.get('version')} "
+          f"[{m.get('release_profile','full')}]; tarball sha256 {actual[:16]}…; "
+          f"{len(required)} required gates pass")
     return 0
 
 

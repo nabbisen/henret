@@ -222,17 +222,20 @@ Each release publishes, beside the tarball, a `release-verification.json`
 manifest (RFC 080) and a human `GATE-RUN.md`, so a consumer can anchor the
 *exact* archive it downloaded rather than trusting a CI log. The manifest is the
 canonical record; `GATE-RUN.md` is a rendering bound to it by hash
-(`human_summary.sha256`).
+(`human_summary.sha256`). Published GitHub release assets use **no-`v`** names
+(`henret-X.Y.Z.tar.gz`, `henret-X.Y.Z.release-verification.json`,
+`henret-X.Y.Z.GATE-RUN.md`); identity is the hash, so the name is only a
+fetch convenience.
 
 To verify a fetched release:
 
 ```sh
 # 1. recompute the archive hash
-sha256sum henret-vX.Y.Z.tar.gz
+sha256sum henret-X.Y.Z.tar.gz
 # 2. compare to the manifest (both fields carry it)
-jq -r '.tarball_sha256, .source_archive.sha256' henret-vX.Y.Z.release-verification.json
+jq -r '.tarball_sha256, .source_archive.sha256' henret-X.Y.Z.release-verification.json
 # 3. confirm every gate passed
-jq -r '.gates[] | select(.status != "pass")' henret-vX.Y.Z.release-verification.json   # empty == all pass
+jq -r '.gates[] | select(.status != "pass")' henret-X.Y.Z.release-verification.json   # empty == all pass
 ```
 
 Or run the bundled checker, which does all of the above (and the `GATE-RUN.md`
@@ -240,7 +243,7 @@ hash binding) and exits non-zero on any mismatch:
 
 ```sh
 python3 scripts/verify_release_manifest.py \
-    henret-vX.Y.Z.release-verification.json henret-vX.Y.Z.tar.gz henret-vX.Y.Z.GATE-RUN.md
+    henret-X.Y.Z.release-verification.json henret-X.Y.Z.tar.gz henret-X.Y.Z.GATE-RUN.md
 ```
 
 Across a multi-package stack (henret → iotakt → jemmet), the same manifest
@@ -250,8 +253,33 @@ for the per-package and `stack_manifest_schema` shapes and the
 vouch for, or gate downstream packages — the stack contract is a format and
 composition agreement, not a trust delegation.
 
+The sidecar is produced under the CI-authoritative `ci-core-v1` profile
+(RFC 097). It certifies the source archive, exact commit, toolchain/manifest
+pins, the Lean kernel build (the proofs), the strict axiom audit, doc and
+generated-doc checks, the warning budget, gate-policy hashes, and packaging
+integrity. The demo and **exhaustive conformance** executables are advisory
+regression evidence reported separately (a non-blocking release-validation
+workflow emits `henret-X.Y.Z.validation-report.json`); they are not
+release-blocking and the manifest marks them `not_run_in_release_core`. Pin
+the henret edge on the sidecar manifest hash (RFC 096); also record the
+validation-report hash if you require executable-regression evidence.
+
 This is **hash-only** verification: it trusts the channel the manifest was
-fetched over. Cryptographic signing is a planned additive extension (a future
+fetched over.
+
+For RFC 097 `ci-core-v1` manifests, the verifier checks:
+
+1. `release_profile` is `ci-core-v1` (or another accepted release-core
+   profile) and `gate_registry` is `rfc097-ci-core-v1`;
+2. `required_gates_passed` is `true`;
+3. every gate with `criticality: required` has `status: pass`;
+4. advisory gates (demo, exhaustive conformance) **may** be
+   `not_run_in_release_core` — this is expected, not a failure;
+5. validation reports are supplemental evidence, not part of the required
+   release-core sidecar.
+
+`verify_release_manifest.py` implements exactly this (it requires only
+required-criticality gates to pass). Cryptographic signing is a planned additive extension (a future
 `manifest_schema`); until then, treat the publication channel (e.g. the release
 page over TLS) as the trust anchor. The published tarball is the *canonical*
 reproducible archive (`check.sh --release`); ad-hoc repackagings will not match

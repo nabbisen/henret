@@ -1,22 +1,34 @@
 #!/usr/bin/env bash
 # Henret release gate (RFC 017, extended through RFC 080).
 #
-# Modes (RFC 080-A):
-#   check.sh --fast      local/constrained developer mode (default).
-#                        Skips the heavyweight demo; emits NO manifest.
-#                        NEVER valid as release evidence.
-#   check.sh --release   full gate suite incl. the demo; emits a hashed,
-#                        non-manual verification manifest. Required for release.
+# Modes (RFC 080-A, split by RFC 097):
+#   check.sh --fast               local/constrained developer mode (default).
+#                                 Core gates only; emits NO manifest.
+#   check.sh --release-core       CI-authoritative, sidecar-publishing profile.
+#                                 Core gates (build/proofs/audit/docs/package) +
+#                                 hashed manifest. Blocks sidecar publication.
+#                                 (`--release` is an alias for this.)
+#   check.sh --release-validation advisory executable validation: demo +
+#                                 exhaustive conformance, run interpreted, emitted
+#                                 as a separate validation report. NON-blocking.
 #
-# Authoritative release evidence comes from CI running --release on the exact
-# release commit/tag (RFC 080-D); a local --release is a pre-check only.
+# RFC 097: the demo and exhaustive conformance executables cannot complete on the
+# standard GitHub runner, so they are advisory validation, not release-blocking.
+# Authoritative release evidence still comes from CI running --release-core on the
+# exact release commit/tag (RFC 080-D); a local run is a pre-check only.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 MODE="${1:---fast}"
 case "$MODE" in
-  --fast|--release) ;;
-  *) echo "usage: check.sh [--fast|--release]"; exit 2 ;;
+  --fast|--release|--release-core|--release-validation) ;;
+  *) echo "usage: check.sh [--fast|--release-core|--release-validation]"; exit 2 ;;
+esac
+[ "$MODE" = "--release" ] && MODE="--release-core"   # backward-compat alias
+case "$MODE" in
+  --fast)               CORE=1; VALID=0; PACKAGE=0 ;;
+  --release-core)       CORE=1; VALID=0; PACKAGE=1 ;;
+  --release-validation) CORE=0; VALID=1; PACKAGE=0 ;;
 esac
 
 RECORDS="$(mktemp /tmp/henret-records-XXXX.jsonl)"
@@ -59,9 +71,16 @@ print(json.dumps({"id":int(sys.argv[1]),"name":sys.argv[2],"command":sys.argv[3]
 # ---------------------------------------------------------------- gate bodies
 gate_selftest() { python3 scripts/check_selftest.py; }
 
-gate_build_libs() { lake build Henret HenretNative HenretExplore HenretMeta; }
+gate_build_libs() { lake build Henret HenretNative HenretExplore HenretMeta HenretExamples; }
 
-gate_demo() { lake build && lake exe henret-demo; }
+gate_demo() {
+  # Run the demo INTERPRETED off the gate-1 oleans (henret-demo's import closure,
+  # incl. HenretExamples). Natively compiling the executable means C codegen for
+  # the whole project (~80 modules) + link, which alone takes the better part of
+  # an hour on a stock CI runner. Interpreting runs and asserts every scenario in
+  # seconds; the demo binary is not a shipped artifact.
+  lake env lean --run Main.lean
+}
 
 gate_examples() {
   for f in examples/[0-9][0-9]_*.lean; do
@@ -72,10 +91,12 @@ gate_examples() {
 
 gate_conformance() {
   # RFC 047 golden trace suite + RFC 083 branch-coverage suite and registry
-  # completeness. The exe exits non-zero if any trace/branch scenario fails or
-  # coverage is incomplete; branch_suite_passes and coverage_complete are also
-  # kernel-checked at build (gate 1) and axiom-audited (gate 6).
-  lake exe henret-conformance
+  # completeness. Run INTERPRETED off the gate-1 oleans (Conformance imports only
+  # Henret.Conformance, already built) to avoid native exe compilation. The run
+  # exits non-zero if any trace/branch scenario fails or coverage is incomplete;
+  # branch_suite_passes and coverage_complete are also kernel-checked at build
+  # (gate 1) and axiom-audited (gate 6).
+  lake env lean --run Conformance.lean
 }
 
 gate_doc_symbol() {
@@ -355,43 +376,77 @@ gate_warning_budget() {
 }
 
 # --------------------------------------------------------------------- stages
+# RFC 097 gate criticality:
+#   CORE (required, sidecar-blocking): 0,1,3,5,6,7,8,9
+#   VALIDATION (advisory, non-blocking): 2 (demo), 4 (exhaustive conformance)
+# Each `run_gate <id>` appears exactly once (check_selftest invariant); `if`
+# guards select which run per mode (set -e safe).
 run_gate 0 "gate-suite self-test"            gate_selftest
 run_gate 1 "build libraries"                 gate_build_libs
-if [ "$MODE" = "--release" ]; then
+if [ "$VALID" = 1 ]; then
   run_gate 2 "demo regression scenarios"     gate_demo
 else
-  echo "== gate 2 (--fast): demo regression scenarios SKIPPED (release-only) =="
+  echo "== gate 2 SKIPPED (advisory; runs in --release-validation) =="
 fi
-run_gate 3 "examples compile + eval"         gate_examples
-run_gate 4 "golden conformance suite"        gate_conformance
-run_gate 5 "doc-symbol checker"              gate_doc_symbol
-run_gate 6 "strict axiom audit"              gate_axiom_audit
-run_gate 7 "documentation consistency"       gate_doc_consistency
-run_gate 8 "RFC metadata schema"             gate_rfc_metadata
-run_gate 9 "linter warning budget"           gate_warning_budget
+if [ "$CORE" = 1 ]; then
+  run_gate 3 "examples compile + eval"       gate_examples
+fi
+if [ "$VALID" = 1 ]; then
+  run_gate 4 "golden conformance suite"      gate_conformance
+else
+  echo "== gate 4 SKIPPED (advisory; runs in --release-validation) =="
+fi
+if [ "$CORE" = 1 ]; then
+  run_gate 5 "doc-symbol checker"            gate_doc_symbol
+  run_gate 6 "strict axiom audit"            gate_axiom_audit
+  run_gate 7 "documentation consistency"     gate_doc_consistency
+  run_gate 8 "RFC metadata schema"           gate_rfc_metadata
+  run_gate 9 "linter warning budget"         gate_warning_budget
+fi
 
-# ----------------------------------------------------- release manifest (080-B)
-if [ "$MODE" = "--release" ]; then
-  echo "== assembling release manifest =="
+# ------------------------------------------- release-core manifest (080-B / 097)
+if [ "$PACKAGE" = 1 ]; then
+  echo "== assembling release-core manifest (profile ci-core-v1) =="
   mkdir -p release/logs
   cp "$LOGDIR"/gate-*.out "$LOGDIR"/gate-*.err release/logs/ 2>/dev/null || true
   VERSION=$(grep -oE 'v!"[0-9]+\.[0-9]+\.[0-9]+"' lakefile.lean | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-  TARBALL="release/henret-v${VERSION}.tar.gz"
-  # Source archive EXCLUDING release/ (080-1: not self-referential) and build dirs.
+  # Filename convention (RFC 095): dev artifacts keep the v-prefix; the published
+  # GitHub release uses no-v names (HENRET_PUBLISH_NAME=1 in CI).
+  if [ -n "${HENRET_PUBLISH_NAME:-}" ]; then
+    TARBALL="release/henret-${VERSION}.tar.gz"
+  else
+    TARBALL="release/henret-v${VERSION}.tar.gz"
+  fi
   tar --exclude='./.lake' --exclude='./release' --exclude='./.git' \
       --exclude='__pycache__' --exclude='*.pyc' --exclude='./docs/book' \
-      --exclude='./.elan' --exclude='./.cache' \
+      --exclude='./.elan' --exclude='./.cache' --exclude='./elan-init' \
       --exclude='./lean-runtime-workspace/.lake' \
       --sort=name --mtime='2020-01-01 00:00:00' --owner=0 --group=0 --numeric-owner \
       -czf "$TARBALL" --transform 's|^\./||' -C . . 2>/dev/null
-  # release_manifest.py renders GATE-RUN.md and binds it by hash in the manifest
-  # (RFC 095 §3.3), so the human summary cannot drift from the machine manifest.
-  python3 scripts/release_manifest.py "$RECORDS" "$VERSION" "$TARBALL" \
+  # release_manifest.py renders GATE-RUN.md and binds it by hash (RFC 095 §3.3);
+  # HENRET_RELEASE_PROFILE tags gate criticality + advisory placeholders (RFC 097).
+  HENRET_RELEASE_PROFILE=ci-core-v1 \
+    python3 scripts/release_manifest.py "$RECORDS" "$VERSION" "$TARBALL" \
       release/GATE-RUN.md > release/release-verification.json
   echo "wrote release/release-verification.json + release/GATE-RUN.md"
   if [ "$(python3 -c 'import json;print(json.load(open("release/release-verification.json"))["git_dirty"])')" = "True" ]; then
-    echo "FAIL: --release on a dirty source tree (080-4)"; exit 1
+    echo "FAIL: --release-core on a dirty source tree (080-4); offending paths:"
+    python3 -c 'import json;print("\n".join("  "+p for p in json.load(open("release/release-verification.json")).get("git_dirty_paths",[])))'
+    git status --porcelain || true
+    exit 1
   fi
+fi
+
+# --------------------------------------- release-validation report (RFC 097)
+if [ "$VALID" = 1 ]; then
+  echo "== assembling release-validation report =="
+  mkdir -p release/logs
+  cp "$LOGDIR"/gate-*.out "$LOGDIR"/gate-*.err release/logs/ 2>/dev/null || true
+  VERSION=$(grep -oE 'v!"[0-9]+\.[0-9]+\.[0-9]+"' lakefile.lean | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+  if [ -n "${HENRET_PUBLISH_NAME:-}" ]; then VBASE="henret-${VERSION}"; else VBASE="henret-v${VERSION}"; fi
+  python3 scripts/validation_report.py "$RECORDS" "$VERSION" \
+      "release/${VBASE}.validation-GATE-RUN.md" > "release/${VBASE}.validation-report.json"
+  echo "wrote release/${VBASE}.validation-report.json + .validation-GATE-RUN.md"
 fi
 
 echo "== all gates green ($MODE) =="

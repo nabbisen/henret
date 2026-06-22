@@ -2,7 +2,7 @@
 
 # RFC index
 
-97 RFCs: 79 implemented, 17 proposed/in-wave, 1 archived. Generated from RFC front matter.
+98 RFCs: 80 implemented, 17 proposed/in-wave, 1 archived. Generated from RFC front matter.
 
 ## Implemented (`done/`)
 
@@ -87,6 +87,7 @@
 | [94](../../../rfcs/done/094-mdbook-documentation-layout.md) | mdbook Documentation Layout (docs/src/) | v0.34.0 | documentation |
 | [95](../../../rfcs/done/095-published-release-verification-manifest.md) | Published Release-Verification Manifest | v0.34.2 | release-process |
 | [96](../../../rfcs/done/096-stack-release-contract.md) | Stack Release Contract | v0.34.3 | integration |
+| [97](../../../rfcs/done/097-release-gate-profiles-and-validation-split.md) | Release Gate Profiles and Validation Split | v0.34.4 | release-process |
 
 ## Proposed / in-wave (`proposed/`)
 

@@ -85,7 +85,23 @@ tar --exclude='./.lake' --exclude='__pycache__' --exclude='*.pyc' \
 (`__pycache__` / `*.pyc` are produced by running the gate scripts and are
 version-specific bytecode — they must not ship in a release archive.)
 
+## Release profiles (RFC 097)
+
+- [ ] the published sidecar is produced by **`check.sh --release-core`** in CI
+      (the `ci-core-v1` profile): build/proofs, axiom audit, doc/metadata,
+      warning budget, canonical tarball, manifest. A release may publish when
+      every **required** gate passes (`required_gates_passed: true`).
+- [ ] the demo + exhaustive conformance run in the separate, non-blocking
+      **release-validation** workflow; their `validation-report.json` is
+      attached when available. A failed validation *after* publication
+      triggers a patch/retraction decision, not a block on publishing.
+
 ## Publishing & provenance (RFC 095)
+
+- [x] **Post-upload verification is automated** — the release-gate workflow
+      re-downloads the published tarball + sidecar + GATE-RUN and runs
+      `verify_release_manifest.py` against them. A failure means the release is
+      invalid even if the pre-upload artifacts were correct (retract/patch).
 
 - [ ] the **published** tarball is the canonical reproducible archive built by
       `check.sh --release` (sorted, fixed mtime/owner, full exclude set) — the
@@ -93,14 +109,17 @@ version-specific bytecode — they must not ship in a release archive.)
       ad-hoc repackaging; its hash will not match the manifest.
 - [ ] `release-verification.json` and `GATE-RUN.md` are published **beside** the
       tarball on the release page (consumer-fetchable, RFC 095 §D2), with
-      version-prefixed names.
+      no-`v` version-prefixed names (`henret-X.Y.Z.tar.gz`,
+      `henret-X.Y.Z.release-verification.json`, `henret-X.Y.Z.GATE-RUN.md`).
+      CI builds these by running the release gate with
+      `HENRET_PUBLISH_NAME=1`; local/dev tarballs keep the `v`-prefix.
 - [ ] **post-upload verification (RFC 095 §3.1):** after publishing, re-download
       the published tarball and manifest from the release page and confirm they
       match — catching "CI built the right file but the wrong one was uploaded":
 
 ```bash
 python3 scripts/verify_release_manifest.py \
-    henret-vX.Y.Z.release-verification.json henret-vX.Y.Z.tar.gz henret-vX.Y.Z.GATE-RUN.md
+    henret-X.Y.Z.release-verification.json henret-X.Y.Z.tar.gz henret-X.Y.Z.GATE-RUN.md
 # exits 0 only if tarball sha256, source_archive, GATE-RUN.md hash, and all gates match
 ```
 

@@ -1,5 +1,63 @@
 # Changelog
 
+## v0.34.4 — Release CI repair + two-tier gate model (RFC 097)
+
+Makes the authoritative release gate actually complete on the standard CI runner
+so the RFC 095 sidecar can be published for the iotakt/jemmet stack. **No model,
+proof, or theorem change**; axioms unchanged, public theorem surface unchanged
+(101 names). `manifest_schema` stays 1 (additive). `check.sh --fast`, gate-0
+self-test, and the docs gate green.
+
+- **RFC 097 — release-core / release-validation split (Implemented).** The old
+  monolithic `--release` natively compiled the `henret-demo` and
+  `henret-conformance` executables (C codegen for ~80 modules + link), which on a
+  2 vCPU / 7 GB GitHub runner OOM-killed and, with swap, ran ~1 h to the job
+  timeout. Per architect review, the gate is split by **criticality**:
+  `check.sh --release-core` (alias `--release`) runs the cheap, CI-authoritative,
+  kernel-checked evidence — build/proofs, examples, axiom audit, doc/metadata,
+  warning budget — plus the canonical tarball and hashed manifest, and **publishes
+  the sidecar**; `check.sh --release-validation` runs the demo + exhaustive
+  conformance interpreted as **advisory, non-blocking** evidence, emitting a
+  separate `validation-report.json`. CI authority (RFC 080-D) is preserved.
+- **Manifest honesty.** `release-verification.json` gains `release_profile`,
+  `required_gates_passed`, per-gate `criticality`, and `validation_reports`. Under
+  `ci-core-v1` the advisory gates are not silently dropped — they appear as
+  `not_run_in_release_core` with a reason. `verify_release_manifest.py` requires
+  only `required` gates to pass. New `scripts/validation_report.py` and a
+  `release-validation.yml` workflow produce/host the advisory report (whose
+  per-gate timings are also the architect's §4 diagnostic).
+- **Dirty-tree exception tightened.** Per architect review, the 080-4 exception
+  now applies only to *untracked* entries; a tracked source modification stays
+  dirty even if its path resembles an excluded cache/tool path. Invariant
+  documented in the manifest schema. RFC 097 is fully closed.
+- **Post-upload verification.** The release-gate workflow now re-downloads the
+  published assets and runs `verify_release_manifest.py` against them (RFC 095 /
+  RFC 097 closure condition 2), catching upload corruption a pre-upload check
+  cannot. RFC 097 is now fully closed: v0.34.4 published a green `ci-core-v1`
+  sidecar from CI.
+- **Release publish permissions.** With the dirty-tree blocker cleared, the
+  run reached the publish step and `gh release create` returned HTTP 403
+  ("Resource not accessible by integration"): the workflow `GITHUB_TOKEN`
+  defaulted to read-only `contents`. Added `permissions: contents: write` to
+  the release-gate and release-validation workflows so the token can create
+  the release and upload the tarball + sidecar + GATE-RUN.
+- **Dirty-tree publish fix.** The release-core run reached the manifest step
+  then failed `--release-core on a dirty source tree (080-4)`: the CI elan
+  install extracted the `elan-init` binary into the checkout (untracked, not
+  excluded from the tarball). Fixed by installing elan in `/tmp`, gitignoring
+  `elan-init`, excluding it from the archive, and broadening the dirty-tree
+  exception to ignore tooling/cache artifacts (mirrors the tarball excludes);
+  the check now prints offending paths and records `git_dirty_paths`. Manifest
+  also gains `gate_registry: rfc097-ci-core-v1` (architect review §4).
+- **Release CI repair (folded in).** Tag filter corrected to the bare-numeric
+  scheme (`[0-9]*.[0-9]*.[0-9]*`; tags are `0.34.4`, not `v0.34.4`); CI now
+  attaches the canonical tarball + sidecar + `GATE-RUN.md` to the GitHub Release
+  as assets (not just a workflow artifact). Filename convention pinned: published
+  GitHub assets are **no-`v`** (`henret-X.Y.Z.*`), dev tarballs keep the `v`-prefix
+  (`HENRET_PUBLISH_NAME=1` in CI; resolves RFC 095's filename open question). The
+  demo/conformance run interpreted off gate-1 oleans (new `HenretExamples` lib).
+  Consumer recipes in the integration contract, checklist, and schema doc updated.
+
 ## v0.34.3 — Stack Release Contract (RFC 096)
 
 Implements RFC 096 (approved with minor amendments) — **no model, proof, or
