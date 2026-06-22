@@ -243,6 +243,13 @@ python3 scripts/verify_release_manifest.py \
     henret-vX.Y.Z.release-verification.json henret-vX.Y.Z.tar.gz henret-vX.Y.Z.GATE-RUN.md
 ```
 
+Across a multi-package stack (henret → iotakt → jemmet), the same manifest
+schema composes: see the [release manifest schema](release-manifest-schema.md)
+for the per-package and `stack_manifest_schema` shapes and the
+`scripts/verify_stack_release.py` rules (RFC 096). Henret does **not** verify,
+vouch for, or gate downstream packages — the stack contract is a format and
+composition agreement, not a trust delegation.
+
 This is **hash-only** verification: it trusts the channel the manifest was
 fetched over. Cryptographic signing is a planned additive extension (a future
 `manifest_schema`); until then, treat the publication channel (e.g. the release

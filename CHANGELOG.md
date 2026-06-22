@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.34.3 — Stack Release Contract (RFC 096)
+
+Implements RFC 096 (approved with minor amendments) — **no model, proof, or
+theorem change**; axioms unchanged, public theorem surface unchanged (101 names).
+`check.sh --fast` and the docs gate green.
+
+- **RFC 096 — Stack Release Contract (Implemented).** The RFC 080 manifest schema
+  becomes the per-package contract across the henret → iotakt → jemmet stack, with
+  a thin stack manifest that pins **dependency edges**, not just a package list.
+  New normative `docs/src/release-manifest-schema.md` describes `manifest_schema 1`
+  (per-package, RFC 080/081/095) and `stack_manifest_schema 1` (stack): unique
+  package names; edges that resolve to exactly one consumer/provider; providers
+  pinned by `provider_manifest_sha256` and cross-checked against the consumer
+  manifest's own `dependencies`; hash-is-identity mirror semantics; exact pins
+  only (no compatibility ranges in v1); optional, RFC 081-shaped trust inventory.
+  New `scripts/verify_stack_release.py` is the minimal local-file verifier
+  (resolves manifests by hash, checks packages and edges, non-zero on mismatch) —
+  validated on a synthetic two-package stack, catching an edge that claims a
+  provider version the consumer never declared. `integration-contract.md` points
+  consumers at the schema doc and states henret does not verify downstream
+  packages. RFC moved to `rfcs/done/`.
+
 ## v0.34.2 — Published release manifest (RFC 095)
 
 Implements RFC 095 (approved with amendments) and revises RFC 096 per the same

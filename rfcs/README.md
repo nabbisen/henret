@@ -115,7 +115,7 @@ follow [`docs/semantic-extension-governance.md`](../docs/semantic-extension-gove
 | [093](done/093-manual-actor-release.md) | Manual Actor-Resource Release | Implemented (v0.29.0) | v0.29.0 |
 | [094](done/094-mdbook-documentation-layout.md) | mdbook Documentation Layout (docs/src/) | Implemented (v0.34.0) | v0.34.0 |
 | [095](done/095-published-release-verification-manifest.md) | Published Release-Verification Manifest | Implemented (v0.34.2) | v0.34.2 |
-| [096](proposed/096-stack-release-contract.md) | Stack Release Contract (revised per review) | — | Medium |
+| [096](done/096-stack-release-contract.md) | Stack Release Contract | Implemented (v0.34.3) | v0.34.3 |
 
 ## Archive
 

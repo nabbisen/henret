@@ -65,3 +65,4 @@
 - [Review playbook](review-playbook.md)
 - [Release policy](release-policy.md)
 - [Release checklist](release-checklist.md)
+- [Release manifest schema](release-manifest-schema.md)
