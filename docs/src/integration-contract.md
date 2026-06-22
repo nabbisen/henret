@@ -6,7 +6,7 @@ projects that want to use Henret as a semantic reference model.
 
 This document is the boundary contract. It tells a consumer what it may
 rely on, what is experimental, and what is explicitly not proved. It is
-not a tutorial — see `docs/guided-tour.md` to learn the model.
+not a tutorial — see [`guided-tour.md`](guided-tour.md) to learn the model.
 
 ---
 
@@ -18,6 +18,22 @@ Use Henret to *specify and check* actor/task scheduler behavior, not to
 execute production workloads. The model is executable (`step`, `run`)
 for testing and exploration, but its value is the machine-checked
 guarantees, not throughput.
+
+### Driving an actual runtime
+
+A consumer that wants Henret's task semantics to drive **real** spawn /
+observe / cancel does not execute against this package. It targets the
+out-of-tree sibling **runtime package**
+(`lean-runtime-workspace/lean-runtime`; see [package boundary](package-boundary.md)),
+which provides the concrete work-stealing executor and the trusted C FFI.
+Henret is the *verified semantics that runtime claims to implement*: the
+[bridge](bridge-architecture.md) (`toQOps` / `BridgeState` / the per-op
+`bridge_*` theorems) is the formal connection between a Henret `step` and the
+runtime's worker-queue operations. The single-worker bridge is complete
+(RFC 036) and a multi-worker membership bridge exists; treat the bridge's
+current coverage as the boundary of what is *formally* tied to the executor,
+and anything beyond it as runtime behavior validated by the runtime package's
+own differential / linearizability harnesses (tier `TESTED`).
 
 ---
 
@@ -39,8 +55,10 @@ on nothing experimental.
 
 ## 3. Operation mapping guide
 
-`RuntimeOp` has **16 constructors** as of v0.12.0. Map external runtime
-events as follows:
+`RuntimeOp`'s constructors are the operation grammar. The current set and
+their docstrings are the live source in the generated
+[runtime-op table](generated/runtime-op-table.md); the surface grows
+**additively** across versions (see §8). Map external runtime events as follows:
 
 | External event | Henret op |
 |---|---|
@@ -117,7 +135,7 @@ modeled (deferred to RFC 049).
 | Bridge levels | single-worker (exact-list) and multi-worker (membership) |
 | Single-worker relation | `BridgeState` — `s.readyQ = wqs 0`, other workers empty |
 | Multi-worker relation | `MultiBridgeState` — membership union, global uniqueness, per-worker nodup |
-| Operations covered | all 16 `RuntimeOp`s (single-worker headline) |
+| Operations covered | all `RuntimeOp`s (single-worker headline) |
 | Single-worker headline | `bridge_run_tracks_single_worker` |
 | Multi-worker headline | `reachable_multi_bridge` |
 | Special-case lemma | `single_bridge_implies_multi_bridge` |

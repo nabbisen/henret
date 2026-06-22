@@ -1,5 +1,14 @@
 # Henret → iotakt Integration Handoff
 
+> ⚠️ **HISTORICAL SNAPSHOT — do not treat as current.** This handoff was written
+> against Henret **v0.6.0** (when `RuntimeOp` had 12 constructors and
+> `RuntimeState` 10 fields). The model has since grown to 29 ops and a 33-field
+> `WellFormed` invariant. The **live, authoritative sources** are the generated
+> reference tables ([`runtime-op-table`](src/generated/runtime-op-table.md),
+> [`wellformed-field-table`](src/generated/wellformed-field-table.md)) and the
+> stable [integration contract](src/integration-contract.md). Use this document
+> only as a record of the original iotakt bring-up, not as an API reference.
+
 **Henret version:** v0.6.0  
 **Lean toolchain:** `leanprover/lean4:v4.15.0`  
 **Package name:** `henret`  

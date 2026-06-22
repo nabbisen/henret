@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.34.1 — Consumer-doc accuracy + release-archive hygiene
+
+Documentation and release-tooling follow-ups from jemmet consumer feedback —
+**no model, proof, or theorem change**; axioms unchanged, public theorem surface
+unchanged (101 names). `check.sh --fast` and the docs gate green.
+
+- **Consumer-doc accuracy.** `integration-contract.md` no longer hard-codes the
+  operation count — it points to the live generated runtime-op table as the
+  source of truth — and gains a *Driving an actual runtime* section pointing
+  consumers at the out-of-tree runtime package and the bridge. The stale
+  `handoff-henret-for-iotakt.md` (written at v0.6.0) is now banner-marked as a
+  historical snapshot that points to the generated tables.
+- **Cleaner canonical release archive (RFC 080-B).** The reproducible archive
+  built by `check.sh --release` (the one its `release-verification.json` manifest
+  hashes) now also excludes `__pycache__`, `*.pyc`, `docs/book/`, `.elan/`, and
+  `.cache/`, matching the published-tarball exclude set so the manifest's
+  `tarball_sha256` anchors a clean archive.
+
 ## v0.34.0 — mdBook Documentation Layout (RFC 094)
 
 Documentation-architecture cleanup — **no model change, no new op, no proof

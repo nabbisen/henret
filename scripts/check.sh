@@ -379,6 +379,8 @@ if [ "$MODE" = "--release" ]; then
   TARBALL="release/henret-v${VERSION}.tar.gz"
   # Source archive EXCLUDING release/ (080-1: not self-referential) and build dirs.
   tar --exclude='./.lake' --exclude='./release' --exclude='./.git' \
+      --exclude='__pycache__' --exclude='*.pyc' --exclude='./docs/book' \
+      --exclude='./.elan' --exclude='./.cache' \
       --exclude='./lean-runtime-workspace/.lake' \
       --sort=name --mtime='2020-01-01 00:00:00' --owner=0 --group=0 --numeric-owner \
       -czf "$TARBALL" --transform 's|^\./||' -C . . 2>/dev/null
