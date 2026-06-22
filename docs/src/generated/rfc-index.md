@@ -2,7 +2,7 @@
 
 # RFC index
 
-95 RFCs: 77 implemented, 17 proposed/in-wave, 1 archived. Generated from RFC front matter.
+97 RFCs: 78 implemented, 18 proposed/in-wave, 1 archived. Generated from RFC front matter.
 
 ## Implemented (`done/`)
 
@@ -85,6 +85,7 @@
 | [92](../../../rfcs/done/092-clean-stop-predicate.md) | Clean-Stop Predicate (stopped → Drained resolution) | v0.28.0 | model-semantics |
 | [93](../../../rfcs/done/093-manual-actor-release.md) | Manual Actor-Resource Release | v0.29.0 | model-semantics |
 | [94](../../../rfcs/done/094-mdbook-documentation-layout.md) | mdbook Documentation Layout (docs/src/) | v0.34.0 | documentation |
+| [95](../../../rfcs/done/095-published-release-verification-manifest.md) | Published Release-Verification Manifest | v0.34.2 | release-process |
 
 ## Proposed / in-wave (`proposed/`)
 
@@ -107,6 +108,7 @@
 | [77](../../../rfcs/proposed/077-minimal-verified-actor-patterns.md) | Minimal Verified Actor Patterns | Proposed | pedagogy |
 | [78](../../../rfcs/proposed/078-security-and-robustness-interpretation.md) | Security and Robustness Interpretation | Proposed | security |
 | [79](../../../rfcs/proposed/079-publication-and-community-review-plan.md) | Publication and Community Review Plan | Proposed | pedagogy |
+| [96](../../../rfcs/proposed/096-stack-release-contract.md) | Stack Release Contract | Proposed | integration |
 
 ## Archived (`archive/`)
 

@@ -216,6 +216,40 @@ out in `CHANGELOG.md`):
 
 ---
 
+## 11. Release provenance (RFC 095)
+
+Each release publishes, beside the tarball, a `release-verification.json`
+manifest (RFC 080) and a human `GATE-RUN.md`, so a consumer can anchor the
+*exact* archive it downloaded rather than trusting a CI log. The manifest is the
+canonical record; `GATE-RUN.md` is a rendering bound to it by hash
+(`human_summary.sha256`).
+
+To verify a fetched release:
+
+```sh
+# 1. recompute the archive hash
+sha256sum henret-vX.Y.Z.tar.gz
+# 2. compare to the manifest (both fields carry it)
+jq -r '.tarball_sha256, .source_archive.sha256' henret-vX.Y.Z.release-verification.json
+# 3. confirm every gate passed
+jq -r '.gates[] | select(.status != "pass")' henret-vX.Y.Z.release-verification.json   # empty == all pass
+```
+
+Or run the bundled checker, which does all of the above (and the `GATE-RUN.md`
+hash binding) and exits non-zero on any mismatch:
+
+```sh
+python3 scripts/verify_release_manifest.py \
+    henret-vX.Y.Z.release-verification.json henret-vX.Y.Z.tar.gz henret-vX.Y.Z.GATE-RUN.md
+```
+
+This is **hash-only** verification: it trusts the channel the manifest was
+fetched over. Cryptographic signing is a planned additive extension (a future
+`manifest_schema`); until then, treat the publication channel (e.g. the release
+page over TLS) as the trust anchor. The published tarball is the *canonical*
+reproducible archive (`check.sh --release`); ad-hoc repackagings will not match
+the manifest hash.
+
 ## Worked example
 
 See `examples/10_integration_contract.lean` for a consumer-style trace:

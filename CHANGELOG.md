@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.34.2 — Published release manifest (RFC 095)
+
+Implements RFC 095 (approved with amendments) and revises RFC 096 per the same
+review — **no model, proof, or theorem change**; axioms unchanged, public
+theorem surface unchanged (101 names). `check.sh --fast` and the docs gate green.
+
+- **RFC 095 — Published Release-Verification Manifest (Implemented).** The RFC 080
+  manifest becomes a consumer-fetchable artifact published beside the tarball, so
+  iotakt/jemmet can anchor henret provenance at fetch time instead of trusting a
+  CI log. `release_manifest.py` now emits a `source_archive` block
+  (`name`/`sha256`/`size_bytes`) beside the retained `tarball_sha256`, and binds
+  `GATE-RUN.md` by hash in `human_summary` (rendered from the core manifest first,
+  so it cannot drift). New `scripts/verify_release_manifest.py` is the consumer /
+  post-upload checker (tarball hash, `source_archive`, gate-pass, GATE-RUN.md
+  binding; non-zero on any mismatch). `integration-contract.md` §11 documents the
+  exact `sha256sum`/`jq` recipe and the checker; `release-checklist.md` adds the
+  publish-sidecar and post-upload re-download verification steps. `manifest_schema`
+  stays 1 (all additive). Signing remains a named follow-up (hash-only
+  verification trusts the publication channel).
+- **RFC 096 — Stack Release Contract (revised, still Proposed).** Folded in the
+  review's required amendments: per-package manifests keep `manifest_schema`
+  while the stack manifest uses a distinct `stack_manifest_schema`; the stack
+  gains `dependency_edges` cross-checked against per-package `dependencies`
+  declarations; `scripts/verify_stack_release.py` is named as the validation tool;
+  `depends_on` now includes RFC 081 (trust inventory); peer-governance and
+  mirror-identity (hash, not URL) semantics are spelled out. Awaits re-approval
+  before implementation.
+
 ## v0.34.1 — Consumer-doc accuracy + release-archive hygiene
 
 Documentation and release-tooling follow-ups from jemmet consumer feedback —
@@ -17,6 +45,11 @@ unchanged (101 names). `check.sh --fast` and the docs gate green.
   hashes) now also excludes `__pycache__`, `*.pyc`, `docs/book/`, `.elan/`, and
   `.cache/`, matching the published-tarball exclude set so the manifest's
   `tarball_sha256` anchors a clean archive.
+- **Two RFCs drafted (proposed).** [RFC 095 — Published Release-Verification
+  Manifest] formalizes publishing the RFC 080 manifest as a consumer-fetchable
+  sidecar; [RFC 096 — Stack Release Contract] aligns the henret/iotakt/jemmet
+  stack to the RFC 080 schema rather than a parallel format. Both `Proposed`,
+  awaiting architect review; no behavior change.
 
 ## v0.34.0 — mdBook Documentation Layout (RFC 094)
 

@@ -85,6 +85,25 @@ tar --exclude='./.lake' --exclude='__pycache__' --exclude='*.pyc' \
 (`__pycache__` / `*.pyc` are produced by running the gate scripts and are
 version-specific bytecode — they must not ship in a release archive.)
 
+## Publishing & provenance (RFC 095)
+
+- [ ] the **published** tarball is the canonical reproducible archive built by
+      `check.sh --release` (sorted, fixed mtime/owner, full exclude set) — the
+      one whose hash `release-verification.json` records. Do not publish an
+      ad-hoc repackaging; its hash will not match the manifest.
+- [ ] `release-verification.json` and `GATE-RUN.md` are published **beside** the
+      tarball on the release page (consumer-fetchable, RFC 095 §D2), with
+      version-prefixed names.
+- [ ] **post-upload verification (RFC 095 §3.1):** after publishing, re-download
+      the published tarball and manifest from the release page and confirm they
+      match — catching "CI built the right file but the wrong one was uploaded":
+
+```bash
+python3 scripts/verify_release_manifest.py \
+    henret-vX.Y.Z.release-verification.json henret-vX.Y.Z.tar.gz henret-vX.Y.Z.GATE-RUN.md
+# exits 0 only if tarball sha256, source_archive, GATE-RUN.md hash, and all gates match
+```
+
 ## Note on the demo executable
 
 `lake build` includes C code generation for the `henret-demo`

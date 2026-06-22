@@ -384,21 +384,10 @@ if [ "$MODE" = "--release" ]; then
       --exclude='./lean-runtime-workspace/.lake' \
       --sort=name --mtime='2020-01-01 00:00:00' --owner=0 --group=0 --numeric-owner \
       -czf "$TARBALL" --transform 's|^\./||' -C . . 2>/dev/null
-  python3 scripts/release_manifest.py "$RECORDS" "$VERSION" "$TARBALL" > release/release-verification.json
-  python3 - << 'PY' > release/GATE-RUN.md
-import json
-m = json.load(open("release/release-verification.json"))
-print(f"# Henret release gate run - v{m['version']}\n")
-print(f"- generated_by: `{m['generated_by']}`")
-print(f"- timestamp_utc: {m['timestamp_utc']}")
-print(f"- git_commit: {m['git_commit']}  (dirty: {m['git_dirty']})")
-print(f"- tarball_sha256: `{m['tarball_sha256']}`")
-print(f"- os: {m['os']}  runner: {m['runner']}\n")
-print("| id | gate | status | ms |")
-print("|----|------|--------|----|")
-for g in m["gates"]:
-    print(f"| {g['id']} | {g['name']} | {g['status']} | {g['duration_ms']} |")
-PY
+  # release_manifest.py renders GATE-RUN.md and binds it by hash in the manifest
+  # (RFC 095 §3.3), so the human summary cannot drift from the machine manifest.
+  python3 scripts/release_manifest.py "$RECORDS" "$VERSION" "$TARBALL" \
+      release/GATE-RUN.md > release/release-verification.json
   echo "wrote release/release-verification.json + release/GATE-RUN.md"
   if [ "$(python3 -c 'import json;print(json.load(open("release/release-verification.json"))["git_dirty"])')" = "True" ]; then
     echo "FAIL: --release on a dirty source tree (080-4)"; exit 1
