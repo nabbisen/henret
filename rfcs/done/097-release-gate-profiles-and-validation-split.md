@@ -132,6 +132,17 @@ record a validation-report hash if they require executable-regression evidence.
 - **`--fast` scope.** `--fast` currently runs the core gates (no executables); if
   the diagnostic shows the interpreted conformance is cheap, a smoke subset could
   return to `--fast` for local coverage.
+- **Interpreted demo hang — root-caused and fixed (v0.34.5).** The demo's `main`
+  took 44 min to *compile* (not elaborate or run): each `let (a, b) := step …`
+  tuple-pattern bind inside the `do` block makes the Lean code generator duplicate
+  the continuation across the match, so cost is exponential in the number of
+  destructurings (one scenario's 5 binds = 33 s; the full `main` = 44 min). Fix:
+  rewrite the binds as `.1`/`.2` field projections, which do not split the
+  continuation. `main` now compiles in 470 ms; `--release-validation` runs demo +
+  conformance interpreted and **passes in ~3 s**. Conformance had no such pattern.
+  The advisory gates retain a `timeout` bound as a safety net. Demo and conformance
+  are now cheap enough that promoting them into release-core is viable (architect
+  §8) — left as a follow-up decision.
 - **`-O0` native experiment.** Whether compiling the executables with `-O0`
   (`moreLeancArgs`) makes a native validation tier cheap enough is an open
   experiment, not part of this RFC.

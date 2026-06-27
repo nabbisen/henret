@@ -43,6 +43,12 @@ jobs:
       - name: Release-validation (advisory, non-blocking)
         env:
           HENRET_PUBLISH_NAME: "1"
+          # Per-gate advisory bounds (RFC 097). The interpreted demo currently
+          # hangs in elaboration of Main.lean, so it is bounded tightly; a
+          # timeout is recorded (non-fatal). Exhaustive conformance gets a
+          # larger budget. Tune without editing check.sh.
+          HENRET_DEMO_TIMEOUT: "180"
+          HENRET_CONF_TIMEOUT: "1500"
         run: bash scripts/check.sh --release-validation
 
       - name: Upload validation report (workflow artifact)

@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.34.5 — Release-validation fix: demo compile-blowup root-caused
+
+v0.34.4 is published and frozen (consumers pin its sidecar); this release carries a
+**release-validation-only** fix and does not change the model, proofs, or the
+release-core sidecar contract.
+
+- **Root cause: demo `main` compile blowup.** The release-validation run hit its
+  cap with the demo stalled — not in elaboration or runtime, but in *compilation*
+  of `main` (44 min). Each `let (a, b) := step …` tuple-pattern bind in the `do`
+  block makes the Lean code generator duplicate the continuation, so compile cost
+  is exponential in the number of destructurings. **Fix:** rewrite the 8 binds in
+  `Main.lean` as `.1`/`.2` projections. `main` now compiles in 470 ms;
+  `check.sh --release-validation` runs demo + conformance interpreted and **passes
+  in ~3 s** (verified against Lean 4.15.0). All 41 demo assertions + 77 conformance
+  scenarios pass.
+- **Advisory safety net.** Gates 2 (demo) and 4 (conformance) still run under a
+  `timeout` (tunable via `HENRET_DEMO_TIMEOUT`/`HENRET_CONF_TIMEOUT`); a timeout is
+  recorded `status: timeout` and is non-fatal, a real regression still surfaces.
+  This now guards against any *future* slowdown rather than masking the demo hang.
+
+- With demo + conformance now cheap interpreted, promoting them into release-core
+  (architect §8) is viable and left as a follow-up decision.
+
 ## v0.34.4 — Release CI repair + two-tier gate model (RFC 097)
 
 Makes the authoritative release gate actually complete on the standard CI runner

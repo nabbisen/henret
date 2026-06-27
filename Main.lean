@@ -20,7 +20,9 @@ def main : IO Unit := do
   check "ready queue empty" s1.readyQ.isEmpty
 
   IO.println "scenario 2: mailbox send/receive"
-  let (s2, trace) := mailboxScenario
+  let s2p := mailboxScenario
+  let s2 := s2p.1
+  let trace := s2p.2
   check "received message 1"
     (trace.contains (.received ⟨0, some 7, ⟨1, 100⟩⟩))
   check "mailbox holds exactly message 2"
@@ -50,14 +52,16 @@ def main : IO Unit := do
 
   IO.println "scenario 6: v0.2.0 model (ownership, logical clock, tick filter)"
   -- ownership recorded at spawn and immutable afterwards
-  let (s7, _) := step RuntimeState.init (.spawn 42)
+  let s7 := (step RuntimeState.init (.spawn 42)).1
   check "spawned task owned by actor 42" (s7.taskOwner 0 == some 42)
   let s7b := run s7 [.schedule, .yield 0, .schedule, .complete 0]
   check "ownership survives lifecycle" (s7b.taskOwner 0 == some 42)
   -- logical clock: monotonic, backwards tick is invalid and a no-op
-  let (s8, _) := step s7 (.tick 10)
+  let s8 := (step s7 (.tick 10)).1
   check "clock advanced to 10" (s8.now == 10)
-  let (s8b, r8) := step s8 (.tick 3)
+  let s8bp := step s8 (.tick 3)
+  let s8b := s8bp.1
+  let r8 := s8bp.2
   check "backwards tick rejected" (r8 matches .invalid)
   check "backwards tick left state unchanged" (s8b.now == 10)
   -- tick wakes only sleeping tasks. NOTE: in reachable states cancel
@@ -69,7 +73,9 @@ def main : IO Unit := do
         taskState := upd RuntimeState.init.taskState 0 (some .cancelled)
         timers    := [⟨5, 0⟩]
         nextId    := 1 }
-  let (stale', r9) := step stale (.tick 10)
+  let stalep := step stale (.tick 10)
+  let stale' := stalep.1
+  let r9 := stalep.2
   check "stale timer entry consumed by tick" stale'.timers.isEmpty
   check "stale timer task not woken" (r9 matches .woke [])
   check "stale timer task not re-queued" (!(stale'.readyQ.contains 0))
@@ -86,14 +92,18 @@ def main : IO Unit := do
   -- woken task is rescheduled and its re-issued receive consumes the
   -- message (Mesa semantics: wake is a notification, not a handoff)
   let s10 := run RuntimeState.init [.spawn 7, .schedule]
-  let (s11, r11) := step s10 (.receive 0)
+  let s11p := step s10 (.receive 0)
+  let s11 := s11p.1
+  let r11 := s11p.2
   check "empty own-mailbox receive is blocked" (r11 matches .blocked)
   check "task 0 parked in waiting state" (s11.taskState 0 == some .waiting)
   check "running slot cleared" (s11.running == none)
   check "task 0 in actor 7's waiter list" ((s11.mailboxWaiters 7).contains 0)
   check "non-running receive is invalid, not blocked"
     ((step s10 (.receive 99)).2 matches .invalid)
-  let (s12, r12) := step s11 (.inject 7 ⟨1, 100⟩)
+  let s12p := step s11 (.inject 7 ⟨1, 100⟩)
+  let s12 := s12p.1
+  let r12 := s12p.2
   check "inject delivers ok" (r12 matches .ok)
   check "head waiter woken to ready" (s12.taskState 0 == some .ready)
   check "waiter list drained" (s12.mailboxWaiters 7 == [])
@@ -101,7 +111,9 @@ def main : IO Unit := do
   check "message sits in mailbox until re-receive (Mesa, no handoff)"
     ((s12.mailboxes 7).map Mailbox.messages == some [⟨0, none, ⟨1, 100⟩⟩])
   let s13 := run s12 [.schedule]
-  let (s14, r14) := step s13 (.receive 0)
+  let s14p := step s13 (.receive 0)
+  let s14 := s14p.1
+  let r14 := s14p.2
   check "re-issued receive consumes the delivered message"
     (r14 matches .received ⟨0, none, ⟨1, 100⟩⟩)
   check "mailbox empty after consume"

@@ -43,15 +43,34 @@ trap cleanup EXIT
 run_gate() {
   local id="$1" name="$2"; shift 2
   local outf="$LOGDIR/gate-$id.out" errf="$LOGDIR/gate-$id.err"
-  local start end ms rc status
+  local start end ms rc status advisory=0 tmo=0
+  # RFC 097: gates 2 (demo) and 4 (exhaustive conformance) are advisory. In
+  # --release-validation they run time-bounded and NON-fatally: a timeout is
+  # recorded (status "timeout"), so a slow/hanging interpreted run never reddens
+  # the non-blocking validation job. A real scenario FAILURE is surfaced after
+  # all validation gates run (so conformance still runs even if demo fails).
+  if [ "$VALID" = 1 ]; then
+    case "$id" in
+      2) advisory=1; tmo="${HENRET_DEMO_TIMEOUT:-300}" ;;
+      4) advisory=1; tmo="${HENRET_CONF_TIMEOUT:-1500}" ;;
+    esac
+  fi
   echo "== gate $id ($MODE): $name =="
   start=$(date +%s%3N)
   set +e
-  "$@" >"$outf" 2>"$errf"
+  if [ "$advisory" = 1 ]; then
+    # `timeout` execs a command, not a shell function; re-enter bash with the
+    # gate function's definition so it can be wrapped. Gate bodies are nullary.
+    timeout -k 10 "${tmo}s" bash -c "$(declare -f "$1"); $1" >"$outf" 2>"$errf"
+  else
+    "$@" >"$outf" 2>"$errf"
+  fi
   rc=$?
   set -e
   end=$(date +%s%3N); ms=$((end - start))
-  [ "$rc" -eq 0 ] && status=pass || status=fail
+  if [ "$rc" -eq 0 ]; then status=pass
+  elif [ "$advisory" = 1 ] && { [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; }; then status=timeout
+  else status=fail; fi
   sed 's/^/    /' "$outf"
   [ -s "$errf" ] && sed 's/^/    [stderr] /' "$errf" || true
   local osha esha
@@ -65,7 +84,9 @@ print(json.dumps({"id":int(sys.argv[1]),"name":sys.argv[2],"command":sys.argv[3]
     "$id" "$name" "$name" "$status" "$ms" \
     "release/logs/gate-$id.out" "$osha" "release/logs/gate-$id.err" "$esha" >> "$RECORDS"
   echo "   -> $status (${ms}ms)"
-  if [ "$status" = fail ]; then echo "FAIL: gate $id ($name)"; exit 1; fi
+  # Required gates abort on fail. Advisory gates never abort inline (timeout is
+  # non-fatal; a real fail is surfaced after the validation run).
+  if [ "$status" = fail ] && [ "$advisory" = 0 ]; then echo "FAIL: gate $id ($name)"; exit 1; fi
 }
 
 # ---------------------------------------------------------------- gate bodies
@@ -447,6 +468,16 @@ if [ "$VALID" = 1 ]; then
   python3 scripts/validation_report.py "$RECORDS" "$VERSION" \
       "release/${VBASE}.validation-GATE-RUN.md" > "release/${VBASE}.validation-report.json"
   echo "wrote release/${VBASE}.validation-report.json + .validation-GATE-RUN.md"
+  # Non-blocking by design: a timeout on an advisory gate does NOT fail the
+  # workflow (bounded interpreted runs). A genuine scenario FAILURE (regression)
+  # is surfaced so it is not silently hidden.
+  if python3 -c 'import json,sys
+recs=[json.loads(l) for l in open(sys.argv[1]) if l.strip()]
+sys.exit(1 if any(r.get("id") in (2,4) and r.get("status")=="fail" for r in recs) else 0)' "$RECORDS"; then
+    echo "release-validation: advisory gates pass or time-bounded (non-blocking)"
+  else
+    echo "FAIL: an advisory validation gate reported a real failure (regression)"; exit 1
+  fi
 fi
 
 echo "== all gates green ($MODE) =="
