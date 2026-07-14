@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Henret release gate (RFC 017, extended through RFC 080).
 #
-# Modes (RFC 080-A, unified for release by RFC 102 / RFC 103):
+# Modes (RFC 080-A, unified for release by RFC 102 / RFC 103 / RFC 104):
 #   check.sh --fast               local/constrained developer mode (default).
 #                                 Core gates only; emits NO manifest.
 #   check.sh --release-core       CI-authoritative, sidecar-publishing profile.
@@ -13,9 +13,9 @@
 #                                 exhaustive conformance, run interpreted, emitted
 #                                 as a separate validation report. NON-blocking.
 #
-# RFC 103 adds bounded explorer execution and stable evidence IDs to the
-# required release core. Timeout and nonzero exit are release-blocking. The
-# separate validation mode remains supplemental timing/diagnostic evidence.
+# RFC 103 adds bounded explorer evidence; RFC 104 adds supply-chain validation
+# and hosted-CI-only authority. Timeout and nonzero exit are release-blocking.
+# The separate validation mode remains supplemental timing/diagnostic evidence.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -116,6 +116,7 @@ gate_selftest() {
   python3 scripts/explorer_result.py --self-test
   python3 scripts/ci_supply_chain.py --self-test
   python3 scripts/install_ci_tool.py --self-test
+  python3 scripts/ci_supply_chain.py
 }
 
 gate_build_libs() { lake build Henret HenretNative HenretExplore HenretMeta HenretExamples; }
@@ -480,7 +481,7 @@ fi
 
 # ------------------------------------------- release-core manifest (080-B / 097)
 if [ "$PACKAGE" = 1 ]; then
-  echo "== assembling release-core manifest (profile release-core-v3) =="
+  echo "== assembling release-core manifest (profile release-core-v4) =="
   mkdir -p release/logs
   cp "$LOGDIR"/gate-*.out "$LOGDIR"/gate-*.err release/logs/ 2>/dev/null || true
   VERSION=$(grep -oE 'v!"[0-9]+\.[0-9]+\.[0-9]+"' lakefile.lean | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
@@ -494,7 +495,7 @@ if [ "$PACKAGE" = 1 ]; then
   python3 scripts/source_archive.py "$TARBALL" --commit HEAD
   # release_manifest.py renders GATE-RUN.md and binds it by hash (RFC 095 §3.3);
   # RFC 103 profile: gates 0-11 are present, required, and passing.
-  HENRET_RELEASE_PROFILE=release-core-v3 \
+  HENRET_RELEASE_PROFILE=release-core-v4 \
     python3 scripts/release_manifest.py "$RECORDS" "$VERSION" "$TARBALL" \
       release/GATE-RUN.md > release/release-verification.json
   echo "wrote release/release-verification.json + release/GATE-RUN.md"

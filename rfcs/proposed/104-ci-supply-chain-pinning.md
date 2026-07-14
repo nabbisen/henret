@@ -14,7 +14,7 @@ category: security
 
 ## Status
 
-Proposed. Post-v0.34.6 hardening; required before the publication milestone.
+Proposed. Release-blocking for the v0.34.6 integrity milestone.
 
 ## Summary
 
@@ -24,10 +24,9 @@ and finish repository metadata needed for public package publication.
 
 ## Motivation
 
-Workflows currently use movable action tags and download `elan`/mdBook from
-`latest` without pinned artifact hashes. This is inconsistent with Henret's
-hash-oriented provenance posture. The package file also retains a repository
-URL placeholder.
+The reviewed baseline used movable action tags, let elan download the selected
+Lean toolchain without a retained archive digest, and discovered mdBook through
+`latest`. This is inconsistent with Henret's hash-oriented provenance posture.
 
 ## Non-goals
 
@@ -40,21 +39,28 @@ URL placeholder.
 
 1. Pin each GitHub Action to a full commit SHA, with a nearby human-readable
    version comment and an update procedure.
-2. Pin elan and mdBook versions and expected SHA-256 values. Verify before
-   extraction/execution.
+2. Pin the Lean toolchain and mdBook versions and expected SHA-256 values.
+   Verify before extraction/execution. Invoke the verified Lean distribution
+   directly rather than allowing elan to perform an unverified second-stage
+   toolchain download.
 3. Record action/tool identities and hashes in release evidence or a hashed CI
    policy file.
 4. Add a scheduled/manual dependency-refresh workflow that proposes reviewed
    pin updates without mutating release runs.
 5. Replace repository metadata placeholders with canonical values.
 
-The tracked source of truth is `ci/supply-chain.json`. Workflows spell out
+The tracked source of truth is `ci/supply-chain.json`. RFC 104 introduces
+`release-core-v4` / `rfc104-release-core-v4` rather than changing retained v3
+semantics. Workflows spell out
 each action commit (with a version comment) because GitHub Actions expressions
 cannot safely provide a dynamic `uses` ref. `scripts/ci_supply_chain.py` checks
 those literals against policy. Downloaded tools go through
 `scripts/install_ci_tool.py`, which downloads the versioned URL, verifies the
 policy digest before extraction, rejects unsafe archive members, and only then
 exposes the binary. Release manifests retain the full policy and its hash.
+Current-profile verification binds that policy to the source archive and
+requires explicit GitHub-hosted workflow provenance. A local run is always a
+non-authoritative precheck, even from a clean worktree.
 
 ## Implementation tasks
 
@@ -75,6 +81,9 @@ The repository metadata is already canonical at implementation time; the RFC
 - Pin identities are included in hashed release policy evidence.
 - Updating a pin requires a reviewable source change.
 - Package repository metadata has no placeholder.
+- The Lean selector and checksum-pinned archive version agree.
+- Current-profile verification rejects missing/drifted supply-chain evidence
+  and non-hosted provenance while retaining v1/v2/v3 compatibility.
 
 ## Risks
 

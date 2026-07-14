@@ -23,7 +23,7 @@ the filename is only a fetch convenience — RFC 096 D6.) Core fields (RFC 080):
 | field | meaning |
 |---|---|
 | `manifest_schema` | `1` |
-| `release_profile` | gate profile that produced it; current authoritative value is `release-core-v3` (RFC 103) |
+| `release_profile` | gate profile that produced it; current authoritative value is `release-core-v4` (RFC 104) |
 | `required_gates_passed` | bool — every required gate passed |
 | `package` | package name, e.g. `"henret"` |
 | `version` | release version |
@@ -34,9 +34,10 @@ the filename is only a fetch convenience — RFC 096 D6.) Core fields (RFC 080):
 | `human_summary` | `{ name, sha256 }` binding `GATE-RUN.md` (RFC 095 §3.3) |
 | `lake_manifest_sha256`, `lean_toolchain_sha256` | toolchain pins |
 | `os`, `runner` | build environment |
+| `hosted_ci` | exact GitHub repository/run/ref/workflow/commit, runner, architecture, and image identity; required and non-null in v4 |
 | `gate_policy` | per-gate-script SHA-256 plus the RFC 104 supply-chain policy hash |
 | `supply_chain` | exact GitHub Action commits and downloaded-tool versions, URLs, and SHA-256 digests governed by `ci/supply-chain.json` |
-| `gates` | gate records: `id`, stable `evidence_id`, `name`, `status`, `duration_ms`, log hashes, and `criticality`. Under `release-core-v3`, IDs 0–11 must all be present, `required`, and `pass`. |
+| `gates` | gate records: `id`, stable `evidence_id`, `name`, `status`, `duration_ms`, log hashes, and `criticality`. Under `release-core-v4`, IDs 0–11 must all be present, `required`, and `pass`. |
 | `validation_reports` | retained additive field for supplemental diagnostic reports; never substitutes for a required gate |
 | `runtime_package` | out-of-tree runtime posture (RFC 081) |
 
@@ -72,13 +73,15 @@ not) stays dirty even if its path resembles an excluded cache/tool path — path
 exclusions are safe for untracked artifacts but must never hide tracked source
 edits. `git_dirty_paths` lists exactly what counted as dirty.
 
-### Gate registry (RFC 102 / RFC 103)
+### Gate registry (RFC 102 / RFC 103 / RFC 104)
 
 Gate IDs appear in retained release evidence, so consumers key off
 `gate_registry` + `release_profile`, not raw IDs. RFC 102 introduced the
-retained `rfc102-release-core-v2` mapping for gates 0–10. RFC 103 adds, rather
-than redefines it, with current registry `rfc103-release-core-v3`. Its stable
-semantic IDs are the targets used by `docs/evidence-ledger.yaml`:
+retained `rfc102-release-core-v2` mapping for gates 0–10. RFC 103 added
+`rfc103-release-core-v3` with gate 11 and stable semantic IDs. RFC 104 retains
+those gate meanings under the new current registry `rfc104-release-core-v4`
+and strengthens run/input provenance rather than mutating v3. Its semantic IDs
+are the targets used by `docs/evidence-ledger.yaml`:
 
 | id | evidence_id | gate | criticality |
 |----|-------------|------|-------------|
@@ -113,24 +116,26 @@ finishes later retains a separate workflow artifact
 writes to the frozen release. Its results are diagnostic only; gates 2 and 4
 must already have passed in the current release core.
 
-### Release profiles (RFC 102 / RFC 103)
+### Release profiles (RFC 102 / RFC 103 / RFC 104)
 
-The CI-authoritative, sidecar-publishing profile is `release-core-v3`. It runs
+The CI-authoritative, sidecar-publishing profile is `release-core-v4`. It runs
 all required gates 0–11 at the exact candidate commit, including bounded
 interpreted demo/conformance/explorer and mdBook. The explorer record carries
 the canonical world `{maxTask: 2, maxActor: 2, maxMsg: 1, maxTime: 2}` at
 depth 3, plus its result, duration, and output hash. Different or shallower
-bounds are not authoritative v3 evidence. `explorer_result.py` derives both
+bounds are not authoritative v4 evidence. `explorer_result.py` derives both
 `parameters` and `result` from the executed machine-readable line; the
 generator and verifier reject missing/false outcomes or disagreement between
 executed and recorded parameters. The explorer parser, manifest generator, and
 verifier apply the same strict schema: exact object keys, JSON boolean/integer
 types without Python-style coercion, and no duplicate object keys at any depth.
-`verify_release_manifest.py` rejects a v3 sidecar with the wrong registry or
+`verify_release_manifest.py` rejects a v4 sidecar with the wrong registry or
 semantic IDs, an incomplete gate set, any non-passing result, malformed
-explorer evidence, a dirty tree, a local-only run, or a non-exact commit.
-Legacy `ci-core-v1` and `release-core-v2` manifests retain their historical
-interpretations.
+explorer evidence, a dirty tree, a local-only run, or a non-exact commit. V4
+also requires exact hosted-CI provenance and binds the embedded supply-chain
+policy plus its checker hashes to the corresponding source-archive bytes.
+Legacy `ci-core-v1`, `release-core-v2`, and `release-core-v3` manifests retain
+their historical interpretations.
 
 ### Verifying a per-package release
 
@@ -139,7 +144,7 @@ recomputes the tarball SHA-256, compares it to `tarball_sha256` and
 `source_archive`, confirms every gate is `pass`, and (when given) checks the
 `GATE-RUN.md` hash binding. `--require-current` prevents an older profile from being
 accepted where the current authoritative profile is required. For versioned
-v2/v3 profiles, the
+v2/v3/v4 profiles, the
 exact candidate commit must be a full 40-character lowercase hexadecimal SHA-1
 object ID; abbreviations and arbitrary labels are rejected. Non-zero exit on
 any mismatch.

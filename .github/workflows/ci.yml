@@ -1,6 +1,6 @@
 name: release-gate
 
-# RFC 080 / RFC 102 / RFC 103: CI is the authoritative release evidence source. Pull
+# RFC 080 / RFC 102 / RFC 103 / RFC 104: hosted CI is the authoritative release evidence source. Pull
 # requests run the fast gate; pushes to main and version-tag pushes run the
 # release-core gate. That exact-commit gate requires build/proofs, bounded
 # interpreted demo/conformance/explorer, documentation+mdBook, audit, and packaging.
@@ -28,14 +28,11 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
-      - name: Install elan + Lean toolchain
+      - name: Install checksum-pinned Lean toolchain
         run: |
-          # Install into /tmp so the elan-init binary never lands in the
-          # checkout (it is untracked + not in the tarball excludes, so it
-          # would otherwise dirty the source tree AND pollute the archive).
-          python3 scripts/install_ci_tool.py elan --destination /tmp/henret-elan
-          /tmp/henret-elan/elan-init -y --default-toolchain "$(cat lean-toolchain)"
-          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          python3 scripts/install_ci_tool.py lean --destination /tmp/henret-lean
+          echo "/tmp/henret-lean/lean-4.15.0-linux/bin" >> "$GITHUB_PATH"
+          /tmp/henret-lean/lean-4.15.0-linux/bin/lean --version
 
       - name: Cache Lake build
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -55,7 +52,7 @@ jobs:
         run: bash scripts/check.sh --fast
 
       - name: Release-core gate (push / tag - authoritative)
-        # RFC 103 release-core-v3: every gate 0-11 is required. Demo,
+        # RFC 104 release-core-v4: every gate 0-11 is required. Demo,
         # conformance, and explorer run interpreted under fail-closed timeouts;
         # mdBook runs at this exact commit before packaging/publication.
         if: github.event_name == 'push'

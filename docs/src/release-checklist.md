@@ -92,15 +92,22 @@ The builder uses `git archive` with repository-independent `tar.umask=0022`,
 validates every member and its Git-derived mode, rejects internal paths and
 gitlinks/submodules, and requires two builds to be byte-identical.
 
-## Release profiles (RFC 102 / RFC 103)
+## Release profiles (RFC 102 / RFC 103 / RFC 104)
 
 - [ ] the published sidecar is produced by **`check.sh --release-core`** in CI
-      (the `release-core-v3` profile): gates 0–11, canonical tarball, and
+      (the `release-core-v4` profile): gates 0–11, canonical tarball, and
       manifest. Demo, conformance, explorer, and mdBook are required; executable
       timeouts are failures. Publish only when `required_gates_passed: true`.
-- [ ] the manifest names `gate_registry: rfc103-release-core-v3` and contains
+- [ ] the manifest names `gate_registry: rfc104-release-core-v4` and contains
       one passing `required` record for every gate ID 0–11, with the registered
       semantic `evidence_id` on each record.
+- [ ] gate 0 validates every `.yml`/`.yaml` workflow against
+      `ci/supply-chain.json`; Lean and mdBook are installed only from their
+      versioned, checksum-verified archives.
+- [ ] the manifest's embedded supply-chain policy and policy/checker hashes
+      match the corresponding files inside the canonical source archive.
+- [ ] `local_precheck` is false and `hosted_ci` identifies the exact
+      GitHub-hosted CI run, workflow commit, candidate commit, runner, and image.
 
 ## Publishing & provenance (RFC 095)
 

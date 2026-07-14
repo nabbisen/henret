@@ -253,21 +253,22 @@ for the per-package and `stack_manifest_schema` shapes and the
 vouch for, or gate downstream packages — the stack contract is a format and
 composition agreement, not a trust delegation.
 
-The sidecar is produced under the CI-authoritative `release-core-v3` profile
-(RFC 102 / RFC 103). It certifies the source archive, exact commit, toolchain/manifest
+The sidecar is produced under the CI-authoritative `release-core-v4` profile
+(RFC 102 / RFC 103 / RFC 104). It certifies the source archive, exact commit, toolchain/manifest
 pins, Lean kernel build, strict axiom audit, bounded interpreted demo and
 exhaustive conformance, repository documentation and mdBook, warning budget,
-gate-policy hashes, bounded explorer execution, and packaging integrity. All
+gate-policy hashes, supply-chain policy/archive binding, GitHub-hosted workflow
+provenance, bounded explorer execution, and packaging integrity. All
 gate IDs 0–11 are required and carry stable semantic evidence IDs.
 Pin the henret edge on the sidecar manifest hash (RFC 096).
 
 This is **hash-only** verification: it trusts the channel the manifest was
 fetched over.
 
-For RFC 103 `release-core-v3` manifests, the verifier checks:
+For RFC 104 `release-core-v4` manifests, the verifier checks:
 
-1. `release_profile` is `release-core-v3` and `gate_registry` is
-   `rfc103-release-core-v3`;
+1. `release_profile` is `release-core-v4` and `gate_registry` is
+   `rfc104-release-core-v4`;
 2. `required_gates_passed` is `true`;
 3. gate IDs 0–11 occur exactly once and no other gate ID occurs;
 4. every gate is `required` with `status: pass` and the registry's semantic
@@ -275,10 +276,13 @@ For RFC 103 `release-core-v3` manifests, the verifier checks:
 5. `git_dirty` and `local_precheck` are false and `git_commit` is a full
    40-character lowercase hexadecimal SHA-1 object ID;
 6. explorer parameters, duration, and output hash are present and valid;
-7. supplemental validation reports do not replace any required result.
+7. the embedded supply-chain policy and checker hashes match the actual source
+   archive bytes; and
+8. exact GitHub-hosted run/workflow/commit/runner-image provenance is present,
+   while supplemental validation reports replace no required result.
 
 Pass `--require-current` when the caller requires the current authoritative profile;
-without it, strict versioned checks apply when a manifest declares v2 or v3
+without it, strict versioned checks apply when a manifest declares v2, v3, or v4
 while valid legacy profiles remain readable. `verify_release_manifest.py` therefore
 retains legacy manifest compatibility without allowing profile downgrade in
 the current consumer recipe. Cryptographic signing is a planned additive extension (a future

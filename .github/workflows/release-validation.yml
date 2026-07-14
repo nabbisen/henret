@@ -23,14 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
-      - name: Install elan + Lean toolchain
+      - name: Install checksum-pinned Lean toolchain
         run: |
-          # Install into /tmp so the elan-init binary never lands in the
-          # checkout (it is untracked + not in the tarball excludes, so it
-          # would otherwise dirty the source tree AND pollute the archive).
-          python3 scripts/install_ci_tool.py elan --destination /tmp/henret-elan
-          /tmp/henret-elan/elan-init -y --default-toolchain "$(cat lean-toolchain)"
-          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          python3 scripts/install_ci_tool.py lean --destination /tmp/henret-lean
+          echo "/tmp/henret-lean/lean-4.15.0-linux/bin" >> "$GITHUB_PATH"
+          /tmp/henret-lean/lean-4.15.0-linux/bin/lean --version
 
       - name: Cache Lake build
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4

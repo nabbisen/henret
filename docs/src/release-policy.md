@@ -60,12 +60,15 @@ minor versions. The proof/trust/test matrix and the axiom budget are the
 stable contract — what is proven stays proven, and the axiom set does not
 grow silently.
 
-## Release profiles (RFC 102 / RFC 103)
+## Release profiles (RFC 102 / RFC 103 / RFC 104)
 
-The CI-authoritative sidecar is produced by `release-core-v3`. Gates 0–11 are
+The CI-authoritative sidecar is produced by `release-core-v4`. Gates 0–11 are
 required, including bounded interpreted demo, exhaustive conformance, and
 model explorer plus the mdBook/documentation gate at the exact candidate
 commit. Stable semantic evidence IDs bind ledger claims to these gate records.
+Gate 0 also validates exact action commits, checksum-pinned Lean/mdBook
+archives, workflow coverage, and package metadata. Authoritative evidence must
+come from the recorded GitHub-hosted workflow; every local run is a precheck.
 Timeout or nonzero exit blocks publication. The separate release-validation
 workflow is supplemental timing/diagnostic evidence only; see the release
 checklist and the [release manifest schema](release-manifest-schema.md).

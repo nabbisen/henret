@@ -5,17 +5,25 @@ is `ci/supply-chain.json`:
 
 - GitHub Actions are identified by full commit SHA. Workflow comments retain
   the human-readable major version.
-- elan and mdBook use versioned GitHub release URLs and SHA-256 digests from
-  the official release metadata.
+- Lean v4.15.0 and mdBook use versioned GitHub release URLs and SHA-256
+  digests. The older Lean release predates GitHub's asset-digest metadata, so
+  its retained digest was independently computed from the official versioned
+  asset. Release workflows invoke this verified Lean distribution directly
+  and do not permit elan to fetch a second-stage toolchain.
 - `scripts/install_ci_tool.py` verifies the downloaded archive before any
-  extraction or execution and rejects path traversal and link members.
+  extraction or execution and rejects traversal, links/special files,
+  duplicate members, and unsupported archive types.
 - `scripts/ci_supply_chain.py` rejects movable action refs, unregistered
-  actions, `latest` downloads, missing digests, workflow/policy disagreement,
-  and placeholder package metadata.
+  actions, `.yml`/`.yaml` workflow-policy drift, direct workflow downloads,
+  `latest` downloads, missing digests, installer-call disagreement, Lean
+  selector drift, and placeholder package metadata.
 
-The monthly/manual `supply-chain-refresh` workflow only compares pins with
-upstream refs. It does not edit source, update a release, or fall back to a
-movable version. A reported update is handled as a normal reviewed change:
+The monthly/manual `supply-chain-refresh` workflow compares action and mdBook
+pins with upstream refs and confirms the repository-locked Lean release still
+exists. A newer Lean compiler is a language/toolchain migration, not an
+automatic supply-chain refresh. The workflow does not edit source, update a
+release, or fall back to a movable version. A reported update is handled as a
+normal reviewed change:
 
 1. inspect the official upstream release and changelog;
 2. update `ci/supply-chain.json` and every corresponding workflow literal;
@@ -33,3 +41,15 @@ failure evidence, stop publication, and investigate upstream provenance.
 Release manifests retain the complete policy and its policy-file hash. This
 records what the run trusted; checksum pinning does not prove that upstream
 bytes themselves are trustworthy.
+
+## Hosted runner trust boundary
+
+The checksum policy does not make the full GitHub-hosted environment immutable.
+The trusted substrate still includes the selected runner image, Linux kernel,
+shell/coreutils, Python, Git, TLS roots, GitHub Actions service, artifact
+service, and the runner-provided `gh` publication client. Current manifests
+therefore retain repository/run/ref/workflow identity, runner environment,
+architecture, and image OS/version. The v4 verifier requires GitHub-hosted
+provenance and rejects local prechecks, but these fields identify rather than
+cryptographically reproduce that base TCB. Unexpected runner-image or `gh`
+changes must be evaluated as release-environment changes before publication.

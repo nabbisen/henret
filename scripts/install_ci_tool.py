@@ -8,10 +8,13 @@ import hashlib
 import io
 import json
 import shutil
+import stat
 import sys
 import tarfile
 import tempfile
 import urllib.request
+import warnings
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -36,12 +39,37 @@ def verify_digest(path: Path, expected: str) -> None:
 def safe_extract(archive: Path, destination: Path) -> None:
     destination = destination.resolve()
     with tarfile.open(archive, "r:gz") as bundle:
+        names: set[str] = set()
         for member in bundle.getmembers():
             target = (destination / member.name).resolve()
             if (target != destination and destination not in target.parents) or \
-                    member.issym() or member.islnk():
+                    not (member.isfile() or member.isdir()) or member.name in names:
                 raise ValueError(f"unsafe archive member: {member.name!r}")
+            names.add(member.name)
+        try:
+            bundle.extractall(destination, filter="data")
+        except TypeError:  # Python < 3.12: the strict pre-scan remains binding.
+            bundle.extractall(destination)
+
+
+def safe_extract_zip(archive: Path, destination: Path) -> None:
+    destination = destination.resolve()
+    with zipfile.ZipFile(archive) as bundle:
+        names: set[str] = set()
+        for member in bundle.infolist():
+            target = (destination / member.filename).resolve()
+            mode = member.external_attr >> 16
+            kind = stat.S_IFMT(mode)
+            supported = member.is_dir() or kind in (0, stat.S_IFREG)
+            if (target != destination and destination not in target.parents) or \
+                    not supported or member.filename in names:
+                raise ValueError(f"unsafe archive member: {member.filename!r}")
+            names.add(member.filename)
         bundle.extractall(destination)
+        for member in bundle.infolist():
+            mode = (member.external_attr >> 16) & 0o777
+            if mode and not member.is_dir():
+                (destination / member.filename).chmod(mode)
 
 
 def install(tool_name: str, destination: Path) -> Path:
@@ -52,14 +80,20 @@ def install(tool_name: str, destination: Path) -> Path:
         raise ValueError(f"unknown pinned tool {tool_name!r}") from exc
     destination.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=f"henret-{tool_name}-") as td:
-        archive = Path(td) / "tool.tar.gz"
+        archive_kind = tool.get("archive")
+        if archive_kind not in ("tar.gz", "zip"):
+            raise ValueError(f"unsupported archive format {archive_kind!r}")
+        archive = Path(td) / ("tool.zip" if archive_kind == "zip" else "tool.tar.gz")
         request = urllib.request.Request(
             tool["url"], headers={"User-Agent": "henret-rfc104-installer/1"})
         with urllib.request.urlopen(request, timeout=60) as response, \
                 archive.open("wb") as output:
             shutil.copyfileobj(response, output)
         verify_digest(archive, tool["sha256"])
-        safe_extract(archive, destination)
+        if archive_kind == "zip":
+            safe_extract_zip(archive, destination)
+        else:
+            safe_extract(archive, destination)
     binary = destination / tool["binary"]
     if not binary.is_file():
         raise ValueError(f"verified archive did not contain {tool['binary']!r}")
@@ -97,7 +131,26 @@ def self_test() -> int:
                 failures += 1
             except ValueError:
                 pass
-    print(f"install-ci-tool-selftest: valid + 2 unsafe archive fixtures; "
+
+        zip_path = root / "duplicate.zip"
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            with zipfile.ZipFile(zip_path, "w") as bundle:
+                bundle.writestr("tool", b"one")
+                bundle.writestr("tool", b"two")
+        try:
+            safe_extract_zip(zip_path, root / "duplicate")
+            failures += 1
+        except ValueError:
+            pass
+        fifo = tarfile.TarInfo("fifo")
+        fifo.type = tarfile.FIFOTYPE
+        try:
+            safe_extract(archive("fifo.tar.gz", fifo), root / "fifo")
+            failures += 1
+        except ValueError:
+            pass
+    print(f"install-ci-tool-selftest: valid + 4 unsafe archive fixtures; "
           f"{failures} error(s)")
     return 1 if failures else 0
 

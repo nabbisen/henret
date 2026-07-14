@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Versioned release gate registries (RFC 102 / RFC 103).
+"""Versioned release gate registries (RFC 102 / RFC 103 / RFC 104).
 
 Numeric IDs remain in manifests for compatibility and ordering. Evidence
 ledger claims bind to stable semantic IDs, which must not be reused with a
@@ -10,7 +10,9 @@ V2_PROFILE = "release-core-v2"
 V2_REGISTRY = "rfc102-release-core-v2"
 V3_PROFILE = "release-core-v3"
 V3_REGISTRY = "rfc103-release-core-v3"
-ACTIVE_PROFILE = V3_PROFILE
+V4_PROFILE = "release-core-v4"
+V4_REGISTRY = "rfc104-release-core-v4"
+ACTIVE_PROFILE = V4_PROFILE
 
 V2_GATES = {
     0: "gate.selftest",
@@ -27,6 +29,7 @@ V2_GATES = {
 }
 
 V3_GATES = {**V2_GATES, 11: "test.explorer"}
+V4_GATES = dict(V3_GATES)
 
 V3_EXPLORER_PARAMETERS = {
     "world": {"maxTask": 2, "maxActor": 2, "maxMsg": 1, "maxTime": 2},
@@ -63,6 +66,7 @@ EVIDENCE_CAPABILITIES = {
 PROFILES = {
     V2_PROFILE: {"registry": V2_REGISTRY, "gates": V2_GATES},
     V3_PROFILE: {"registry": V3_REGISTRY, "gates": V3_GATES},
+    V4_PROFILE: {"registry": V4_REGISTRY, "gates": V4_GATES},
 }
 
 
@@ -71,7 +75,7 @@ def profile_contract(profile: str) -> dict | None:
 
 
 def active_evidence_ids() -> set[str]:
-    return set(V3_GATES.values())
+    return set(V4_GATES.values())
 
 
 def evidence_capability(evidence_id: str) -> str | None:

@@ -7,8 +7,8 @@
 #
 #   scripts/check_docs.sh
 #
-# The book targets the mdBook 0.5 line. CI installs the latest mdBook release
-# (see .github/workflows/docs.yml); locally, any recent mdBook 0.5.x works.
+# The book targets the mdBook 0.5 line. CI installs the exact checksum-pinned
+# policy release (see ci/supply-chain.json); locally, compatible 0.5.x works.
 # Requires `mdbook` on PATH (https://rust-lang.github.io/mdBook/).
 set -euo pipefail
 cd "$(dirname "$0")/.."

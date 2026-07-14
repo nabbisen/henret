@@ -30,7 +30,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from gate_registry import PROFILES, V2_PROFILE, V3_PROFILE
+from gate_registry import PROFILES, V2_PROFILE, V3_PROFILE, V4_PROFILE
 from explorer_result import strict_json_loads, validate_manifest_evidence
 
 records_path, version, tarball = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -75,15 +75,15 @@ if inside and inside.returncode == 0 and inside.stdout.strip() == "true":
 
     dirty_paths = [line[3:] for line in st if line.strip() and not _excusable(line)]
     dirty = bool(dirty_paths)
-    local_precheck = False
+    local_precheck = os.environ.get("GITHUB_ACTIONS") != "true"
 else:
     commit, dirty, local_precheck, dirty_paths = None, False, True, []
 
 gates = [strict_json_loads(l) for l in Path(records_path).read_text().splitlines()
          if l.strip()]
 
-# RFC 102 adds v2 (gates 0-10); RFC 103 adds v3 (gates 0-11 plus stable
-# evidence IDs). Legacy profiles remain readable and are never redefined.
+# RFC 102 adds v2, RFC 103 adds v3, and RFC 104 adds v4 supply-chain/hosted-CI
+# provenance. Legacy profiles remain readable and are never redefined.
 release_profile = os.environ.get("HENRET_RELEASE_PROFILE", "full")
 ADVISORY_IDS = {2: "demo regression scenarios", 4: "golden conformance suite"}
 for g in gates:
@@ -99,7 +99,7 @@ if release_profile == "ci-core-v1":
                 "reason": "advisory executable validation; runs in the "
                           "release-validation workflow (RFC 097)",
             })
-if release_profile in (V2_PROFILE, V3_PROFILE):
+if release_profile in (V2_PROFILE, V3_PROFILE, V4_PROFILE):
     contract = PROFILES[release_profile]
     ids = [g.get("id") for g in gates]
     if any(type(gate_id) is not int for gate_id in ids):
@@ -111,7 +111,7 @@ if release_profile in (V2_PROFILE, V3_PROFILE):
                          f"gate IDs {sorted(expected_ids)}; observed {ids}")
     if any(g.get("status") != "pass" for g in gates):
         raise SystemExit(f"release_manifest: {release_profile} contains a non-pass gate")
-    if release_profile == V3_PROFILE:
+    if release_profile in (V3_PROFILE, V4_PROFILE):
         for gate in gates:
             expected = contract["gates"][gate["id"]]
             if gate.get("evidence_id") != expected:
@@ -142,8 +142,26 @@ SUPPLY_CHAIN_POLICY = Path("ci/supply-chain.json")
 gate_policy["ci_supply_chain_json_sha256"] = sha256_file(SUPPLY_CHAIN_POLICY)
 supply_chain = strict_json_loads(SUPPLY_CHAIN_POLICY.read_text())
 
-runner = "github-actions" if os.environ.get("GITHUB_ACTIONS") \
+runner = "github-actions" if os.environ.get("GITHUB_ACTIONS") == "true" \
     else os.environ.get("RUNNER_NAME", "local")
+
+hosted_ci = None
+if os.environ.get("GITHUB_ACTIONS") == "true":
+    hosted_ci = {
+        "repository": os.environ.get("GITHUB_REPOSITORY"),
+        "run_id": os.environ.get("GITHUB_RUN_ID"),
+        "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+        "ref": os.environ.get("GITHUB_REF"),
+        "sha": os.environ.get("GITHUB_SHA"),
+        "workflow_ref": os.environ.get("GITHUB_WORKFLOW_REF"),
+        "workflow_sha": os.environ.get("GITHUB_WORKFLOW_SHA"),
+        "runner_environment": os.environ.get("RUNNER_ENVIRONMENT"),
+        "runner_name": os.environ.get("RUNNER_NAME"),
+        "runner_os": os.environ.get("RUNNER_OS"),
+        "runner_arch": os.environ.get("RUNNER_ARCH"),
+        "image_os": os.environ.get("ImageOS"),
+        "image_version": os.environ.get("ImageVersion"),
+    }
 
 tarball_sha = sha256_file(tarball)
 tarball_size = Path(tarball).stat().st_size if Path(tarball).exists() else None
@@ -153,7 +171,7 @@ manifest = {
     "generated_by": "scripts/check.sh --release-core",
     "package": "henret",
     "version": version,
-    # Registry meaning is immutable: RFCs 102/103 create new registries rather
+    # Registry meaning is immutable: RFCs 102-104 create new registries rather
     # than changing a retained profile in place.
     "gate_registry": (PROFILES[release_profile]["registry"]
                       if release_profile in PROFILES else "rfc097-ci-core-v1"),
@@ -176,6 +194,7 @@ manifest = {
     "lean_toolchain_sha256": sha256_file("lean-toolchain"),
     "os": platform.platform(),
     "runner": runner,
+    "hosted_ci": hosted_ci,
     "gate_policy": gate_policy,
     # RFC 104: exact action commits and downloaded-tool URL/digests retained
     # beside a hash of the tracked policy that governed this run.
@@ -210,6 +229,11 @@ def render_gate_run(m):
                f"({m['source_archive']['size_bytes']} bytes)")
     out.append(f"- tarball_sha256: `{m['tarball_sha256']}`")
     out.append(f"- os: {m['os']}  runner: {m['runner']}\n")
+    if m.get("hosted_ci"):
+        hosted = m["hosted_ci"]
+        out.append(f"- hosted_ci: `{hosted['repository']}` run "
+                   f"`{hosted['run_id']}` attempt `{hosted['run_attempt']}`; "
+                   f"image `{hosted['image_os']}@{hosted['image_version']}`\n")
     out.append("| id | evidence_id | gate | criticality | status | ms |")
     out.append("|----|-------------|------|-------------|--------|----|")
     for g in sorted(m["gates"], key=lambda x: x.get("id", 0)):

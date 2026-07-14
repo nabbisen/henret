@@ -33,7 +33,7 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: build.lean
   external_version: null
   notes: reachable_wf in Henret/Proofs/InvariantsPreservation.lean
@@ -44,7 +44,7 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: build.lean
   external_version: null
   notes: reachable_occurrence_unique in Henret/Proofs/Occurrence.lean
@@ -55,7 +55,7 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: build.lean
   external_version: null
   notes: reachable_parent_lt, parent_chain_terminates in Henret/Proofs/Parenthood.lean
@@ -66,7 +66,7 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: build.lean
   external_version: null
   notes: reachable_spawned_has_owner, reachable_owner_spawned (RFC 038)
@@ -77,7 +77,7 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: build.lean
   external_version: null
   notes: bridge_step_single_worker in Henret/Bridge/Preservation.lean
@@ -88,7 +88,7 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: build.lean
   external_version: null
   notes: reachable_multi_bridge in Henret/Bridge/MultiState.lean (RFC 043)
@@ -99,7 +99,7 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: build.lean
   external_version: null
   notes: core_le_actor, actor_le_full, core_le_full (RFC 054)
@@ -110,7 +110,7 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: build.lean
   external_version: null
   notes: restart_preserves_parent_acyclicity, restarted_task_has_owner (RFC 049)
@@ -121,7 +121,7 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: build.lean
   external_version: null
   notes: closed_actor_rejects_send/inject, shutdown_rejects_spawn (RFC 055)
@@ -132,7 +132,7 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: build.lean
   external_version: null
   notes: ready_eventually_scheduled_under_bounded_fairness (RFC 046)
@@ -143,7 +143,7 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: build.lean
   external_version: null
   notes: stepTrace_state_eq_step, runTraceLedger_state_eq_run (RFC 045)
@@ -155,7 +155,7 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: proof.axiom-audit
   external_version: null
   notes: Six NativeDeque axioms in Henret/Native/Assumptions.lean; audited as exactly six. The C implementation they trust is out-of-tree.
@@ -178,7 +178,7 @@
   evidence_location: in_tree_model_test
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: test.demo
   external_version: null
   notes: Authoritative gate 2 runs interpreted with lake env lean --run Main.lean; lake exe henret-demo is the standalone native command.
@@ -189,7 +189,7 @@
   evidence_location: in_tree_model_test
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: test.conformance
   external_version: null
   notes: Authoritative gate 4 runs interpreted with lake env lean --run Conformance.lean; lake exe henret-conformance is standalone; conformance_suite_passes is also PROVEN.
@@ -200,7 +200,7 @@
   evidence_location: in_tree_model_test
   verified_by_this_tarball: true
   verified_by_ci: true
-  ci_profile: release-core-v3
+  ci_profile: release-core-v4
   ci_gate: test.explorer
   external_version: null
   notes: Authoritative gate 11 runs interpreted with lake env lean --run Explore.lean and parses its machine result; lake exe henret-explore is standalone.

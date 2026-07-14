@@ -15,17 +15,26 @@
     }
   },
   "tools": {
-    "elan": {
-      "version": "v4.2.3",
-      "url": "https://github.com/leanprover/elan/releases/download/v4.2.3/elan-x86_64-unknown-linux-gnu.tar.gz",
-      "sha256": "df0b2b3a439961ffcbb3985214365ffe40f49bc871df04dff268c7d8e21ca8b2",
-      "binary": "elan-init"
+    "lean": {
+      "version": "v4.15.0",
+      "platform": "linux-x86_64",
+      "url": "https://github.com/leanprover/lean4/releases/download/v4.15.0/lean-4.15.0-linux.zip",
+      "sha256": "8eceac177fe2e2828f71add0d458e6a91187ce6d4f67d0f0364061b9e3dca59b",
+      "archive": "zip",
+      "binary": "lean-4.15.0-linux/bin/lean"
     },
     "mdbook": {
       "version": "v0.5.4",
       "url": "https://github.com/rust-lang/mdBook/releases/download/v0.5.4/mdbook-v0.5.4-x86_64-unknown-linux-gnu.tar.gz",
       "sha256": "3f28de05dafca9d0f2eab99c662116b0e37b89b1d96a08f8f430b9eeae958cd7",
+      "archive": "tar.gz",
       "binary": "mdbook"
     }
+  },
+  "workflow_tools": {
+    "ci.yml": ["lean", "mdbook"],
+    "docs.yml": ["mdbook"],
+    "release-validation.yml": ["lean"],
+    "supply-chain-refresh.yml": []
   }
 }

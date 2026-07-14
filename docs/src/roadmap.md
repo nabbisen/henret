@@ -23,8 +23,8 @@ to start around M1.
 | Milestone | Release target | Theme | RFCs | Exit condition |
 |---|---|---|---|---|
 | **M0 — Planning baseline** | current | Convert review findings into owned work | 098–104 | Roadmap, RFC metadata, and indexes agree on scope and order |
-| **M1 — Release integrity** | **v0.34.6** | Repair the release and evidence boundary without semantic expansion | 098–103 | Every blocking review finding is closed; the patch release is produced only from the repaired gates |
-| **M2 — Maintainability and policy** | v0.35 candidate | Reduce proof cost, settle module/API policy, pin CI inputs | 062, 068, 063, 070, 104 | The large proof modules have an agreed decomposition, public API policy is explicit, and CI inputs are immutable |
+| **M1 — Release integrity** | **v0.34.6** | Repair the release, evidence, and CI-input boundary without semantic expansion | 098–104 | Every blocking review finding is closed; the patch release is produced only from immutable, verified inputs and repaired gates |
+| **M2 — Maintainability and policy** | v0.35 candidate | Reduce proof cost and settle module/API policy | 062, 068, 063, 070 | The large proof modules have an agreed decomposition and public API policy is explicit |
 | **M3 — Bridge contract spine** | v0.36 candidate | State precisely what the bridge and adapter preserve | 074 → 072 → 065 | Coverage, observability, and equivalence contracts are machine-checkable |
 | **M4 — External conformance** | v0.37 candidate | Connect external runtimes to the semantic contracts | 061 → 060 → 073 and 066 → 067, in parallel after 065 | Adapter, certificate, negative-test, replay, and semantic-diff evidence share one observable contract |
 | **M5 — Profiles and publication** | v0.38+ candidate | Extend and explain a stable surface | 071, 076, 077, 078, 079 | Profiles are governed and publication material describes the stabilized API and evidence |
@@ -52,10 +52,14 @@ claim.
    rules in contributor and release documentation.
 6. **Evidence binding — RFC 103.** Execute the explorer as a bounded named gate
    and permit “CI verified” claims only when evidence names a gate that ran.
+7. **Supply-chain pinning — RFC 104.** Pin Actions and downloaded Lean/mdBook
+   archives, bind their policy and checker hashes into v4 release evidence, and
+   accept authoritative evidence only from the recorded GitHub-hosted CI run.
 
 RFCs 098–101 may be implemented in parallel after acceptance. RFC 102 consumes
-their gate and documentation contracts; RFC 103 follows RFC 102. The milestone
-closes only when all six RFC acceptance criteria pass from a clean checkout at
+their gate and documentation contracts; RFC 103 follows RFC 102, and RFC 104
+consumes the archive/publication/gate contracts. The milestone closes only when
+all seven RFC acceptance criteria pass in the GitHub-hosted workflow at
 the exact candidate commit. A new v0.34.6 sidecar is then generated; the
 v0.34.5 evidence record is never rewritten.
 
@@ -70,7 +74,7 @@ v0.34.5 evidence record is never rewritten.
 | B05: release docs and workflow triggers disagree | 102 | One release-core contract, exact candidate commit |
 | B06: explorer is claimed but not executed | 103 | Named bounded explorer gate and evidence binding |
 | B07: demo/conformance are optional | 102 | Required blocking release-core gates |
-| Supply-chain inputs are mutable | 104 (M2) | Immutable action/tool references and metadata |
+| Supply-chain inputs are mutable | 104 (M1) | Immutable action/tool references, verified archives, and hosted-run provenance |
 
 ## M2 — maintainability and policy
 
@@ -81,7 +85,6 @@ M2 starts only after v0.34.6 is complete. Its order is:
    split the large lifecycle and claim modules along reviewed boundaries.
 3. Resolve RFC 070's public-theorem/API policy against the resulting module
    surface.
-4. Implement RFC 104 CI supply-chain pinning before any publication milestone.
 
 This milestone deliberately carries no new semantic operation. It addresses
 the review's maintainability warning before the bridge/adapter work expands the
@@ -104,7 +107,7 @@ The remaining proposals are sequenced by contract dependency:
     -> 079 publication and community review
 ```
 
-RFC 104 must also be complete before RFC 079. Each milestone must update this
+RFC 104 is release-blocking in M1 and must remain complete before RFC 079. Each milestone must update this
 roadmap and RFC metadata if an accepted RFC changes these edges.
 
 `depends_on` is the authoritative scheduling relation. `blocks` is an optional
@@ -129,8 +132,8 @@ RFC:
 
 - A release milestone is complete only when its RFC acceptance criteria and
   required named gates pass at the exact release commit.
-- The v0.34.6 release decision must explicitly accept the residual risk that
-  movable CI action/tool inputs remain until RFC 104 closes in M2.
+- The v0.34.6 release decision requires RFC 104 closure; no residual movable
+  action or downloaded-tool identity may be accepted for publication.
 - New operations wait until M1 and M2 close.
 - Every new operation ships with preservation across all `WellFormed` fields,
   per-branch behavior theorems, conformance scenarios, an axiom-audit entry,

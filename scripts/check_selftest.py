@@ -12,7 +12,7 @@ Checks (080-C):
   3. the doc-symbol check has a non-empty target/symbol set
   4. the stale-phrase / generated-doc consistency check has non-empty targets
   5. the warning-budget gate is wired
-  6. RFC 103 active release-core selects validation, packaging, docs, explorer
+  6. active release-core selects validation, packaging, docs, explorer
   7. numeric and semantic gate IDs match the active versioned registry
 """
 import re
@@ -87,15 +87,15 @@ if "ground truth" not in r.stdout:
 if not re.search(r'run_gate\s+\d+\s+"[^"]+"\s+"[^"]*warning', CHECK_SH, re.I):
     err("warning-budget gate is not wired in check.sh")
 
-# 6. RFC 103 release-core composition ---------------------------------------
+# 6. active release-core composition ---------------------------------------
 if not re.search(r'--release-core\)\s+CORE=1;\s+VALID=1;\s+PACKAGE=1', CHECK_SH):
     err("release-core does not select required executable validation + packaging")
 if not re.search(r'run_gate\s+10\s+"docs\.mdbook"\s+"mdBook documentation integrity"', CHECK_SH):
     err("release-core exact-commit mdBook gate is not wired")
 if not re.search(r'run_gate\s+11\s+"test\.explorer"\s+"bounded model explorer"', CHECK_SH):
     err("release-core bounded explorer gate is not wired")
-if "HENRET_RELEASE_PROFILE=release-core-v3" not in CHECK_SH:
-    err("release-core does not select the RFC 103 v3 profile")
+if f"HENRET_RELEASE_PROFILE={ACTIVE_PROFILE}" not in CHECK_SH:
+    err(f"release-core does not select active profile {ACTIVE_PROFILE}")
 if 'if [ "$status" != pass ] && [ "$advisory" = 0 ]' not in CHECK_SH:
     err("required timeout/failure is not fail-closed")
 
