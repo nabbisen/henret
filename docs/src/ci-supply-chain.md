@@ -13,15 +13,17 @@ is `ci/supply-chain.json`:
 - `scripts/install_ci_tool.py` verifies the downloaded archive before any
   extraction or execution and rejects traversal, links/special files,
   normalized-path aliases/duplicates, and unsupported archive types.
-- Every complete `.yml`/`.yaml` workflow is SHA-256 pinned in policy. This byte
-  allowlist is the primary control: any workflow command or syntax change
-  requires a matching reviewed policy change.
+- Every complete `.yml`/`.yaml` workflow is raw-byte SHA-256 pinned in policy.
+  This byte allowlist is the primary control: any workflow command, syntax, or
+  line-ending change requires a matching reviewed policy change.
 - `scripts/ci_supply_chain.py` additionally interprets canonical, quoted, and
   spaced-colon `uses` keys; rejects movable/unregistered actions; and enforces
   approved acquisition entrypoints. Workflows may call only their registered
   repository Python scripts. `gh` is restricted to Henret's own
-  create/upload/post-upload-download routes in `ci.yml`; external `--repo`
-  acquisition, interpreter snippets, and direct HTTP clients are rejected.
+  create/upload/post-upload-download routes in `ci.yml`, with every command
+  explicitly bound to `${GITHUB_REPOSITORY}`. `GH_REPO`/`GH_HOST`, external
+  repository selectors, prefixed/unparsed `gh`, interpreter snippets, and
+  direct HTTP clients are rejected.
   Exact per-workflow installer calls, Lean selector agreement, and canonical
   package metadata are also required.
 

@@ -58,8 +58,10 @@ quoted, spaced-colon, and canonical `uses` spellings against policy. The policy
 also pins each complete workflow file by SHA-256: those exact reviewed bytes
 are the executable-acquisition allowlist. A deliberate workflow-hash update
 still permits only the registered repository Python entrypoints and Henret's
-scoped self-release `gh` operations; external `gh --repo`, interpreter snippets,
-and direct HTTP clients are rejected. Downloaded tools go through
+scoped self-release `gh` operations, each explicitly bound to the
+non-overridable `${GITHUB_REPOSITORY}` identity. Repository/host overrides,
+prefixed or unparsed `gh`, interpreter snippets, and direct HTTP clients are
+rejected. Downloaded tools go through
 `scripts/install_ci_tool.py`, which downloads the versioned URL, verifies the
 policy digest before extraction, rejects unsafe archive members, and only then
 exposes the binary. Release manifests retain the full policy and its hash.

