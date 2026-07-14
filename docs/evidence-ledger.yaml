@@ -9,9 +9,17 @@
 #   evidence_location: in_tree_model_proof | in_tree_model_test
 #                      | sibling_runtime_package | external_artifact | planned
 #   verified_by_this_tarball / verified_by_ci: true | false
+#   ci_profile / ci_gate: stable RFC 103 binding when verified_by_ci is true;
+#                         both null when verified_by_ci is false
 #
 # Rules enforced by the checker:
 #   - claim_id is stable and namespaced  (081-3)
+#   - verified_by_ci true => ci_profile is the active release profile and
+#     ci_gate resolves to its stable semantic gate registry id (RFC 103)
+#   - PROVEN/in_tree_model_proof => kernel-build capability;
+#     TRUSTED/in_tree_model_proof => axiom-audit capability;
+#     TESTED/in_tree_model_test => executable-test capability
+#   - verified_by_ci false => ci_profile and ci_gate are null
 #   - in_tree_* locations => verified_by_this_tarball: true
 #   - out-of-tree (sibling/external) => immutable coordinates + verified_by_ci,
 #     OR an explicit null posture (external_version: null, verified_by_ci: false,
@@ -25,6 +33,8 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: build.lean
   external_version: null
   notes: reachable_wf in Henret/Proofs/InvariantsPreservation.lean
 
@@ -34,6 +44,8 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: build.lean
   external_version: null
   notes: reachable_occurrence_unique in Henret/Proofs/Occurrence.lean
 
@@ -43,6 +55,8 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: build.lean
   external_version: null
   notes: reachable_parent_lt, parent_chain_terminates in Henret/Proofs/Parenthood.lean
 
@@ -52,6 +66,8 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: build.lean
   external_version: null
   notes: reachable_spawned_has_owner, reachable_owner_spawned (RFC 038)
 
@@ -61,6 +77,8 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: build.lean
   external_version: null
   notes: bridge_step_single_worker in Henret/Bridge/Preservation.lean
 
@@ -70,6 +88,8 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: build.lean
   external_version: null
   notes: reachable_multi_bridge in Henret/Bridge/MultiState.lean (RFC 043)
 
@@ -79,6 +99,8 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: build.lean
   external_version: null
   notes: core_le_actor, actor_le_full, core_le_full (RFC 054)
 
@@ -88,6 +110,8 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: build.lean
   external_version: null
   notes: restart_preserves_parent_acyclicity, restarted_task_has_owner (RFC 049)
 
@@ -97,6 +121,8 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: build.lean
   external_version: null
   notes: closed_actor_rejects_send/inject, shutdown_rejects_spawn (RFC 055)
 
@@ -106,6 +132,8 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: build.lean
   external_version: null
   notes: ready_eventually_scheduled_under_bounded_fairness (RFC 046)
 
@@ -115,6 +143,8 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: build.lean
   external_version: null
   notes: stepTrace_state_eq_step, runTraceLedger_state_eq_run (RFC 045)
 
@@ -125,6 +155,8 @@
   evidence_location: in_tree_model_proof
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: proof.axiom-audit
   external_version: null
   notes: Six NativeDeque axioms in Henret/Native/Assumptions.lean; audited as exactly six. The C implementation they trust is out-of-tree.
 
@@ -134,6 +166,8 @@
   evidence_location: planned
   verified_by_this_tarball: false
   verified_by_ci: false
+  ci_profile: null
+  ci_gate: null
   external_version: null
   notes: Requires Iris-style concurrent separation logic; outside the logic's reach and not claimed.
 
@@ -144,8 +178,10 @@
   evidence_location: in_tree_model_test
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: test.demo
   external_version: null
-  notes: lake exe henret-demo (release-mode gate stage 2)
+  notes: Authoritative gate 2 runs interpreted with lake env lean --run Main.lean; lake exe henret-demo is the standalone native command.
 
 - claim_id: test.conformance
   claim: The golden-trace conformance suite passes and reports first mismatch on failure
@@ -153,8 +189,10 @@
   evidence_location: in_tree_model_test
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: test.conformance
   external_version: null
-  notes: lake exe henret-conformance; conformance_suite_passes also PROVEN
+  notes: Authoritative gate 4 runs interpreted with lake env lean --run Conformance.lean; lake exe henret-conformance is standalone; conformance_suite_passes is also PROVEN.
 
 - claim_id: test.explorer
   claim: The bounded model checker enumerates op sequences and shrinks counterexamples
@@ -162,8 +200,10 @@
   evidence_location: in_tree_model_test
   verified_by_this_tarball: true
   verified_by_ci: true
+  ci_profile: release-core-v3
+  ci_gate: test.explorer
   external_version: null
-  notes: lake exe henret-explore
+  notes: Authoritative gate 11 runs interpreted with lake env lean --run Explore.lean and parses its machine result; lake exe henret-explore is standalone.
 
 # --- Out-of-tree runtime evidence (NOT present in this tarball) --------------
 # Explicit null posture (081-2): no immutable coordinates, verified_by_ci false.
@@ -173,6 +213,8 @@
   evidence_location: sibling_runtime_package
   verified_by_this_tarball: false
   verified_by_ci: false
+  ci_profile: null
+  ci_gate: null
   external_version: null
   notes: lean-runtime-workspace differential harness; not present in the model-package tarball.
 
@@ -182,6 +224,8 @@
   evidence_location: sibling_runtime_package
   verified_by_this_tarball: false
   verified_by_ci: false
+  ci_profile: null
+  ci_gate: null
   external_version: null
   notes: lean-runtime-workspace linearizability checker; not present in the model-package tarball.
 
@@ -191,6 +235,8 @@
   evidence_location: sibling_runtime_package
   verified_by_this_tarball: false
   verified_by_ci: false
+  ci_profile: null
+  ci_gate: null
   external_version: null
   notes: lean-runtime-workspace stress harness; not present in the model-package tarball.
 
@@ -200,5 +246,7 @@
   evidence_location: sibling_runtime_package
   verified_by_this_tarball: false
   verified_by_ci: false
+  ci_profile: null
+  ci_gate: null
   external_version: null
   notes: lean-runtime-workspace executor harness; not present in the model-package tarball.

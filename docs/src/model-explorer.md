@@ -61,6 +61,32 @@ removal if the property still fails, repeat to a fixed point.
 lake exe henret-explore
 ```
 
+The RFC 103 release gate executes the same entry point interpreted and records
+the canonical release bounds in its retained gate record:
+
+```text
+HENRET_EXPLORE_MAX_TASK=2  HENRET_EXPLORE_MAX_ACTOR=2
+HENRET_EXPLORE_MAX_MSG=1   HENRET_EXPLORE_MAX_TIME=2
+HENRET_EXPLORE_DEPTH=3
+```
+
+Standalone local runs may override these environment values. Gate
+`test.explorer` fixes them: the v3 verifier rejects shallower or otherwise
+different bounds. The gate is bounded and fail-closed. Its manifest record includes
+the world/depth parameters, pass result, duration, and stdout hash. This is
+current TESTED evidence only; it does not strengthen any claim to PROVEN.
+
+The executable emits exactly one `HENRET_EXPLORER_RESULT` JSON line containing
+the actual bounds, program count, three bounded-property outcomes, and the
+counterexample/shrinker outcomes. Gate 11 derives its structured manifest
+fields from that line. Missing, duplicate, false, or non-canonical output fails
+the gate. JSON objects reject duplicate keys at every nesting level, booleans
+must be JSON booleans, and integer fields must be JSON integers (so `1` cannot
+stand in for `true`, and `true` cannot stand in for `1`). Success also requires
+the deliberately false property to shrink to
+the deterministic minimal counterexample `[spawn 0]`; the “unexpected” branch
+returns nonzero.
+
 Sample output:
 
 ```text

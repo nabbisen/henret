@@ -1,144 +1,141 @@
 # Henret Roadmap
 
-> Henret is a kernel-checked semantic ledger for execution management:
-> every transition is executable, every safety claim is named,
-> every trust boundary is explicit, and every bridge to native/runtime
-> machinery is scoped by a relation.
+> Henret is a kernel-checked semantic ledger for execution management: every
+> transition is executable, every safety claim is named, every trust boundary
+> is explicit, and every bridge to native/runtime machinery is scoped by a
+> relation.
 
-## Current version: v0.27.0
+## Planning baseline
 
-The model is a total, executable transition system (`step` / `run`) with a
-**33-field `WellFormed`** invariant proved to hold in every reachable state
-(`reachable_wf`). The grammar is **28 `RuntimeOp` constructors** producing
-**10 `StepResult` outcomes**. Capabilities now include:
+The current release is **v0.34.5**. The repository contains 80 implemented,
+24 proposed, and 1 archived RFC. The model currently has 29 `RuntimeOp`
+constructors, 10 `StepResult` outcomes, and a 33-field `WellFormed` invariant.
+The bridge covers both exact single-worker projection and multi-worker
+membership projection.
 
-- actor-scoped send/receive with message **envelope occurrence identity**;
-- **parked receive** with mailbox wait queues and Mesa-style wake-one;
-- **logical time**: sleep/timer wheel, `tick`, direct `wake`;
-- **timeout-aware** and **selective** receive (`receiveUntil`,
-  `receiveByOccurrence`, `receiveFrom`);
-- actor-scoped **child spawn** and parent-chain acyclicity;
-- **supervision**: `fail`, `restartOne`, cascade `cancelTree`;
-- **structured shutdown**: `closeActor`, `shutdown`, `stopWhenIdle`;
-- **bounded mailboxes / backpressure** (RFC 056);
-- **scheduling policy layer** (RFC 058) and **deadline & priority** metadata
-  with EDF/priority/hybrid policies (RFC 059);
-- **fault & outcome taxonomy** (RFC 064);
-- **resource lifetime & finalization ledger** (RFC 057): `acquire` / `release`
-  / `finalize`, with `released` proved a terminal state;
-- **drain-before-stop** for resources (RFC 087 `stopWhenDrained`) with
-  single-step persistence (088), sleeping-timer coherence (089), and
-  multi-step `Frozen` permanence (090);
-- **actor-owned resources** (RFC 091): a `ResourceOwner = task | actor` ledger,
-  `acquireActor`, and unified `Drained`.
+The architect review of the v0.34.5 preparation work is **No-Go** for another
+release or semantic feature cycle. Milestone M1 below is therefore the only
+active release track. Later milestones are ordered backlog, not authorization
+to start around M1.
 
-The single-worker **queue-projection bridge** relates `readyQ` to the
-lean-runtime worker-queue model. A conformance layer (golden traces + branch
-coverage) and a release-gate / evidence-ledger discipline back every claim.
+## Milestone schedule
 
-**73 RFCs are implemented** (`rfcs/done/`, through 091); **18 remain proposed**
-(`rfcs/proposed/`, in the 060–079 range). The RFC 057 Tier 2 thread
-(087–091) is complete except for the deferred items in *Known follow-ups*.
+| Milestone | Release target | Theme | RFCs | Exit condition |
+|---|---|---|---|---|
+| **M0 — Planning baseline** | current | Convert review findings into owned work | 098–104 | Roadmap, RFC metadata, and indexes agree on scope and order |
+| **M1 — Release integrity** | **v0.34.6** | Repair the release and evidence boundary without semantic expansion | 098–103 | Every blocking review finding is closed; the patch release is produced only from the repaired gates |
+| **M2 — Maintainability and policy** | v0.35 candidate | Reduce proof cost, settle module/API policy, pin CI inputs | 062, 068, 063, 070, 104 | The large proof modules have an agreed decomposition, public API policy is explicit, and CI inputs are immutable |
+| **M3 — Bridge contract spine** | v0.36 candidate | State precisely what the bridge and adapter preserve | 074 → 072 → 065 | Coverage, observability, and equivalence contracts are machine-checkable |
+| **M4 — External conformance** | v0.37 candidate | Connect external runtimes to the semantic contracts | 061 → 060 → 073 and 066 → 067, in parallel after 065 | Adapter, certificate, negative-test, replay, and semantic-diff evidence share one observable contract |
+| **M5 — Profiles and publication** | v0.38+ candidate | Extend and explain a stable surface | 071, 076, 077, 078, 079 | Profiles are governed and publication material describes the stabilized API and evidence |
 
-## Open backlog (RFCs 060–079, proposed)
+Only v0.34.6 is a committed release boundary. Later version labels are
+planning candidates and may move when their RFCs are accepted.
 
-Grouped by theme. 058, 059, and 064 from the original 058–079 band are now
-**implemented** and have moved to `rfcs/done/`.
+## M1 — v0.34.6 release-integrity critical path
 
-| Theme | RFCs |
-|---|---|
-| **Refinement / bridge / adapter** | 060 trace-based refinement cert · 061 runtime-adapter contract · 073 adapter negative tests · 074 bridge-completeness certificate · 065 semantic equivalence & bisimulation · 072 error/result observability contract |
-| **Observability / replay** | 066 deterministic replay format · 067 state snapshot & semantic diff |
-| **Proof engineering / governance** | 062 proof-ergonomics library · 068 invariant-dependency graph · 069 proof-dependency budget · 070 public-theorem API stability |
-| **Architecture** | 063 long-term module architecture |
-| **Model semantics** | 071 semantic profiles for actor models |
-| **Pedagogy / publication** | 076 counterexample catalog · 077 minimal verified actor patterns · 078 security & robustness interpretation · 079 publication & community-review plan |
+M1 is a patch milestone: it changes release construction, verification, and
+documentation, but does not add a runtime operation or broaden a semantic
+claim.
 
-See `rfcs/README.md` for the authoritative status table.
+1. **Artifact boundary — RFC 098.** Build source archives from a tracked-file
+   allowlist and prove ignored/untracked local material cannot enter them.
+2. **Publication immutability — RFC 099.** Reject an existing release/tag/asset
+   instead of replacing it with `--clobber`.
+3. **Trust-scope repair — RFC 100.** Remove the three `native_decide` proof
+   shortcuts, enforce the package-wide axiom policy, and document its scope.
+4. **Documentation integrity — RFC 101.** Make the root RFC index, generated
+   book index, roadmap, test inventory, risk register, and release claims
+   mechanically consistent.
+5. **Gate unification — RFC 102.** Make demo, conformance, documentation, and
+   timeout behavior mandatory release-core checks; align tag and exact-commit
+   rules in contributor and release documentation.
+6. **Evidence binding — RFC 103.** Execute the explorer as a bounded named gate
+   and permit “CI verified” claims only when evidence names a gate that ran.
 
-## Prioritized sequence (cross-bucket)
+RFCs 098–101 may be implemented in parallel after acceptance. RFC 102 consumes
+their gate and documentation contracts; RFC 103 follows RFC 102. The milestone
+closes only when all six RFC acceptance criteria pass from a clean checkout at
+the exact candidate commit. A new v0.34.6 sidecar is then generated; the
+v0.34.5 evidence record is never rewritten.
 
-This is the **single ranked queue** across both buckets — the remaining RFC 057
-Tier 2 work and the open 060–079 proposals — so "what next?" has one answer
-rather than two parallel lists. Ranking criteria, in order: (1) unblocks the
-most downstream work, (2) lowest risk / highest certainty, (3) closes an
-already-open thread before opening a new one. Breaking and paradigm-shift items
-are **not** placed in the queue — they are gated (see *Known follow-ups*).
+### Review-finding ownership
 
-**Wave 1 — cheap completions & the recurring-cost reducer.**
+| Architect finding | Owning RFC | Required result |
+|---|---|---|
+| B01: archive includes ignored/untracked content | 098 | Tracked allowlist plus archive self-test |
+| B02: published assets are mutable | 099 | Fail-closed, immutable publication |
+| B03: `native_decide` widens the trust boundary | 100 | Package-wide axiom policy and enforcement |
+| B04: roadmap/RFC/docs contradict repository state | 101 | Generated or checked current indexes and claims |
+| B05: release docs and workflow triggers disagree | 102 | One release-core contract, exact candidate commit |
+| B06: explorer is claimed but not executed | 103 | Named bounded explorer gate and evidence binding |
+| B07: demo/conformance are optional | 102 | Required blocking release-core gates |
+| Supply-chain inputs are mutable | 104 (M2) | Immutable action/tool references and metadata |
 
-1. **`releaseActor`** (new RFC 092, Tier 2) — manual release of actor-owned
-   resources; closes the 057 lifecycle symmetry. No blocker, low risk, 1-op
-   cascade. The one Tier 2 leftover that is ready to build. Only open question
-   is the authorization model (who may release).
-2. **RFC 062 — Proof Ergonomics Library** — preservation proofs are the
-   recurring cost centre (the ~800-line `Lifecycle.lean`; every new op cascades
-   through ~12 files). Helpers/simp-sets/tactics here pay off on *every*
-   subsequent RFC, so it comes early.
-3. **RFC 068 / 069 — Invariant-Dependency Graph & Proof-Dependency Budget** —
-   proof-corpus hygiene that complements 062 over the 33-field `WellFormed` and
-   the 200+ claim matrix; cheap and additive.
+## M2 — maintainability and policy
 
-**Wave 2 — the bridge / adapter / refinement spine (the project's
-"useful to runtimes" identity).**
+M2 starts only after v0.34.6 is complete. Its order is:
 
-4. **RFC 074 — Bridge-Completeness Certificate** — make the (still single-worker)
-   bridge's coverage honest and machine-checkable; audits an existing layer.
-5. **RFC 072 — Error/Result Observability Contract** then **RFC 065 — Semantic
-   Equivalence & Bisimulation** — define observable behaviour and equivalence
-   levels; prerequisites for 060/061/066/067/073.
-6. **RFC 061 / 060 / 073 — Adapter Contract, Trace-Based Refinement Cert,
-   Adapter Negative Tests** — the external-runtime conformance cluster; depends
-   on 072/065.
-7. **RFC 066 / 067 — Replay Format & Snapshot/Diff** — observability tooling
-   built on 065/072.
+1. Finish RFC 062 proof ergonomics and RFC 068 invariant-dependency work.
+2. Complete RFC 063 before introducing another runtime operation; use it to
+   split the large lifecycle and claim modules along reviewed boundaries.
+3. Resolve RFC 070's public-theorem/API policy against the resulting module
+   surface.
+4. Implement RFC 104 CI supply-chain pinning before any publication milestone.
 
-**Wave 3 — public surface & governance (pre-publication).**
+This milestone deliberately carries no new semantic operation. It addresses
+the review's maintainability warning before the bridge/adapter work expands the
+proof surface.
 
-8. **RFC 070 — Public Theorem API Stability** — lock the surface once the above
-   stabilise.
-9. **RFC 063 — Long-Term Module Architecture** — v1.x modularity plan.
-10. **RFC 071 — Semantic Profiles for Actor Models** — additive kernel
-    extension; not blocking, so it floats here.
+## M3–M5 dependency spine
 
-**Wave 4 — pedagogy & publication (end-stage).**
+The remaining proposals are sequenced by contract dependency:
 
-11. **RFC 076 / 077 / 078 / 079** — counterexample catalog, verified actor
-    patterns, security interpretation, publication plan. Done last because they
-    document a surface that should be stable first.
+```text
+074 bridge completeness
+  -> 072 observable result/error contract
+    -> 065 semantic equivalence
+      -> 061 adapter contract -> 060 refinement certificate -> 073 negative tests
+      -> 066 replay format -> 067 snapshot and semantic diff
 
-**Gated — not in the queue (need a decision/track, not a slot):**
+070 stable public API
+  -> 071 semantic profiles
+  -> 076 counterexamples / 077 patterns / 078 security interpretation
+    -> 079 publication and community review
+```
 
-- **Global `stopped → Drained` invariant** (Tier 2) — *blocked on an architect
-  decision*. Making it global collapses `stopWhenIdle ≡ stopWhenDrained` and is
-  a breaking change to `stopWhenIdle` semantics, conflicting with the additive
-  philosophy that added `stopWhenDrained` as a separate op. Do not start until
-  the break/merge question is answered.
-- **Wall-clock liveness / timeliness** (Tier 2) — *separate research track*. All
-  current claims are safety/possibility; liveness needs new model structure
-  (a fairness/progress assumption and a real-time notion distinct from the
-  logical `now`) and a trace/temporal proof style. Belongs in its own RFC line,
-  not a Tier 2 slice.
+RFC 104 must also be complete before RFC 079. Each milestone must update this
+roadmap and RFC metadata if an accepted RFC changes these edges.
 
-## Known follow-ups
+`depends_on` is the authoritative scheduling relation. `blocks` is an optional
+forward-navigation hint, but every declared `A blocks B` edge must have the
+inverse `B depends_on A` edge. The RFC metadata gate enforces that invariant.
 
-- **RFC 057 Tier 2** — the safety spine is **done**: drain-before-stop (087),
-  single-step drained persistence (088), sleeping-timer coherence (089),
-  multi-step `Frozen` permanence (090), and actor-owned resources (091).
-  Remaining: **`releaseActor`** (queued as RFC 092 above), the **global
-  `stopped → Drained`** invariant (gated on an architect decision), and any
-  **liveness/timeliness** guarantee for finalization (separate track). See
-  *Prioritized sequence* for placement.
-- **Multi-worker bridge**: the bridge is single-worker; generalising to `n`
-  workers needs a task-to-worker projection (kept out of the semantic kernel
-  unless a theorem requires it). RFC 074 (bridge-completeness certificate)
-  should pin the single-worker scope first.
+## Deferred research tracks and settled boundaries
 
-## Standing guidance
+These items have no release slot and must not be smuggled into an implementation
+RFC:
 
-- Keep worker assignment out of the semantic kernel unless a theorem needs it.
-- Design wait/timer/resource composition before adding operations that combine
-  them.
-- Every new operation ships with: preservation across all `WellFormed` fields,
-  per-branch behavioural theorems, conformance scenarios, an axiom-audit entry,
+- RFC 092 settled the `stopped → Drained` question: the global invariant was
+  rejected, and `CleanStopped`/`StoppedDrained` carry the stronger claim. Any
+  proposal to reopen that decision is a breaking-change RFC, not backlog work.
+- Wall-clock liveness/timeliness requires fairness, real-time, and temporal
+  proof machinery distinct from the current logical-time safety model. It
+  needs a separate research RFC before scheduling.
+- Worker assignment remains outside the semantic kernel unless a theorem
+  requires it. RFC 074 must first pin the exact scope of both bridge modes.
+
+## Scheduling rules
+
+- A release milestone is complete only when its RFC acceptance criteria and
+  required named gates pass at the exact release commit.
+- The v0.34.6 release decision must explicitly accept the residual risk that
+  movable CI action/tool inputs remain until RFC 104 closes in M2.
+- New operations wait until M1 and M2 close.
+- Every new operation ships with preservation across all `WellFormed` fields,
+  per-branch behavior theorems, conformance scenarios, an axiom-audit entry,
   and a migration note.
+- Timeouts in blocking release checks fail the gate; they are never interpreted
+  as a skip.
+- RFC status, dependency metadata, the root index, the generated book index,
+  and this roadmap must change together.

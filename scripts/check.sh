@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # Henret release gate (RFC 017, extended through RFC 080).
 #
-# Modes (RFC 080-A, split by RFC 097):
+# Modes (RFC 080-A, unified for release by RFC 102 / RFC 103):
 #   check.sh --fast               local/constrained developer mode (default).
 #                                 Core gates only; emits NO manifest.
 #   check.sh --release-core       CI-authoritative, sidecar-publishing profile.
-#                                 Core gates (build/proofs/audit/docs/package) +
-#                                 hashed manifest. Blocks sidecar publication.
+#                                 All required gates, including bounded
+#                                 interpreted demo/conformance and mdBook, plus
+#                                 package + hashed manifest.
 #                                 (`--release` is an alias for this.)
 #   check.sh --release-validation advisory executable validation: demo +
 #                                 exhaustive conformance, run interpreted, emitted
 #                                 as a separate validation report. NON-blocking.
 #
-# RFC 097: the demo and exhaustive conformance executables cannot complete on the
-# standard GitHub runner, so they are advisory validation, not release-blocking.
-# Authoritative release evidence still comes from CI running --release-core on the
-# exact release commit/tag (RFC 080-D); a local run is a pre-check only.
+# RFC 103 adds bounded explorer execution and stable evidence IDs to the
+# required release core. Timeout and nonzero exit are release-blocking. The
+# separate validation mode remains supplemental timing/diagnostic evidence.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -27,38 +27,40 @@ esac
 [ "$MODE" = "--release" ] && MODE="--release-core"   # backward-compat alias
 case "$MODE" in
   --fast)               CORE=1; VALID=0; PACKAGE=0 ;;
-  --release-core)       CORE=1; VALID=0; PACKAGE=1 ;;
+  --release-core)       CORE=1; VALID=1; PACKAGE=1 ;;
   --release-validation) CORE=0; VALID=1; PACKAGE=0 ;;
 esac
 
-RECORDS="$(mktemp /tmp/henret-records-XXXX.jsonl)"
-LOGDIR="$(mktemp -d /tmp/henret-gatelogs-XXXX)"
+TMP_ROOT="${TMPDIR:-/tmp}"
+RECORDS="$(mktemp "$TMP_ROOT/henret-records-XXXX.jsonl")"
+LOGDIR="$(mktemp -d "$TMP_ROOT/henret-gatelogs-XXXX")"
 : > "$RECORDS"
 cleanup() { rm -rf "$LOGDIR" "$RECORDS"; }
 trap cleanup EXIT
 
-# run_gate <id> <name> <gate-fn> : run a gate, capture/time/hash its output,
+# run_gate <id> <evidence-id> <name> <gate-fn>: run a gate, capture/time/hash,
 # append a manifest record, fail-fast on error. (The declaration form
-# `run_gate <id> "<name>"` is what check_selftest.py parses.)
+# `run_gate <id> "<evidence-id>" "<name>"` is what check_selftest.py parses.)
 run_gate() {
-  local id="$1" name="$2"; shift 2
+  local id="$1" evidence_id="$2" name="$3"; shift 3
   local outf="$LOGDIR/gate-$id.out" errf="$LOGDIR/gate-$id.err"
-  local start end ms rc status advisory=0 tmo=0
-  # RFC 097: gates 2 (demo) and 4 (exhaustive conformance) are advisory. In
-  # --release-validation they run time-bounded and NON-fatally: a timeout is
-  # recorded (status "timeout"), so a slow/hanging interpreted run never reddens
-  # the non-blocking validation job. A real scenario FAILURE is surfaced after
-  # all validation gates run (so conformance still runs even if demo fails).
+  local start end ms rc status advisory=0 bounded=0 tmo=0
+  # RFC 102: gates 2 and 4 are always bounded. They are required in
+  # --release-core and advisory only in the supplemental validation profile.
   if [ "$VALID" = 1 ]; then
     case "$id" in
-      2) advisory=1; tmo="${HENRET_DEMO_TIMEOUT:-300}" ;;
-      4) advisory=1; tmo="${HENRET_CONF_TIMEOUT:-1500}" ;;
+      2) bounded=1; tmo="${HENRET_DEMO_TIMEOUT:-180}" ;;
+      4) bounded=1; tmo="${HENRET_CONF_TIMEOUT:-180}" ;;
     esac
+    if [ "$PACKAGE" = 0 ]; then advisory=1; fi
+  fi
+  if [ "$id" = 11 ]; then
+    bounded=1; tmo="${HENRET_EXPLORE_TIMEOUT:-180}"
   fi
   echo "== gate $id ($MODE): $name =="
   start=$(date +%s%3N)
   set +e
-  if [ "$advisory" = 1 ]; then
+  if [ "$bounded" = 1 ]; then
     # `timeout` execs a command, not a shell function; re-enter bash with the
     # gate function's definition so it can be wrapped. Gate bodies are nullary.
     timeout -k 10 "${tmo}s" bash -c "$(declare -f "$1"); $1" >"$outf" 2>"$errf"
@@ -69,28 +71,52 @@ run_gate() {
   set -e
   end=$(date +%s%3N); ms=$((end - start))
   if [ "$rc" -eq 0 ]; then status=pass
-  elif [ "$advisory" = 1 ] && { [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; }; then status=timeout
+  elif [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then status=timeout
   else status=fail; fi
+  local evidence_extra='{}' evidence_rc=0
+  if [ "$id" = 11 ] && [ "$status" = pass ]; then
+    set +e
+    evidence_extra=$(python3 scripts/explorer_result.py "$outf" 2>>"$errf")
+    evidence_rc=$?
+    set -e
+    if [ "$evidence_rc" -ne 0 ]; then status=fail; evidence_extra='{}'; fi
+  fi
   sed 's/^/    /' "$outf"
   [ -s "$errf" ] && sed 's/^/    [stderr] /' "$errf" || true
   local osha esha
   osha=$(sha256sum "$outf" | cut -c1-64)
   esha=$(sha256sum "$errf" | cut -c1-64)
   python3 -c 'import json,sys
-print(json.dumps({"id":int(sys.argv[1]),"name":sys.argv[2],"command":sys.argv[3],
-"status":sys.argv[4],"duration_ms":int(sys.argv[5]),
-"stdout_log":sys.argv[6],"stdout_sha256":sys.argv[7],
-"stderr_log":sys.argv[8],"stderr_sha256":sys.argv[9]}))' \
-    "$id" "$name" "$name" "$status" "$ms" \
-    "release/logs/gate-$id.out" "$osha" "release/logs/gate-$id.err" "$esha" >> "$RECORDS"
+record={"id":int(sys.argv[1]),"evidence_id":sys.argv[2],"name":sys.argv[3],
+"command":sys.argv[4],"status":sys.argv[5],"duration_ms":int(sys.argv[6]),
+"stdout_log":sys.argv[7],"stdout_sha256":sys.argv[8],
+"stderr_log":sys.argv[9],"stderr_sha256":sys.argv[10]}
+extra=json.loads(sys.argv[11]); record.update(extra)
+print(json.dumps(record))' \
+    "$id" "$evidence_id" "$name" "$name" "$status" "$ms" \
+    "release/logs/gate-$id.out" "$osha" "release/logs/gate-$id.err" "$esha" \
+    "$evidence_extra" >> "$RECORDS"
   echo "   -> $status (${ms}ms)"
   # Required gates abort on fail. Advisory gates never abort inline (timeout is
   # non-fatal; a real fail is surfaced after the validation run).
-  if [ "$status" = fail ] && [ "$advisory" = 0 ]; then echo "FAIL: gate $id ($name)"; exit 1; fi
+  if [ "$status" != pass ] && [ "$advisory" = 0 ]; then echo "FAIL: gate $id ($name)"; exit 1; fi
 }
 
 # ---------------------------------------------------------------- gate bodies
-gate_selftest() { python3 scripts/check_selftest.py; }
+gate_selftest() {
+  python3 scripts/check_selftest.py
+  python3 scripts/native_decide_check.py --self-test
+  python3 scripts/source_archive.py --self-test
+  python3 scripts/release_publish_preflight.py --self-test
+  python3 scripts/rfc_metadata_check.py --self-test
+  python3 scripts/doc_count_check.py --self-test
+  python3 scripts/markdown_link_check.py --self-test
+  python3 scripts/verify_release_manifest.py --self-test
+  python3 scripts/forbidden_claim_check.py --self-test
+  python3 scripts/explorer_result.py --self-test
+  python3 scripts/ci_supply_chain.py --self-test
+  python3 scripts/install_ci_tool.py --self-test
+}
 
 gate_build_libs() { lake build Henret HenretNative HenretExplore HenretMeta HenretExamples; }
 
@@ -119,6 +145,21 @@ gate_conformance() {
   # (gate 1) and axiom-audited (gate 6).
   lake env lean --run Conformance.lean
 }
+
+gate_explorer() {
+  # RFC 103: deterministic, bounded execution. The selected parameters are
+  # sourced from the registry, printed by Explore.lean, then parsed back into
+  # the retained gate record by explorer_result.py.
+  local max_task max_actor max_msg max_time depth
+  read -r max_task max_actor max_msg max_time depth <<< \
+    "$(python3 scripts/explorer_result.py --shell-args)" || return 1
+  HENRET_EXPLORE_MAX_TASK="$max_task" HENRET_EXPLORE_MAX_ACTOR="$max_actor" \
+  HENRET_EXPLORE_MAX_MSG="$max_msg" HENRET_EXPLORE_MAX_TIME="$max_time" \
+  HENRET_EXPLORE_DEPTH="$depth" \
+    lake env lean --run Explore.lean
+}
+
+gate_docs() { bash scripts/check_docs.sh; }
 
 gate_doc_symbol() {
   local f; f="$LOGDIR/docsym.lean"
@@ -358,6 +399,10 @@ gate_doc_consistency() {
   fi
   # Source-of-truth count check (RFC 084 stopgap)
   python3 scripts/doc_count_check.py || return 1
+  # RFC 100: package-scope trust policy over every Git-tracked Lean source.
+  python3 scripts/native_decide_check.py || return 1
+  # RFC 101: all live repository Markdown, beyond the mdBook subtree.
+  python3 scripts/markdown_link_check.py || return 1
   # Evidence-ledger validation + forbidden-claim gate (RFC 081)
   python3 scripts/forbidden_claim_check.py || return 1
   # Preservation-helper adoption gate (RFC 082)
@@ -397,37 +442,45 @@ gate_warning_budget() {
 }
 
 # --------------------------------------------------------------------- stages
-# RFC 097 gate criticality:
-#   CORE (required, sidecar-blocking): 0,1,3,5,6,7,8,9
-#   VALIDATION (advisory, non-blocking): 2 (demo), 4 (exhaustive conformance)
+# RFC 103 gate criticality:
+#   release-core required: 0-11 (2/4/11 bounded; 10 mdBook/docs)
+#   fast required: 0,1,3,5,6,7,8,9
+#   supplemental validation advisory: 2,4
 # Each `run_gate <id>` appears exactly once (check_selftest invariant); `if`
 # guards select which run per mode (set -e safe).
-run_gate 0 "gate-suite self-test"            gate_selftest
-run_gate 1 "build libraries"                 gate_build_libs
+run_gate 0 "gate.selftest" "gate-suite self-test"            gate_selftest
+run_gate 1 "build.lean" "build libraries"                    gate_build_libs
 if [ "$VALID" = 1 ]; then
-  run_gate 2 "demo regression scenarios"     gate_demo
+  run_gate 2 "test.demo" "demo regression scenarios"         gate_demo
 else
-  echo "== gate 2 SKIPPED (advisory; runs in --release-validation) =="
+  echo "== gate 2 SKIPPED (required in --release-core; supplemental in --release-validation) =="
 fi
 if [ "$CORE" = 1 ]; then
-  run_gate 3 "examples compile + eval"       gate_examples
+  run_gate 3 "build.examples" "examples compile + eval"       gate_examples
 fi
 if [ "$VALID" = 1 ]; then
-  run_gate 4 "golden conformance suite"      gate_conformance
+  run_gate 4 "test.conformance" "golden conformance suite"    gate_conformance
 else
-  echo "== gate 4 SKIPPED (advisory; runs in --release-validation) =="
+  echo "== gate 4 SKIPPED (required in --release-core; supplemental in --release-validation) =="
 fi
 if [ "$CORE" = 1 ]; then
-  run_gate 5 "doc-symbol checker"            gate_doc_symbol
-  run_gate 6 "strict axiom audit"            gate_axiom_audit
-  run_gate 7 "documentation consistency"     gate_doc_consistency
-  run_gate 8 "RFC metadata schema"           gate_rfc_metadata
-  run_gate 9 "linter warning budget"         gate_warning_budget
+  run_gate 5 "docs.symbols" "doc-symbol checker"               gate_doc_symbol
+  run_gate 6 "proof.axiom-audit" "strict axiom audit"          gate_axiom_audit
+  run_gate 7 "docs.consistency" "documentation consistency"    gate_doc_consistency
+  run_gate 8 "rfc.metadata" "RFC metadata schema"               gate_rfc_metadata
+  run_gate 9 "lint.warning-budget" "linter warning budget"      gate_warning_budget
+fi
+if [ "$PACKAGE" = 1 ]; then
+  run_gate 10 "docs.mdbook" "mdBook documentation integrity"   gate_docs
+  run_gate 11 "test.explorer" "bounded model explorer"         gate_explorer
+else
+  echo "== gate 10 SKIPPED (required only in --release-core) =="
+  echo "== gate 11 SKIPPED (required only in --release-core) =="
 fi
 
 # ------------------------------------------- release-core manifest (080-B / 097)
 if [ "$PACKAGE" = 1 ]; then
-  echo "== assembling release-core manifest (profile ci-core-v1) =="
+  echo "== assembling release-core manifest (profile release-core-v3) =="
   mkdir -p release/logs
   cp "$LOGDIR"/gate-*.out "$LOGDIR"/gate-*.err release/logs/ 2>/dev/null || true
   VERSION=$(grep -oE 'v!"[0-9]+\.[0-9]+\.[0-9]+"' lakefile.lean | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
@@ -438,15 +491,10 @@ if [ "$PACKAGE" = 1 ]; then
   else
     TARBALL="release/henret-v${VERSION}.tar.gz"
   fi
-  tar --exclude='./.lake' --exclude='./release' --exclude='./.git' \
-      --exclude='__pycache__' --exclude='*.pyc' --exclude='./docs/book' \
-      --exclude='./.elan' --exclude='./.cache' --exclude='./elan-init' \
-      --exclude='./lean-runtime-workspace/.lake' \
-      --sort=name --mtime='2020-01-01 00:00:00' --owner=0 --group=0 --numeric-owner \
-      -czf "$TARBALL" --transform 's|^\./||' -C . . 2>/dev/null
+  python3 scripts/source_archive.py "$TARBALL" --commit HEAD
   # release_manifest.py renders GATE-RUN.md and binds it by hash (RFC 095 §3.3);
-  # HENRET_RELEASE_PROFILE tags gate criticality + advisory placeholders (RFC 097).
-  HENRET_RELEASE_PROFILE=ci-core-v1 \
+  # RFC 103 profile: gates 0-11 are present, required, and passing.
+  HENRET_RELEASE_PROFILE=release-core-v3 \
     python3 scripts/release_manifest.py "$RECORDS" "$VERSION" "$TARBALL" \
       release/GATE-RUN.md > release/release-verification.json
   echo "wrote release/release-verification.json + release/GATE-RUN.md"
@@ -456,10 +504,15 @@ if [ "$PACKAGE" = 1 ]; then
     git status --porcelain || true
     exit 1
   fi
+  # Fail before any publication step if the locally assembled authoritative
+  # artifacts do not satisfy the current consumer contract. Post-upload
+  # verification remains a second, independent wrong-bytes/corruption check.
+  python3 scripts/verify_release_manifest.py --require-current \
+    release/release-verification.json "$TARBALL" release/GATE-RUN.md
 fi
 
 # --------------------------------------- release-validation report (RFC 097)
-if [ "$VALID" = 1 ]; then
+if [ "$VALID" = 1 ] && [ "$PACKAGE" = 0 ]; then
   echo "== assembling release-validation report =="
   mkdir -p release/logs
   cp "$LOGDIR"/gate-*.out "$LOGDIR"/gate-*.err release/logs/ 2>/dev/null || true

@@ -60,10 +60,12 @@ minor versions. The proof/trust/test matrix and the axiom budget are the
 stable contract — what is proven stays proven, and the axiom set does not
 grow silently.
 
-## Release profiles (RFC 097)
+## Release profiles (RFC 102 / RFC 103)
 
-The CI-authoritative sidecar is produced by the `ci-core-v1` release-core
-profile (kernel-checked evidence + packaging). The demo and exhaustive
-conformance executables are advisory and run non-blocking in the
-release-validation workflow; see the release checklist and the
-[release manifest schema](release-manifest-schema.md).
+The CI-authoritative sidecar is produced by `release-core-v3`. Gates 0–11 are
+required, including bounded interpreted demo, exhaustive conformance, and
+model explorer plus the mdBook/documentation gate at the exact candidate
+commit. Stable semantic evidence IDs bind ledger claims to these gate records.
+Timeout or nonzero exit blocks publication. The separate release-validation
+workflow is supplemental timing/diagnostic evidence only; see the release
+checklist and the [release manifest schema](release-manifest-schema.md).

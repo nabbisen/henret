@@ -1,7 +1,9 @@
 # Proof Index
 
-All theorems are kernel-checked; none uses `sorry` or `native_decide`.
-Axiom audit: only `propext` and `Quot.sound` (Lean standard).
+The gate-audited public theorem set is kernel-checked and stays within its
+declared standard-axiom budget. Separately, a tracked-source gate rejects
+executable `native_decide` anywhere in the package. The optional
+`Henret.Native.*` import scope retains its explicitly listed six FFI axioms.
 
 ## Core primitives — `Henret/Core/Id.lean`
 - `upd_self`, `upd_ne` — the single map-update primitive behaves pointwise.
@@ -280,7 +282,7 @@ extension is deferred to RFC 043. See `docs/bridge-architecture.md`.
 | `cancelTree_removes_from_readyQ` | `Henret/Proofs/Supervision.lean` | Cancelled tasks are not in `readyQ` after step |
 | `cancelTree_removes_from_timers` | `Henret/Proofs/Supervision.lean` | Cancelled timer entries are removed |
 | `cancelTree_removes_from_waiters` | `Henret/Proofs/Supervision.lean` | Cancelled tasks are removed from all `mailboxWaiters` lists |
-| `preserves_wf_cancelTree` | `Henret/Proofs/Supervision.lean` | All 21 `WellFormed` fields preserved by `cancelTree` |
+| `preserves_wf_cancelTree` | `Henret/Proofs/Supervision.lean` | All 33 `WellFormed` fields preserved by `cancelTree` |
 | `bridge_cancelTree` | `Henret/Bridge/Preservation.lean` | `BridgeState` preserved by `cancelTree`; `toQOps` emits `Filter 0 t` per descendant |
 | `descendantsOf_includes_root` | `Henret/Proofs/Supervision.lean` | Root is in `descendantsOf s root` when spawned |
 | `descendantsOf_nodup` | `Henret/Proofs/Supervision.lean` | No duplicates in the cancellation set |
@@ -318,7 +320,7 @@ extension is deferred to RFC 043. See `docs/bridge-architecture.md`.
 - `send`/`inject` updated — when `mailboxWaiters b = []`, fall through to wake the head of `timedMailboxWaiters b` if non-empty.
 
 **Preservation theorems** (`Henret/Proofs/Preservation/Messaging.lean`):
-- `preserves_wf_receiveUntil` — all 28 `WellFormed` fields preserved across all three `receiveUntil` sub-cases.
+- `preserves_wf_receiveUntil` — all 33 `WellFormed` fields preserved across all three `receiveUntil` sub-cases.
 - All 28 fields updated in `preserves_wf_send`, `preserves_wf_receive`, `preserves_wf_inject`.
 
 **Bridge updates** (`Henret/Bridge/Grammar.lean`, `Henret/Bridge/Preservation.lean`):
@@ -361,7 +363,7 @@ extension is deferred to RFC 043. See `docs/bridge-architecture.md`.
 | `dequeueFirst_sublist` | Top-level: remainder sublist |
 | `dequeueFirst_none` | Top-level: no match |
 
-**Preservation**: `preserves_wf_receiveByOccurrence`, `preserves_wf_receiveFrom` — both use the `dequeueFirst_sublist`-based sublist membership proof instead of `dequeue_spec`'s head-removal. All 28 `WellFormed` fields preserved.
+**Preservation**: `preserves_wf_receiveByOccurrence`, `preserves_wf_receiveFrom` — both use the `dequeueFirst_sublist`-based sublist membership proof instead of `dequeue_spec`'s head-removal. All 33 `WellFormed` fields preserved.
 
 **Behavioral theorems** (`Henret/Proofs/Messaging.lean`, section `SelectiveReceive`):
 
@@ -493,7 +495,7 @@ One-for-one restart semantics built on parenthood and cascade-cancel. New termin
 
 **Base preservation** (in `Henret/Proofs/Preservation/Lifecycle.lean`): `preserves_wf_fail` (clone of `preserves_wf_cancel`), `preserves_wf_restartOne` (reduces to `preserves_wf_spawnChild` via `WellFormed.restartOf_irrel`, since no `WellFormed` field mentions `restartOf`). Both wired into `step_preserves_wf`.
 
-**Provenance invariants** — separate `RestartWellFormed` structure (`Henret/Proofs/Restart.lean`), keeping the 28-field `WellFormed` untouched:
+**Provenance invariants** — separate `RestartWellFormed` structure (`Henret/Proofs/Restart.lean`), keeping the 33-field `WellFormed` untouched:
 
 | Field / Theorem | Guarantee |
 |---|---|
@@ -564,7 +566,7 @@ names carry no public stability.
 
 | Theorem | Guarantee |
 |---|---|
-| `reachable_wf` | all 28 `WellFormed` fields hold in every reachable state |
+| `reachable_wf` | all 33 `WellFormed` fields hold in every reachable state |
 | `reachable_occurrence_unique` | global message-occurrence uniqueness |
 | `reachable_parent_lt` | parent ids strictly decrease |
 | `parent_chain_terminates` | parent chains are finite |
@@ -644,7 +646,7 @@ blocking senders) is out of scope; see `docs/migration/v0.17-to-v0.18.md`.
 
 ### RFC 057 — Resource Lifetime & Finalization Ledger (Tier 1)
 
-`RuntimeOp` gained `acquire` / `release` / `finalize` (24 constructors);
+As of v0.19.0, `RuntimeOp` gained `acquire` / `release` / `finalize` (24 constructors);
 `StepResult` gained `.acquired` (10 constructors); `RuntimeState` gained
 `resources` and `nextResourceId`. `WellFormed` gained fields **30–33**
 (`resource_fresh`, `resource_owner_valid`, `allocated_owner_live`,

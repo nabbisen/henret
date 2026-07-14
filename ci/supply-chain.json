@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "actions": {
+    "actions/cache": {
+      "version": "v4",
+      "commit": "0057852bfaa89a56745cba8c7296529d2fc39830"
+    },
+    "actions/checkout": {
+      "version": "v6",
+      "commit": "df4cb1c069e1874edd31b4311f1884172cec0e10"
+    },
+    "actions/upload-artifact": {
+      "version": "v4",
+      "commit": "ea165f8d65b6e75b540449e92b4886f43607fa02"
+    }
+  },
+  "tools": {
+    "elan": {
+      "version": "v4.2.3",
+      "url": "https://github.com/leanprover/elan/releases/download/v4.2.3/elan-x86_64-unknown-linux-gnu.tar.gz",
+      "sha256": "df0b2b3a439961ffcbb3985214365ffe40f49bc871df04dff268c7d8e21ca8b2",
+      "binary": "elan-init"
+    },
+    "mdbook": {
+      "version": "v0.5.4",
+      "url": "https://github.com/rust-lang/mdBook/releases/download/v0.5.4/mdbook-v0.5.4-x86_64-unknown-linux-gnu.tar.gz",
+      "sha256": "3f28de05dafca9d0f2eab99c662116b0e37b89b1d96a08f8f430b9eeae958cd7",
+      "binary": "mdbook"
+    }
+  }
+}

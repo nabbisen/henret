@@ -44,7 +44,7 @@ implemented feature, including `resourceLifetime` (RFC 057,
 
 | Theorem | Why full |
 |---|---|
-| `reachable_wf` | asserts all 29 `WellFormed` fields (spans lifecycle, actor, timer, parent, occurrence, capacity) |
+| `reachable_wf` | asserts all 33 `WellFormed` fields (spans lifecycle, actor, timer, parent, occurrence, capacity) |
 | `reachable_mailbox_within_capacity`, `full_has_boundedMailbox` | bounded mailboxes / backpressure (RFC 056) |
 | `reachable_parent_lt`, `parent_chain_terminates` | parenthood / supervision groundwork |
 | `reachable_restart_fresh`, `reachable_restart_old_failed`, `reachable_restart_parent_consistent`, `restart_preserves_parent_acyclicity`, `restarted_task_has_owner` | supervision (RFC 049) |

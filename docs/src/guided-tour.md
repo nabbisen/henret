@@ -140,10 +140,10 @@ chain with `ancestor s t (t + 1)` always reaches a root (a task with
 deliverable: supervision trees are proper trees.
 
 `WellFormed.parent_lt` and `WellFormed.parent_spawned` are the parenthood
-fields of the current 29-field invariant. Both are
+fields of the current 33-field invariant. Both are
 preserved by every `RuntimeOp` case; `preserves_wf_spawnChild` in
 `Lifecycle.lean` covers the new operation itself. `reachable_wf` certifies
-all 29 fields.
+all 33 fields.
 
 ## 9c. Structured shutdown (RFC 055)
 

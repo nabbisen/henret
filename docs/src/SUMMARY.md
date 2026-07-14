@@ -64,5 +64,6 @@
 - [Progress policy](progress-policy.md)
 - [Review playbook](review-playbook.md)
 - [Release policy](release-policy.md)
+- [CI supply-chain policy](ci-supply-chain.md)
 - [Release checklist](release-checklist.md)
 - [Release manifest schema](release-manifest-schema.md)

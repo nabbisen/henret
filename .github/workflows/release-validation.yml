@@ -1,15 +1,14 @@
 name: release-validation
 
-# RFC 097: advisory executable validation — the demo (gate 2) and exhaustive
-# conformance (gate 4), run interpreted. NON-BLOCKING: this workflow is separate
-# from release-gate, so a slow or failing validation never blocks publication of
-# the RFC 095 sidecar. It also serves as the §4 diagnostic (per-gate timings are
-# in the validation report). Runs on version-tag pushes and on manual dispatch.
+# RFC 102 supplemental timing/diagnostic rerun of demo (gate 2) and exhaustive
+# conformance (gate 4). Both are already required by the current release core; this
+# non-blocking workflow is never evidence in place of those required results.
+# The report remains a workflow artifact; this
+# workflow never mutates a frozen GitHub Release. Runs on version-tag pushes
+# and on manual dispatch.
 
-# Attaches the validation report to the release, so it needs contents:write
-# (same as the release-gate workflow).
 permissions:
-  contents: write
+  contents: read
 
 on:
   push:
@@ -22,38 +21,35 @@ jobs:
     timeout-minutes: 45    # bound the non-blocking waste; demo runs before
     # conformance, so even a timeout yields the per-gate diagnostic timing
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Install elan + Lean toolchain
         run: |
           # Install into /tmp so the elan-init binary never lands in the
           # checkout (it is untracked + not in the tarball excludes, so it
           # would otherwise dirty the source tree AND pollute the archive).
-          curl -sSfL https://github.com/leanprover/elan/releases/latest/download/elan-x86_64-unknown-linux-gnu.tar.gz -o /tmp/elan.tar.gz
-          tar xzf /tmp/elan.tar.gz -C /tmp
-          /tmp/elan-init -y --default-toolchain "$(cat lean-toolchain)"
+          python3 scripts/install_ci_tool.py elan --destination /tmp/henret-elan
+          /tmp/henret-elan/elan-init -y --default-toolchain "$(cat lean-toolchain)"
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
       - name: Cache Lake build
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .lake
           key: lake-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}
 
-      - name: Release-validation (advisory, non-blocking)
+      - name: Supplemental release-validation diagnostics
         env:
           HENRET_PUBLISH_NAME: "1"
-          # Per-gate advisory bounds (RFC 097). The interpreted demo currently
-          # hangs in elaboration of Main.lean, so it is bounded tightly; a
-          # timeout is recorded (non-fatal). Exhaustive conformance gets a
-          # larger budget. Tune without editing check.sh.
+          # Supplemental bounds may be larger than the required release-core
+          # limits to diagnose cold-run timing without authorizing publication.
           HENRET_DEMO_TIMEOUT: "180"
           HENRET_CONF_TIMEOUT: "1500"
         run: bash scripts/check.sh --release-validation
 
       - name: Upload validation report (workflow artifact)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-validation-report
           path: |
@@ -61,14 +57,3 @@ jobs:
             release/*.validation-GATE-RUN.md
             release/logs/
           if-no-files-found: warn
-
-      - name: Attach validation report to release (tag only)
-        if: always() && startsWith(github.ref, 'refs/tags/')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 || exit 0
-          gh release upload "${GITHUB_REF_NAME}" \
-            release/henret-${GITHUB_REF_NAME}.validation-report.json \
-            release/henret-${GITHUB_REF_NAME}.validation-GATE-RUN.md \
-            --clobber || true

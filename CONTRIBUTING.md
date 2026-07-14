@@ -8,7 +8,7 @@
 2. **No overclaiming.** Changes that imply production-runtime readiness,
    native-thread correctness, or blur model vs. implementation are rejected.
 3. **Matrix discipline.** Any PR adding/changing a correctness claim must
-   update `docs/proof-trust-test-matrix.md` and the relevant index
+   update `docs/src/proof-trust-test-matrix.md` and the relevant index
    (`proof-index.md`, `assumption-index.md`, `test-index.md`).
 4. **Trust hygiene.** No `sorry`. New axioms only behind the RFC 010 boundary,
    named, indexed, and conformance-tested.
@@ -18,9 +18,11 @@
 
 - Substantive changes start as an RFC in `rfcs/proposed/` following
   `rfcs/done/000-rfc-lifecycle-policy.md` (NNN-slug.md, numbers never reused,
-  Status mirrors the folder, README index updated in the same commit).
-- Build gate: `lake build && lake exe henret-demo` must pass (demo exits
-  non-zero on regression).
+  Status mirrors the folder, generated indexes updated in the same commit).
+- Local pre-check: `bash scripts/check.sh --fast`.
+- Release-candidate pre-check: `bash scripts/check.sh --release-core`; this
+  requires bounded interpreted demo and conformance runs plus the exact-commit
+  mdBook gate. Timeout and failure are both blocking.
 - Preferred additions: mailbox semantics, supervision, cancellation,
   backpressure, bounded queues, request/reply, select/receive, logical timers.
 - Deferred: OS process lifecycle, native threads, real epoll/io_uring,
@@ -35,8 +37,8 @@ toolchain tarball from the Lean GitHub releases and unpack it under
 
 ## Canonical test command
 
-`./scripts/check.sh` is the single source of truth for "is the package
-green": core build, native build, demo regressions, all examples, the
-strict axiom audit (RFC 020), and the documentation-consistency grep
-(RFC 021). CI runs exactly this script. Run it before every commit that
-touches Lean code or docs.
+`scripts/check.sh` is the single source of truth for gate composition. `--fast`
+is the ordinary local profile; CI runs `--release-core` on pushes and bare
+`X.Y.Z` tags. The release profile additionally requires interpreted demo,
+exhaustive conformance, repository documentation, and mdBook at the exact
+candidate commit before producing evidence.

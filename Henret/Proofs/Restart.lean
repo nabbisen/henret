@@ -6,7 +6,7 @@ import Henret.Proofs.StepProjections
 /-!
   # Henret.Proofs.Restart  (RFC 049)
 
-  Restart-provenance invariants, kept **separate** from the 28-field
+  Restart-provenance invariants, kept **separate** from the 33-field
   `WellFormed` so the base safety contract is untouched.  Three facts
   about the `restartOf` map hold in every reachable state:
 

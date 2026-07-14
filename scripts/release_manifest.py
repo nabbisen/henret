@@ -30,6 +30,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+from gate_registry import PROFILES, V2_PROFILE, V3_PROFILE
+from explorer_result import strict_json_loads, validate_manifest_evidence
+
 records_path, version, tarball = sys.argv[1], sys.argv[2], sys.argv[3]
 gate_run_path = sys.argv[4] if len(sys.argv) > 4 else None
 
@@ -76,17 +79,16 @@ if inside and inside.returncode == 0 and inside.stdout.strip() == "true":
 else:
     commit, dirty, local_precheck, dirty_paths = None, False, True, []
 
-gates = [json.loads(l) for l in Path(records_path).read_text().splitlines() if l.strip()]
+gates = [strict_json_loads(l) for l in Path(records_path).read_text().splitlines()
+         if l.strip()]
 
-# RFC 097 — gate criticality. CORE gates are required and block sidecar
-# publication; the demo (2) and exhaustive conformance (4) executables are
-# advisory and run in --release-validation, recorded separately. Under the
-# ci-core-v1 profile they do not run here, so the manifest carries honest
-# `not_run_in_release_core` placeholders rather than silently omitting them.
+# RFC 102 adds v2 (gates 0-10); RFC 103 adds v3 (gates 0-11 plus stable
+# evidence IDs). Legacy profiles remain readable and are never redefined.
 release_profile = os.environ.get("HENRET_RELEASE_PROFILE", "full")
 ADVISORY_IDS = {2: "demo regression scenarios", 4: "golden conformance suite"}
 for g in gates:
-    g["criticality"] = "advisory" if g.get("id") in ADVISORY_IDS else "required"
+    g["criticality"] = ("advisory" if release_profile == "ci-core-v1"
+                        and g.get("id") in ADVISORY_IDS else "required")
 if release_profile == "ci-core-v1":
     present = {g.get("id") for g in gates}
     for gid, name in sorted(ADVISORY_IDS.items()):
@@ -97,17 +99,48 @@ if release_profile == "ci-core-v1":
                 "reason": "advisory executable validation; runs in the "
                           "release-validation workflow (RFC 097)",
             })
+if release_profile in (V2_PROFILE, V3_PROFILE):
+    contract = PROFILES[release_profile]
+    ids = [g.get("id") for g in gates]
+    if any(type(gate_id) is not int for gate_id in ids):
+        raise SystemExit(f"release_manifest: {release_profile} gate IDs must be "
+                         f"integers; observed {ids}")
+    expected_ids = set(contract["gates"])
+    if len(ids) != len(set(ids)) or set(ids) != expected_ids:
+        raise SystemExit(f"release_manifest: {release_profile} requires exactly "
+                         f"gate IDs {sorted(expected_ids)}; observed {ids}")
+    if any(g.get("status") != "pass" for g in gates):
+        raise SystemExit(f"release_manifest: {release_profile} contains a non-pass gate")
+    if release_profile == V3_PROFILE:
+        for gate in gates:
+            expected = contract["gates"][gate["id"]]
+            if gate.get("evidence_id") != expected:
+                raise SystemExit(f"release_manifest: gate {gate['id']} evidence_id "
+                                 f"{gate.get('evidence_id')!r} != {expected!r}")
+        explorer = next(g for g in gates if g["id"] == 11)
+        try:
+            validate_manifest_evidence(explorer.get("parameters"),
+                                       explorer.get("result"))
+        except ValueError as exc:
+            raise SystemExit(f"release_manifest: invalid v3 explorer evidence: {exc}")
 required_gates_passed = all(
     g.get("status") == "pass" for g in gates if g.get("criticality") == "required")
 
 POLICY = ["check.sh", "check_selftest.py", "axiom_audit.py", "doc_symbol_check.py",
-          "doc_count_check.py", "rfc_metadata_check.py", "forbidden_claim_check.py",
+          "doc_count_check.py", "native_decide_check.py", "markdown_link_check.py",
+          "rfc_metadata_check.py", "forbidden_claim_check.py",
           "warning_budget.py", "helper_usage_check.py", "extract_model_docs.py",
-          "extract_theorem_docs.py", "extract_rfc_index.py"]
+          "extract_theorem_docs.py", "extract_rfc_index.py", "source_archive.py",
+          "release_publish_preflight.py", "verify_release_manifest.py",
+          "gate_registry.py", "explorer_result.py", "release_manifest.py",
+          "ci_supply_chain.py", "install_ci_tool.py"]
 gate_policy = {
     s.replace(".", "_").replace("-", "_") + "_sha256": sha256_file("scripts/" + s)
     for s in POLICY
 }
+SUPPLY_CHAIN_POLICY = Path("ci/supply-chain.json")
+gate_policy["ci_supply_chain_json_sha256"] = sha256_file(SUPPLY_CHAIN_POLICY)
+supply_chain = strict_json_loads(SUPPLY_CHAIN_POLICY.read_text())
 
 runner = "github-actions" if os.environ.get("GITHUB_ACTIONS") \
     else os.environ.get("RUNNER_NAME", "local")
@@ -120,12 +153,10 @@ manifest = {
     "generated_by": "scripts/check.sh --release-core",
     "package": "henret",
     "version": version,
-    # RFC 097: which gate profile produced this manifest, and whether every
-    # required (sidecar-blocking) gate passed.
-    # RFC 097 §4: gate IDs are now part of retained release evidence, so the
-    # registry that defines their meaning is named explicitly. This is the
-    # current 10-gate (0-9) registry, distinct from older RFC 080 stage lists.
-    "gate_registry": "rfc097-ci-core-v1",
+    # Registry meaning is immutable: RFCs 102/103 create new registries rather
+    # than changing a retained profile in place.
+    "gate_registry": (PROFILES[release_profile]["registry"]
+                      if release_profile in PROFILES else "rfc097-ci-core-v1"),
     "release_profile": release_profile,
     "required_gates_passed": required_gates_passed,
     "timestamp_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -146,9 +177,15 @@ manifest = {
     "os": platform.platform(),
     "runner": runner,
     "gate_policy": gate_policy,
+    # RFC 104: exact action commits and downloaded-tool URL/digests retained
+    # beside a hash of the tracked policy that governed this run.
+    "supply_chain": {
+        "policy_sha256": gate_policy["ci_supply_chain_json_sha256"],
+        **supply_chain,
+    },
     "gates": gates,
-    # RFC 097: optional references to advisory validation reports (populated when
-    # a release-validation run is linked; empty otherwise).
+    # Retained for schema compatibility. Supplemental diagnostic reports never
+    # replace required release-core results.
     "validation_reports": [],
     "runtime_package": {
         "included": False,
@@ -173,11 +210,16 @@ def render_gate_run(m):
                f"({m['source_archive']['size_bytes']} bytes)")
     out.append(f"- tarball_sha256: `{m['tarball_sha256']}`")
     out.append(f"- os: {m['os']}  runner: {m['runner']}\n")
-    out.append("| id | gate | criticality | status | ms |")
-    out.append("|----|------|-------------|--------|----|")
+    out.append("| id | evidence_id | gate | criticality | status | ms |")
+    out.append("|----|-------------|------|-------------|--------|----|")
     for g in sorted(m["gates"], key=lambda x: x.get("id", 0)):
-        out.append(f"| {g['id']} | {g['name']} | {g.get('criticality','required')} "
+        out.append(f"| {g['id']} | {g.get('evidence_id','—')} | {g['name']} "
+                   f"| {g.get('criticality','required')} "
                    f"| {g['status']} | {g.get('duration_ms','-')} |")
+    for g in sorted(m["gates"], key=lambda x: x.get("id", 0)):
+        if g.get("parameters"):
+            out.append(f"\nGate `{g.get('evidence_id')}` parameters: "
+                       f"`{json.dumps(g['parameters'], sort_keys=True)}`")
     return "\n".join(out) + "\n"
 
 

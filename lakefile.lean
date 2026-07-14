@@ -3,7 +3,7 @@ open Lake DSL
 
 -- Henret — executable actor/task runtime models for Lean 4.
 -- License: Apache-2.0.  Author: nabbisen.
--- Repository: <REPO-URL-PLACEHOLDER>
+-- Repository: https://github.com/nabbisen/henret
 -- Keywords: lean4, formal-verification, actor-model, scheduler, semantics,
 --           refinement, concurrency, runtime-model.
 -- Toolchain: leanprover/lean4:v4.15.0 (see lean-toolchain).

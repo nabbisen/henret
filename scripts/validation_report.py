@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
-"""RFC 097 — release-validation report (advisory executable evidence).
+"""RFC 102 — supplemental release-validation diagnostic report.
 
     validation_report.py <records.jsonl> <version> [gate_run_md_path]
 
-Emitted by `check.sh --release-validation`. The demo (gate 2) and exhaustive
-conformance (gate 4) executables are advisory regression evidence that cannot run
-inside the CI-authoritative release-core budget; this report records their result
-and per-gate timing separately, so the release manifest can reference it without
-blocking sidecar publication on it. Hash-bound `GATE-RUN`-style summary when a
-path is given (same non-circular pattern as the release manifest).
+Emitted by `check.sh --release-validation`. Demo (gate 2) and exhaustive
+conformance (gate 4) are already required in release-core-v3; this separate run
+records supplemental timing/diagnostic results and never substitutes for the
+authoritative sidecar. Hash-bound `GATE-RUN`-style summary when a path is given.
 """
 import datetime
 import hashlib
@@ -51,9 +49,9 @@ def render(r):
            "| id | gate | status | ms |", "|----|------|--------|----|"]
     for g in r["gates"]:
         out.append(f"| {g['id']} | {g['name']} | {g['status']} | {g['duration_ms']} |")
-    out.append("\nThese are advisory executable-regression results (RFC 097); they "
-               "are not release-blocking and do not by themselves constitute the "
-               "RFC 095 sidecar.")
+    out.append("\nThese are supplemental diagnostic reruns (RFC 102). Gates 2 "
+               "and 4 must already pass in release-core-v3; this report does "
+               "not by itself constitute or repair the RFC 095 sidecar.")
     return "\n".join(out) + "\n"
 
 

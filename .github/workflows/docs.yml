@@ -2,13 +2,13 @@ name: docs-gate
 
 # RFC 094: documentation integrity is a separate gate from the Lean release
 # gate (.github/workflows/ci.yml). It builds the mdBook (0.5 line) and runs the
-# orphan / local-link checks. The latest mdBook release is installed from its
-# prebuilt binary so the gate does not depend on a host-provided mdBook.
+# orphan / local-link checks. A checksum-pinned mdBook release is installed
+# from its prebuilt binary so the gate does not trust a host-provided mdBook.
 
 on:
   push:
     branches: [main]
-    tags: ["v*"]
+    tags: ["[0-9]*.[0-9]*.[0-9]*"]
   pull_request:
 
 permissions:
@@ -18,18 +18,13 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
-      - name: Install latest mdBook
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Install pinned mdBook
         run: |
-          TAG=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
-            https://api.github.com/repos/rust-lang/mdBook/releases/latest \
-            | grep -oP '"tag_name":\s*"\K[^"]+')
-          curl -fsSL "https://github.com/rust-lang/mdBook/releases/download/${TAG}/mdbook-${TAG}-x86_64-unknown-linux-gnu.tar.gz" | tar xz
-          sudo mv mdbook /usr/local/bin/
-          mdbook --version
+          python3 scripts/install_ci_tool.py mdbook --destination /tmp/henret-mdbook
+          echo "/tmp/henret-mdbook" >> "$GITHUB_PATH"
+          /tmp/henret-mdbook/mdbook --version
 
       - name: Documentation gate
         run: bash scripts/check_docs.sh

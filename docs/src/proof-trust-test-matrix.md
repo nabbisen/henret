@@ -58,10 +58,12 @@ runtime package and are recorded only in
 
 ## Assumptions
 
-The Lean-only core makes **no project-specific assumptions**: there are no
-custom axioms, no `sorry`, and no `native_decide`. All theorems depend only on
-Lean's standard kernel axioms (`propext`, `Quot.sound`), verified with
-`#print axioms`. See `assumption-index.md`.
+The default `import Henret` surface makes **no project-specific assumptions**.
+The selected public theorem set is checked with `#print axioms` against Lean's
+standard kernel axioms (`propext`, `Quot.sound`, and where declared
+`Classical.choice`). A separate tracked-source gate rejects executable
+`native_decide` throughout the package. See `assumption-index.md`; the optional
+native import scope is documented separately below.
 
 ## Native layer claims (Henret.Native.*)
 
@@ -192,7 +194,7 @@ zero-assumption core.
 | 89 | `cancelTree root` leaves every task outside the subtree with unchanged `taskState` | PROVEN | `cancelTree_preserves_task_state` | in_tree_model_proof | yes |
 | 90 | After `cancelTree`, cancelled tasks are absent from `readyQ`, `timers`, and all `mailboxWaiters` | PROVEN | `cancelTree_removes_from_readyQ`, `cancelTree_removes_from_timers`, `cancelTree_removes_from_waiters` | in_tree_model_proof | yes |
 | 91 | `cancelTree` always succeeds (returns `.ok`) regardless of `root` spawn status | PROVEN | `cancelTree_step_eq` (step returns `.ok`) | in_tree_model_proof | yes |
-| 92 | All 21 `WellFormed` fields hold after `cancelTree` (preservation) | PROVEN | `preserves_wf_cancelTree` (in `Supervision.lean`) | in_tree_model_proof | yes |
+| 92 | All 33 `WellFormed` fields hold after `cancelTree` (preservation) | PROVEN | `preserves_wf_cancelTree` (in `Supervision.lean`) | in_tree_model_proof | yes |
 | 93 | `descendantsOf s root` is duplicate-free (nodup) and bounded by `nextId` | PROVEN | `descendantsOf_nodup`, `descendantsOf_bound` | in_tree_model_proof | yes |
 | 94 | `BridgeState` is preserved by `cancelTree`; `toQOps` emits `Filter 0 t` for each descendant | PROVEN | `bridge_cancelTree`, `bridge_step_single_worker` now covers 13 ops | in_tree_model_proof | yes |
 | 95 | `isInSubtreeOf` is well-founded (terminates by `<` on `TaskId`; conservative `false` for non-decreasing chains) | PROVEN | Lean's well-founded recursion checker via `termination_by t` | in_tree_model_proof | yes |
@@ -219,10 +221,10 @@ zero-assumption core.
 | 106 | `receiveByOccurrence t occ` with a matching envelope: removes exactly that envelope, returns `.received env` where `env.occurrence = occ`; relative order of nonmatching envelopes preserved | PROVEN | `receiveByOccurrence_removes_matching`, `receiveByOccurrence_preserves_nonmatching_order` | in_tree_model_proof | yes |
 | 107 | `receiveFrom t src` with a matching envelope: removes exactly that envelope, returns `.received env` where `env.source = some src`; relative order of nonmatching envelopes preserved | PROVEN | `receiveFrom_source_matches`, `receiveFrom_preserves_nonmatching_order` | in_tree_model_proof | yes |
 | 108 | `receiveByOccurrence`/`receiveFrom` with no matching envelope: parks `t` in `mailboxWaiters a`, returns `.blocked` (Option A / Mesa semantics) | PROVEN | `receiveByOccurrence_parks_on_miss`, `receiveFrom_parks_on_miss` | in_tree_model_proof | yes |
-| 109 | All 28 `WellFormed` fields preserved by `receiveByOccurrence` and `receiveFrom` | PROVEN | `preserves_wf_receiveByOccurrence`, `preserves_wf_receiveFrom` | in_tree_model_proof | yes |
+| 109 | All 33 `WellFormed` fields preserved by `receiveByOccurrence` and `receiveFrom` | PROVEN | `preserves_wf_receiveByOccurrence`, `preserves_wf_receiveFrom` | in_tree_model_proof | yes |
 | 110 | `dequeueFirst` removes exactly one envelope while preserving all others in order | PROVEN | `listDequeueFirst_sublist`, `listDequeueFirst_matches`, `listDequeueFirst_mem`, `listDequeueFirst_none` | in_tree_model_proof | yes |
 | 111 | Blocking is mailbox-level, not selector-level (Option A): any delivery to the actor wakes a parked selective-receive task | DOCUMENTED | Mesa semantics; `receiveByOccurrence_parks_on_miss` shows parking in `mailboxWaiters` | — | — |
-| 112 | `bridge_step_single_worker` covers all 16 `RuntimeOp`s including `receiveByOccurrence` and `receiveFrom` | PROVEN | `bridge_step_single_worker` (both emit `[]`, readyQ unchanged) | in_tree_model_proof | yes |
+| 112 | `bridge_step_single_worker` covers all 29 `RuntimeOp`s including `receiveByOccurrence` and `receiveFrom` | PROVEN | `bridge_step_single_worker` (both emit `[]`, readyQ unchanged) | in_tree_model_proof | yes |
 
 ## v0.12.0 claims (multi-worker bridge, RFC 043)
 
@@ -329,7 +331,7 @@ All claims here are **safety-only**: no fairness, liveness, or guaranteed-quiesc
 | 167 | A `.closed` actor rejects every `send` and environment `inject` targeting it | PROVEN | `closed_actor_rejects_send`, `closed_actor_rejects_inject` | in_tree_model_proof | yes |
 | 168 | A non-`running` runtime rejects root `spawn` and environment `inject` | PROVEN | `shutdown_rejects_spawn`, `shutdown_rejects_inject`, `shutdown_sets_status` | in_tree_model_proof | yes |
 | 169 | `stopWhenIdle` reaches `.stopped` only from a quiescent state | PROVEN | `stopWhenIdle_requires_quiescent`, `stopWhenIdle_sets_stopped` | in_tree_model_proof | yes |
-| 170 | The admission-status fields are `WellFormed`-irrelevant; the 28-field base contract is unchanged | PROVEN | `WellFormed.runtimeStatus_irrel`, `preserves_wf_{closeActor,shutdown,stopWhenIdle}` | in_tree_model_proof | yes |
+| 170 | The admission-status fields are `WellFormed`-irrelevant; the 33-field base contract is unchanged | PROVEN | `WellFormed.runtimeStatus_irrel`, `preserves_wf_{closeActor,shutdown,stopWhenIdle}` | in_tree_model_proof | yes |
 | 171 | The new ops are queue-stable under the single-worker bridge | PROVEN | `bridge_closeActor`, `bridge_shutdown`, `bridge_stopWhenIdle` | in_tree_model_proof | yes |
 | 172 | Subtree cancellation reuses `cancelTree` (RFC 039); no new cancellation op | DOCUMENTED | `cancelTree_cancels_task`, `cancelTree_preserves_task_state`, `docs/shutdown-semantics.md` | — | — |
 | 173 | No liveness or eventual-quiescence claim is introduced | DOCUMENTED | `docs/shutdown-semantics.md`, `examples/16_structured_shutdown.lean` | — | — |

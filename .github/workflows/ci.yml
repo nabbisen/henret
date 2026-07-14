@@ -1,10 +1,9 @@
 name: release-gate
 
-# RFC 080 / RFC 097: CI is the authoritative source of release evidence. Pull
+# RFC 080 / RFC 102 / RFC 103: CI is the authoritative release evidence source. Pull
 # requests run the fast gate; pushes to main and version-tag pushes run the
-# release-core gate (build/proofs/audit/docs/package) and publish the hashed
-# verification manifest. The demo and exhaustive conformance executables are
-# advisory and run in the separate, non-blocking release-validation workflow.
+# release-core gate. That exact-commit gate requires build/proofs, bounded
+# interpreted demo/conformance/explorer, documentation+mdBook, audit, and packaging.
 #
 # Tag convention: GitHub release tags are bare (no "v"), e.g. 0.34.4. Published
 # release assets are likewise no-v (henret-0.34.4.tar.gz, ...); local/dev
@@ -25,42 +24,51 @@ on:
 jobs:
   gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Install elan + Lean toolchain
         run: |
           # Install into /tmp so the elan-init binary never lands in the
           # checkout (it is untracked + not in the tarball excludes, so it
           # would otherwise dirty the source tree AND pollute the archive).
-          curl -sSfL https://github.com/leanprover/elan/releases/latest/download/elan-x86_64-unknown-linux-gnu.tar.gz -o /tmp/elan.tar.gz
-          tar xzf /tmp/elan.tar.gz -C /tmp
-          /tmp/elan-init -y --default-toolchain "$(cat lean-toolchain)"
+          python3 scripts/install_ci_tool.py elan --destination /tmp/henret-elan
+          /tmp/henret-elan/elan-init -y --default-toolchain "$(cat lean-toolchain)"
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
       - name: Cache Lake build
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .lake
           key: lake-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}
+
+      - name: Install pinned mdBook for exact-commit release gate
+        if: github.event_name == 'push'
+        run: |
+          python3 scripts/install_ci_tool.py mdbook --destination /tmp/henret-mdbook
+          echo "/tmp/henret-mdbook" >> "$GITHUB_PATH"
+          /tmp/henret-mdbook/mdbook --version
 
       - name: Fast gate (pull requests)
         if: github.event_name == 'pull_request'
         run: bash scripts/check.sh --fast
 
       - name: Release-core gate (push / tag - authoritative)
-        # Core gates only (no native executable build): library/proof build,
-        # axiom audit, doc/metadata checks, warning budget, canonical tarball,
-        # hashed manifest. Completes well within the runner budget.
+        # RFC 103 release-core-v3: every gate 0-11 is required. Demo,
+        # conformance, and explorer run interpreted under fail-closed timeouts;
+        # mdBook runs at this exact commit before packaging/publication.
         if: github.event_name == 'push'
         env:
           HENRET_PUBLISH_NAME: "1"   # publish no-v asset names (henret-X.Y.Z.*)
+          HENRET_DEMO_TIMEOUT: "180"
+          HENRET_CONF_TIMEOUT: "180"
+          HENRET_EXPLORE_TIMEOUT: "180"
         run: bash scripts/check.sh --release-core
 
       - name: Upload release evidence (workflow artifact, all pushes)
         if: github.event_name == 'push'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-verification
           path: |
@@ -82,18 +90,17 @@ jobs:
           if [ "$VERSION" != "${GITHUB_REF_NAME}" ]; then
             echo "FAIL: tag ${GITHUB_REF_NAME} != lakefile version ${VERSION}"; exit 1
           fi
+          python3 scripts/release_publish_preflight.py "${GITHUB_REF_NAME}"
           cp release/release-verification.json "release/henret-${VERSION}.release-verification.json"
           cp release/GATE-RUN.md               "release/henret-${VERSION}.GATE-RUN.md"
-          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 \
-            || gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --generate-notes --verify-tag
+          gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --generate-notes --verify-tag
           gh release upload "${GITHUB_REF_NAME}" \
             "release/henret-${VERSION}.tar.gz" \
             "release/henret-${VERSION}.release-verification.json" \
-            "release/henret-${VERSION}.GATE-RUN.md" \
-            --clobber
+            "release/henret-${VERSION}.GATE-RUN.md"
 
       - name: Post-upload verification (tag only)
-        # RFC 095 / RFC 097 closure: re-download the *published* assets and verify
+        # RFC 095 / RFC 103 closure: re-download the *published* assets and verify
         # the tarball sha256, the GATE-RUN hash binding, and that required gates
         # passed. This catches upload corruption or a wrong-asset upload that the
         # pre-upload manifest generation cannot see. A failure here means the
@@ -107,8 +114,8 @@ jobs:
             -p "henret-${GITHUB_REF_NAME}.tar.gz" \
             -p "henret-${GITHUB_REF_NAME}.release-verification.json" \
             -p "henret-${GITHUB_REF_NAME}.GATE-RUN.md" \
-            -D "$D" --clobber
-          python3 scripts/verify_release_manifest.py \
+            -D "$D"
+          python3 scripts/verify_release_manifest.py --require-current \
             "$D/henret-${GITHUB_REF_NAME}.release-verification.json" \
             "$D/henret-${GITHUB_REF_NAME}.tar.gz" \
             "$D/henret-${GITHUB_REF_NAME}.GATE-RUN.md"

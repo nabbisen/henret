@@ -154,7 +154,7 @@ these names.
 
 | Theorem | Guarantee |
 |---|---|
-| `reachable_wf` | every reachable state satisfies the 29-field `WellFormed` invariant |
+| `reachable_wf` | every reachable state satisfies the 33-field `WellFormed` invariant |
 | `reachable_queue_exact` | a task is in `readyQ` iff it is `.ready` |
 | `reachable_waiters_exact` | a task is in `mailboxWaiters a` iff it is `.waiting` and owned by `a` |
 | `reachable_waiter_actor_unique` | a waiting task waits on at most one actor |
@@ -242,7 +242,7 @@ Or run the bundled checker, which does all of the above (and the `GATE-RUN.md`
 hash binding) and exits non-zero on any mismatch:
 
 ```sh
-python3 scripts/verify_release_manifest.py \
+python3 scripts/verify_release_manifest.py --require-current \
     henret-X.Y.Z.release-verification.json henret-X.Y.Z.tar.gz henret-X.Y.Z.GATE-RUN.md
 ```
 
@@ -253,33 +253,35 @@ for the per-package and `stack_manifest_schema` shapes and the
 vouch for, or gate downstream packages — the stack contract is a format and
 composition agreement, not a trust delegation.
 
-The sidecar is produced under the CI-authoritative `ci-core-v1` profile
-(RFC 097). It certifies the source archive, exact commit, toolchain/manifest
-pins, the Lean kernel build (the proofs), the strict axiom audit, doc and
-generated-doc checks, the warning budget, gate-policy hashes, and packaging
-integrity. The demo and **exhaustive conformance** executables are advisory
-regression evidence reported separately (a non-blocking release-validation
-workflow emits `henret-X.Y.Z.validation-report.json`); they are not
-release-blocking and the manifest marks them `not_run_in_release_core`. Pin
-the henret edge on the sidecar manifest hash (RFC 096); also record the
-validation-report hash if you require executable-regression evidence.
+The sidecar is produced under the CI-authoritative `release-core-v3` profile
+(RFC 102 / RFC 103). It certifies the source archive, exact commit, toolchain/manifest
+pins, Lean kernel build, strict axiom audit, bounded interpreted demo and
+exhaustive conformance, repository documentation and mdBook, warning budget,
+gate-policy hashes, bounded explorer execution, and packaging integrity. All
+gate IDs 0–11 are required and carry stable semantic evidence IDs.
+Pin the henret edge on the sidecar manifest hash (RFC 096).
 
 This is **hash-only** verification: it trusts the channel the manifest was
 fetched over.
 
-For RFC 097 `ci-core-v1` manifests, the verifier checks:
+For RFC 103 `release-core-v3` manifests, the verifier checks:
 
-1. `release_profile` is `ci-core-v1` (or another accepted release-core
-   profile) and `gate_registry` is `rfc097-ci-core-v1`;
+1. `release_profile` is `release-core-v3` and `gate_registry` is
+   `rfc103-release-core-v3`;
 2. `required_gates_passed` is `true`;
-3. every gate with `criticality: required` has `status: pass`;
-4. advisory gates (demo, exhaustive conformance) **may** be
-   `not_run_in_release_core` — this is expected, not a failure;
-5. validation reports are supplemental evidence, not part of the required
-   release-core sidecar.
+3. gate IDs 0–11 occur exactly once and no other gate ID occurs;
+4. every gate is `required` with `status: pass` and the registry's semantic
+   `evidence_id`;
+5. `git_dirty` and `local_precheck` are false and `git_commit` is a full
+   40-character lowercase hexadecimal SHA-1 object ID;
+6. explorer parameters, duration, and output hash are present and valid;
+7. supplemental validation reports do not replace any required result.
 
-`verify_release_manifest.py` implements exactly this (it requires only
-required-criticality gates to pass). Cryptographic signing is a planned additive extension (a future
+Pass `--require-current` when the caller requires the current authoritative profile;
+without it, strict versioned checks apply when a manifest declares v2 or v3
+while valid legacy profiles remain readable. `verify_release_manifest.py` therefore
+retains legacy manifest compatibility without allowing profile downgrade in
+the current consumer recipe. Cryptographic signing is a planned additive extension (a future
 `manifest_schema`); until then, treat the publication channel (e.g. the release
 page over TLS) as the trust anchor. The published tarball is the *canonical*
 reproducible archive (`check.sh --release`); ad-hoc repackagings will not match

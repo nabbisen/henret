@@ -4,9 +4,8 @@
 Three responsibilities (081-4: the gate is a phrase list + allowed-context
 patterns + ledger validation, not phrase whack-a-mole):
 
-  1. Validate docs/evidence-ledger.yaml against the closed vocabulary and the
-     081-2/081-3 rules (namespaced stable ids; in-tree => verified-here;
-     out-of-tree => immutable coordinates or an explicit null posture).
+  1. Validate docs/evidence-ledger.yaml against the closed vocabulary, RFC 081
+     boundary rules, and RFC 103 stable CI-gate bindings.
   2. Render the ledger to docs/evidence-ledger.md and verify the committed
      file is in sync (081-1: YAML is the source, .md is generated). Pass
      --generate to (re)write the .md.
@@ -19,6 +18,9 @@ Runs in the RFC 080 doc-consistency gate. Stdlib only.
 import re
 import sys
 from pathlib import Path
+
+from gate_registry import (ACTIVE_PROFILE, active_evidence_ids,
+                           evidence_capability)
 
 ROOT = Path(__file__).resolve().parent.parent
 LEDGER_YAML = ROOT / "docs" / "evidence-ledger.yaml"
@@ -73,7 +75,9 @@ def _set(rec, key, val):
 
 
 # ------------------------------------------------------------- schema (081-B)
-def validate(records):
+def validate(records, available_gate_ids=None):
+    if available_gate_ids is None:
+        available_gate_ids = active_evidence_ids()
     seen = set()
     for r in records:
         cid = r.get("claim_id")
@@ -86,7 +90,8 @@ def validate(records):
             err(f"{cid}: duplicate claim_id")
         seen.add(cid)
         for f in ("claim", "tier", "evidence_location",
-                  "verified_by_this_tarball", "verified_by_ci"):
+                  "verified_by_this_tarball", "verified_by_ci",
+                  "ci_profile", "ci_gate"):
             if f not in r:
                 err(f"{cid}: missing required field {f}")
         tier, loc = r.get("tier"), r.get("evidence_location")
@@ -98,6 +103,33 @@ def validate(records):
         if not isinstance(vbt, bool) or not isinstance(vci, bool):
             err(f"{cid}: verified_by_* must be booleans")
             continue
+        ci_profile, ci_gate = r.get("ci_profile"), r.get("ci_gate")
+        if vci:
+            if ci_profile != ACTIVE_PROFILE:
+                err(f"{cid}: verified_by_ci=true requires ci_profile "
+                    f"{ACTIVE_PROFILE!r}")
+            if not isinstance(ci_gate, str) or ci_gate not in available_gate_ids:
+                err(f"{cid}: verified_by_ci=true references unresolved ci_gate "
+                    f"{ci_gate!r}")
+            else:
+                required_capability = None
+                if loc == "in_tree_model_proof" and tier == "PROVEN":
+                    required_capability = "kernel-build"
+                elif loc == "in_tree_model_proof" and tier == "TRUSTED":
+                    required_capability = "axiom-audit"
+                elif loc == "in_tree_model_test" and tier == "TESTED":
+                    required_capability = "executable-test"
+                elif loc in IN_TREE:
+                    err(f"{cid}: incompatible tier/location evidence kind: "
+                        f"{tier}/{loc}")
+                actual_capability = evidence_capability(ci_gate)
+                if (required_capability is not None and
+                        actual_capability != required_capability):
+                    err(f"{cid}: {tier}/{loc} requires CI capability "
+                        f"{required_capability!r}, but {ci_gate!r} provides "
+                        f"{actual_capability!r}")
+        elif ci_profile is not None or ci_gate is not None:
+            err(f"{cid}: verified_by_ci=false requires null ci_profile/ci_gate")
         # in-tree <=> verified by this tarball
         if loc in IN_TREE and not vbt:
             err(f"{cid}: in-tree location but verified_by_this_tarball=false")
@@ -129,11 +161,14 @@ def render_md(records):
            "runtime package and are **not** verified by this tarball "
            "(see [`package-boundary.md`](package-boundary.md)).",
            "",
-           "| claim_id | tier | location | verified here | claim |",
-           "|---|---|---|:---:|---|"]
+           "| claim_id | tier | location | verified here | CI binding | claim |",
+           "|---|---|---|:---:|---|---|"]
     for r in records:
+        binding = (f"`{r.get('ci_profile')} / {r.get('ci_gate')}`"
+                   if r.get("verified_by_ci") else "—")
         out.append(f"| `{r['claim_id']}` | {r['tier']} | {r['evidence_location']} "
                    f"| {'yes' if r['verified_by_this_tarball'] else 'no'} "
+                   f"| {binding} "
                    f"| {r['claim']} |")
     out.append("")
     return "\n".join(out)
@@ -185,7 +220,43 @@ def forbidden_gate(records):
                         f"        | {line.strip()[:100]}")
 
 
+def self_test():
+    base = {
+        "claim_id": "test.fixture", "claim": "fixture", "tier": "TESTED",
+        "evidence_location": "in_tree_model_test",
+        "verified_by_this_tarball": True, "verified_by_ci": True,
+        "ci_profile": ACTIVE_PROFILE, "ci_gate": "test.explorer",
+        "external_version": None, "notes": "fixture",
+    }
+
+    def case_errors(record, available=None):
+        errors.clear()
+        validate([record], available)
+        return list(errors)
+
+    failures = int(bool(case_errors(base)))
+    invalid = [
+        {**base, "ci_gate": None},
+        {**base, "ci_gate": "test.deleted"},
+        {**base, "ci_profile": "release-core-v2"},
+        {**base, "verified_by_ci": False},
+        {**base, "claim_id": "model.proof_fixture", "tier": "PROVEN",
+         "evidence_location": "in_tree_model_proof", "ci_gate": "test.explorer"},
+        {**base, "ci_gate": "build.lean"},
+        {**base, "claim_id": "native.trusted_fixture", "tier": "TRUSTED",
+         "evidence_location": "in_tree_model_proof", "ci_gate": "test.explorer"},
+    ]
+    failures += sum(not case_errors(record) for record in invalid)
+    failures += int(not case_errors(base, active_evidence_ids() - {"test.explorer"}))
+    errors.clear()
+    print(f"evidence-ledger-selftest: valid + {len(invalid) + 1} invalid "
+          f"gate-binding fixtures; {failures} error(s)")
+    return 1 if failures else 0
+
+
 def main():
+    if "--self-test" in sys.argv:
+        raise SystemExit(self_test())
     text = LEDGER_YAML.read_text()
     records = parse_ledger(text)
     validate(records)
@@ -193,6 +264,11 @@ def main():
 
     expected = render_md(records)
     if "--generate" in sys.argv:
+        if errors:
+            for e in errors:
+                print("LEDGER FAIL:", e)
+            print(f"evidence-ledger: {len(records)} claims, {len(errors)} error(s)")
+            raise SystemExit(1)
         LEDGER_MD.write_text(expected + "\n")
         print(f"wrote {LEDGER_MD.relative_to(ROOT)} ({len(records)} claims)")
         return

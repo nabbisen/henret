@@ -5,7 +5,7 @@ import Henret.Proofs.InvariantsPreservation
   # Henret.Proofs.Shutdown  (RFC 055)
 
   Structured-cancellation and shutdown **safety** theorems, kept
-  **separate** from the 28-field `WellFormed` so the base safety contract
+  **separate** from the 33-field `WellFormed` so the base safety contract
   is untouched (the admission-status fields are `WellFormed`-irrelevant;
   see `WellFormed.status_irrel`).
 

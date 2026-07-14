@@ -46,17 +46,34 @@ def count_wf_fields(path):
     return len(re.findall(r"^  [A-Za-z_]\w*\s*:", blk, re.M))
 
 
+def contiguous_count(values, label):
+    numbers = sorted(values)
+    expected = list(range(1, len(numbers) + 1))
+    if numbers != expected:
+        raise SystemExit(f"{label} numbering is not contiguous: {numbers}")
+    return len(numbers)
+
+
 GROUND = {
     "runtime_op": count_ctors("Henret/Scheduler/Op.lean", "RuntimeOp"),
     "task_state": count_ctors("Henret/Actor/Task.lean", "TaskState"),
     "step_result": count_ctors("Henret/Core/Result.lean", "StepResult"),
     "wellformed": count_wf_fields("Henret/Proofs/Invariants.lean"),
+    "demo_scenario": contiguous_count(
+        [int(n) for n in re.findall(r'IO\.println\s+"scenario\s+(\d+):',
+                                    (ROOT / "Main.lean").read_text())],
+        "demo scenario"),
+    "numbered_example": contiguous_count(
+        [int(path.name[:2]) for path in (ROOT / "examples").glob("[0-9][0-9]_*.lean")],
+        "numbered example"),
 }
 LABEL = {
     "runtime_op": "RuntimeOp constructors",
     "task_state": "TaskState constructors",
     "step_result": "StepResult constructors",
     "wellformed": "WellFormed fields",
+    "demo_scenario": "demo scenarios",
+    "numbered_example": "numbered examples",
 }
 
 # --------------------------------------------------------------- claim patterns
@@ -81,6 +98,20 @@ PAT = {
         re.compile(r"(\d+)\s+StepResults?\b"),
         re.compile(r"StepResult[^.\n]{0,40}?(\d+)\s+(?:constructors|cases|values)", re.I),
     ],
+    "demo_scenario": [
+        re.compile(r"^\s*(\d+)\s+(?:demo\s+)?scenarios?\b", re.I),
+        re.compile(r"\bdemo(?:\s+(?:has|runs|contains|executes))?\s+(\d+)\s+scenarios?\b", re.I),
+    ],
+    "numbered_example": [
+        re.compile(r"(\d+)\s+(?:self-contained\s+|numbered\s+)?examples?\b", re.I),
+    ],
+}
+
+NUMBER_WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+    "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11,
+    "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
+    "sixteen": 16,
 }
 
 # Lines that narrate a change cite past counts legitimately -> skip.
@@ -101,7 +132,7 @@ EXCLUDE_NAME_PREFIX = ("handoff",)
 def scan_targets():
     yield ROOT / "README.md"
     yield ROOT / "Main.lean"
-    for base in ("docs", "Henret"):
+    for base in ("docs", "Henret", "examples"):
         for p in (ROOT / base).rglob("*"):
             if p.suffix not in (".md", ".lean"):
                 continue
@@ -113,7 +144,46 @@ def scan_targets():
             yield p
 
 
+def line_mismatches(line):
+    # Markdown emphasis/code delimiters are presentation, not a way to hide a
+    # current count claim from the gate (RFC 101 regression class).
+    normalized = line.replace("`", "").replace("*", "").replace("_", "")
+    found = []
+    if HIST_CUE.search(normalized):
+        return found
+    for concept, pats in PAT.items():
+        claim_text = normalized
+        if concept == "demo_scenario":
+            claim_text = re.sub(
+                r"\b(" + "|".join(NUMBER_WORDS) + r")(?=\s+(?:demo\s+)?scenarios?\b)",
+                lambda match: str(NUMBER_WORDS[match.group(1).lower()]),
+                claim_text, flags=re.I)
+        elif concept == "numbered_example":
+            claim_text = re.sub(
+                r"\b(" + "|".join(NUMBER_WORDS) + r")(?=\s+(?:self-contained\s+|numbered\s+)?examples?\b)",
+                lambda match: str(NUMBER_WORDS[match.group(1).lower()]),
+                claim_text, flags=re.I)
+        for pat in pats:
+            for match in pat.finditer(claim_text):
+                value = int(match.group(1))
+                if value != GROUND[concept]:
+                    found.append((concept, value, GROUND[concept]))
+    return found
+
+
+def self_test():
+    fixtures = [f"**{GROUND['runtime_op'] - 1}-operation grammar**",
+                f"`{GROUND['wellformed'] - 1}-field WellFormed`",
+                "Nine demo scenarios", "Fifteen self-contained examples"]
+    errors = sum(not line_mismatches(line) for line in fixtures)
+    print(f"doc-count-selftest: {len(fixtures)} stale count fixtures, "
+          f"{errors} error(s)")
+    return errors
+
+
 def main():
+    if "--self-test" in sys.argv:
+        sys.exit(1 if self_test() else 0)
     print("ground truth:", ", ".join(f"{LABEL[k]}={v}" for k, v in GROUND.items()))
     errors = []
     for path in scan_targets():
@@ -121,15 +191,8 @@ def main():
             continue
         rel = path.relative_to(ROOT).as_posix()
         for i, line in enumerate(path.read_text().splitlines(), 1):
-            if HIST_CUE.search(line):
-                continue
-            for concept, pats in PAT.items():
-                truth = GROUND[concept]
-                for pat in pats:
-                    for m in pat.finditer(line):
-                        n = int(m.group(1))
-                        if n != truth:
-                            errors.append((rel, i, concept, n, truth, line.strip()))
+            for concept, n, truth in line_mismatches(line):
+                errors.append((rel, i, concept, n, truth, line.strip()))
 
     for rel, i, concept, n, truth, text in errors:
         print(f"ERROR {rel}:{i}: claims {n} {LABEL[concept]} but source has "

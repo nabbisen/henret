@@ -80,15 +80,15 @@ def spawnChildScenario : RuntimeState :=
 
 /-- The spawned child has task 0 as parent. -/
 theorem spawnChild_parent_check :
-    spawnChildScenario.taskParent 1 = some 0 := by native_decide
+    spawnChildScenario.taskParent 1 = some 0 := by decide
 
 /-- The parent (task 0) was running (now completed after the last op). -/
 theorem spawnChild_parent_was_running :
-    spawnChildScenario.taskState 0 = some .completed := by native_decide
+    spawnChildScenario.taskState 0 = some .completed := by decide
 
 /-- Task 1 is queued as .new (spawnChild enqueues it). -/
 theorem spawnChild_child_state :
-    spawnChildScenario.taskState 1 = some .new := by native_decide
+    spawnChildScenario.taskState 1 = some .new := by decide
 
 end Henret.Examples
 

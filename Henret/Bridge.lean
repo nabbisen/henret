@@ -19,7 +19,7 @@ native execution correctness, or actor-semantics equivalence.
 - `Henret.Bridge.toQOps` — guard-compatible translation from `RuntimeOp` to `List QOp`.
 - `Henret.Bridge.toQOpsTrace` — state-threading trace translation.
 - `Henret.Bridge.BridgeState` — queue projection relation.
-- `Henret.Bridge.bridge_step_single_worker` — single-step bridge for all 12 `RuntimeOp`s.
+- `Henret.Bridge.bridge_step_single_worker` — single-step bridge for all 29 `RuntimeOp`s.
 - `Henret.Bridge.bridge_run_tracks_single_worker` — headline trace theorem.
 - `Henret.Bridge.bridge_run_general` — trace theorem from any starting `BridgeState`.
 - `Henret.Bridge.reachable_bridge` — backward-compatible existential form.

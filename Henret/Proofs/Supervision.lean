@@ -148,7 +148,7 @@ theorem cancelTree_removes_from_waiters {s : RuntimeState} {root t : TaskId}
 
 /-! ## WellFormed preservation -/
 
-/-- `cancelTree` preserves all 27 `WellFormed` fields. -/
+/-- `cancelTree` preserves all 33 `WellFormed` fields. -/
 theorem preserves_wf_cancelTree {s : RuntimeState} (h : WellFormed s) (root : TaskId) :
     WellFormed ((step s (.cancelTree root)).1) := by
   simp only [cancelTree_step_eq]

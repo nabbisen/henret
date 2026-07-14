@@ -27,8 +27,9 @@ This file mirrors the project-level policy `000-rfc-lifecycle-policy.md`.
    `status` value must mirror the containing folder: `proposed/` →
    `Draft`/`Proposed`; `done/` → `Implemented`; `archive/` →
    `Withdrawn`/`Superseded`.
-4. Moving an RFC between folders and updating `rfcs/README.md` happen in the
-   same commit.
+4. `scripts/extract_rfc_index.py` generates `rfcs/README.md` and the mdBook RFC
+   index from that metadata. Adding or moving an RFC and regenerating both
+   indexes happen in the same commit; neither index is edited by hand.
 5. Completed RFCs are never deleted; superseded ones move to `archive/` with a
    `superseded_by` entry and `status: Superseded`.
 6. `scripts/rfc_metadata_check.py` enforces this schema as a release gate

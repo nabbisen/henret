@@ -15,6 +15,7 @@ cd "$(dirname "$0")/.."
 
 echo "== docs gate: structure (orphan + local links) =="
 python3 scripts/doc_summary_check.py
+python3 scripts/markdown_link_check.py
 
 echo "== docs gate: mdbook build =="
 if command -v mdbook >/dev/null 2>&1; then

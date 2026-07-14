@@ -56,7 +56,7 @@ as the replacement for failed task `old`.
 ## Invariants (kept separate from `WellFormed`)
 
 The provenance facts live in a **separate** `RestartWellFormed`
-structure, so the 28-field base safety contract is untouched. Three
+structure, so the 33-field base safety contract is untouched. Three
 fields hold in every reachable state:
 
 | Field | Guarantee |

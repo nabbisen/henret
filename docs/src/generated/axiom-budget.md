@@ -2,7 +2,7 @@
 
 # Axiom budget
 
-Every one of the 156 audited public theorems depends only on Lean's kernel axioms (`propext`, `Quot.sound`, and — for reachability theorems using `by_cases`/`obtain` — `Classical.choice`); the optional native layer adds typed FFI axioms. No project-specific axioms, no `native_decide`.
+Every one of the 156 audited public theorems depends only on Lean's kernel axioms (`propext`, `Quot.sound`, and — for reachability theorems using `by_cases`/`obtain` — `Classical.choice`). This statement covers the selected gate-audited theorem set, not every declaration in every opt-in import. The optional native import scope adds the typed FFI axioms listed below. A separate tracked-source gate rejects executable `native_decide` throughout the package.
 
 ## Axiom classes
 

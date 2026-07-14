@@ -4,22 +4,24 @@ Every item must pass before an archive is cut. The mechanical gates are
 bundled into a single command:
 
 ```bash
-bash scripts/check.sh --fast      # local developer pre-check (skips the demo)
-bash scripts/check.sh --release   # full suite + hashed manifest (CI-authoritative)
-bash scripts/check_docs.sh        # documentation gate (mdbook build + orphan/link; release-blocking)
+bash scripts/check.sh --fast          # local developer pre-check
+bash scripts/check.sh --release-core  # all required gates + hashed manifest
+bash scripts/check_docs.sh            # standalone documentation pre-check
 ```
 
-`--fast` runs the gate-suite self-test, the build, examples, conformance,
-doc-symbol, axiom audit, doc-consistency, and RFC-metadata gates. `--release`
-additionally runs the demo and emits `release/release-verification.json` (a
+`--fast` runs the gate-suite self-test, build, examples, doc-symbol, axiom
+audit, doc-consistency, RFC-metadata, and warning gates. `--release-core`
+additionally requires bounded interpreted demo, exhaustive conformance, the
+bounded explorer, and `check_docs.sh`, then emits `release/release-verification.json` (a
 hashed, non-manual evidence manifest) plus `release/GATE-RUN.md`. Per RFC 080,
-authoritative release evidence comes from **CI** running `--release` on the
-exact release commit/tag; a local `--release` is a pre-check only. The
+authoritative release evidence comes from **CI** running `--release-core` on the
+exact release commit/tag; a local `--release-core` is a pre-check only. The
 remaining items are reviewed by hand. The documentation gate `scripts/check_docs.sh`
-(mdBook build + SUMMARY-orphan + local-link checks, RFC 094) is **not** part of
-`check.sh --fast` — it is blocking for documentation/layout PRs and for release
-candidates. The book targets the mdBook 0.5 line (last verified with 0.5.3);
-`.github/workflows/docs.yml` installs the latest mdBook release, and
+(mdBook build + SUMMARY-orphan + local-link checks, RFC 094) is not part of
+`--fast`, but is required inside `--release-core` at the same commit. The book
+targets the mdBook 0.5 line;
+`.github/workflows/docs.yml` installs the checksum-pinned mdBook release from
+`ci/supply-chain.json`, and
 `check_docs.sh` reports the detected version.
 
 ## Automated gates (`scripts/check.sh`)
@@ -30,11 +32,16 @@ candidates. The book targets the mdBook 0.5 line (last verified with 0.5.3);
       compiles.
 - [ ] `lake build HenretExplore` — the optional bounded model checker
       compiles.
-- [ ] `lake exe henret-demo` — the demo's regression scenarios pass and
-      it exits zero.
+- [ ] interpreted `lake env lean --run Main.lean` — the demo's regression
+      scenarios pass and the command exits zero (`lake exe henret-demo` is
+      standalone).
 - [ ] every `examples/NN_*.lean` compiles.
-- [ ] `lake exe henret-conformance` — all golden-trace scenarios pass
-      (RFC 047).
+- [ ] interpreted `lake env lean --run Conformance.lean` — all golden-trace
+      scenarios pass (RFC 047; `lake exe henret-conformance` is standalone).
+- [ ] bounded interpreted `lake env lean --run Explore.lean` — its executed
+      machine result supplies the world/depth and outcomes; result, duration,
+      and output hash are retained under semantic gate
+      `test.explorer`; this is TESTED evidence, not proof.
 - [ ] strict axiom audit — every headline theorem depends only on
       `propext`, `Classical.choice`, `Quot.sound` (no project axioms in
       `import Henret`).
@@ -58,7 +65,7 @@ candidates. The book targets the mdBook 0.5 line (last verified with 0.5.3);
       (`RuntimeOp` / `RuntimeState` / `StepResult` / `TaskState`) changed.
 - [ ] the implemented RFC moved from `rfcs/proposed/` to `rfcs/done/`
       with its `Status` field updated to `Implemented (vX.Y.Z)`, and the
-      `rfcs/README.md` row updated.
+      two RFC indexes regenerated with `scripts/extract_rfc_index.py`.
 - [ ] new headline theorems added to the `scripts/axiom_audit.py`
       allowlist; new doc-referenced names added to the
       `scripts/doc_symbol_check.py` IGNORE set as appropriate.
@@ -68,7 +75,8 @@ candidates. The book targets the mdBook 0.5 line (last verified with 0.5.3);
 
 ## Archive hygiene
 
-- [ ] the archive excludes `.lake/` and any generated build output.
+- [ ] the archive contains exactly the Git-tracked entries at the candidate
+      commit; ignored and untracked local material is absent.
 - [ ] the archive unpacks to the extraction root with no intermediate
       parent directory (layout inside the tar is the project files
       directly).
@@ -76,27 +84,31 @@ candidates. The book targets the mdBook 0.5 line (last verified with 0.5.3);
       (`henret-vX.Y.Z.tar.gz`).
 
 ```bash
-tar --exclude='./.lake' --exclude='__pycache__' --exclude='*.pyc' \
-    --exclude='./release' --exclude='./.git' \
-    -czf henret-vX.Y.Z.tar.gz \
-    --transform 's|^\./||' -C <project-root> .
+python3 scripts/source_archive.py henret-vX.Y.Z.tar.gz --commit HEAD
+python3 scripts/source_archive.py --check henret-vX.Y.Z.tar.gz --commit HEAD
 ```
 
-(`__pycache__` / `*.pyc` are produced by running the gate scripts and are
-version-specific bytecode — they must not ship in a release archive.)
+The builder uses `git archive` with repository-independent `tar.umask=0022`,
+validates every member and its Git-derived mode, rejects internal paths and
+gitlinks/submodules, and requires two builds to be byte-identical.
 
-## Release profiles (RFC 097)
+## Release profiles (RFC 102 / RFC 103)
 
 - [ ] the published sidecar is produced by **`check.sh --release-core`** in CI
-      (the `ci-core-v1` profile): build/proofs, axiom audit, doc/metadata,
-      warning budget, canonical tarball, manifest. A release may publish when
-      every **required** gate passes (`required_gates_passed: true`).
-- [ ] the demo + exhaustive conformance run in the separate, non-blocking
-      **release-validation** workflow; their `validation-report.json` is
-      attached when available. A failed validation *after* publication
-      triggers a patch/retraction decision, not a block on publishing.
+      (the `release-core-v3` profile): gates 0–11, canonical tarball, and
+      manifest. Demo, conformance, explorer, and mdBook are required; executable
+      timeouts are failures. Publish only when `required_gates_passed: true`.
+- [ ] the manifest names `gate_registry: rfc103-release-core-v3` and contains
+      one passing `required` record for every gate ID 0–11, with the registered
+      semantic `evidence_id` on each record.
 
 ## Publishing & provenance (RFC 095)
+
+- [ ] publication preflight proves the version has no existing GitHub Release;
+      release creation and canonical asset upload then run without overwrite
+      authorization. Any rerun or partial prior publication fails closed.
+- [ ] an invalid published version is never repaired in place: record the
+      incident, cut a new patch version, and notify pinned consumers.
 
 - [x] **Post-upload verification is automated** — the release-gate workflow
       re-downloads the published tarball + sidecar + GATE-RUN and runs
@@ -118,7 +130,7 @@ version-specific bytecode — they must not ship in a release archive.)
       match — catching "CI built the right file but the wrong one was uploaded":
 
 ```bash
-python3 scripts/verify_release_manifest.py \
+python3 scripts/verify_release_manifest.py --require-current \
     henret-X.Y.Z.release-verification.json henret-X.Y.Z.tar.gz henret-X.Y.Z.GATE-RUN.md
 # exits 0 only if tarball sha256, source_archive, GATE-RUN.md hash, and all gates match
 ```
@@ -132,4 +144,3 @@ and the conformance executable (`lake exe henret-conformance`) are far
 lighter and verify the proof corpus and golden traces independently of
 the demo's codegen. The demo's correctness is exercised by its own
 regression scenarios when it does run; its build is not a proof gate.
-

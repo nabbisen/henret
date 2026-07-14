@@ -5,7 +5,7 @@ status: Proposed
 implemented_in: null
 supersedes: []
 superseded_by: []
-depends_on: []
+depends_on: [70, 71]
 blocks: []
 category: pedagogy
 ---

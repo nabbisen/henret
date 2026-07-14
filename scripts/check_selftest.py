@@ -12,11 +12,15 @@ Checks (080-C):
   3. the doc-symbol check has a non-empty target/symbol set
   4. the stale-phrase / generated-doc consistency check has non-empty targets
   5. the warning-budget gate is wired
+  6. RFC 103 active release-core selects validation, packaging, docs, explorer
+  7. numeric and semantic gate IDs match the active versioned registry
 """
 import re
 import subprocess
 import sys
 from pathlib import Path
+
+from gate_registry import ACTIVE_PROFILE, EVIDENCE_CAPABILITIES, PROFILES
 
 ROOT = Path(__file__).resolve().parent.parent
 errors = []
@@ -29,15 +33,17 @@ def err(msg):
 CHECK_SH = (ROOT / "scripts" / "check.sh").read_text()
 AUDIT_PY = (ROOT / "scripts" / "axiom_audit.py").read_text()
 
-# 1. gate ids unique + named -------------------------------------------------
-gates = re.findall(r'run_gate\s+(\d+)\s+"([^"]+)"', CHECK_SH)
-ids = [int(i) for i, _ in gates]
+# 1. gate ids unique + semantic ids + names ---------------------------------
+gates = re.findall(r'run_gate\s+(\d+)\s+"([^"]+)"\s+"([^"]+)"', CHECK_SH)
+ids = [int(i) for i, _, _ in gates]
 if not gates:
-    err("no `run_gate <id> \"<name>\"` declarations found in check.sh")
+    err("no `run_gate <id> \"<evidence-id>\" \"<name>\"` declarations found")
 dupes = sorted({i for i in ids if ids.count(i) > 1})
 if dupes:
     err(f"duplicate gate id(s): {dupes}")
-for i, n in gates:
+for i, evidence_id, n in gates:
+    if not evidence_id.strip():
+        err(f"gate {i} has an empty evidence id")
     if not n.strip():
         err(f"gate {i} has an empty name")
 
@@ -78,8 +84,28 @@ if "ground truth" not in r.stdout:
     err("doc_count_check.py did not compute a ground-truth count set")
 
 # 5. warning-budget gate is wired --------------------------------------------
-if not re.search(r'run_gate\s+\d+\s+"[^"]*warning', CHECK_SH, re.I):
+if not re.search(r'run_gate\s+\d+\s+"[^"]+"\s+"[^"]*warning', CHECK_SH, re.I):
     err("warning-budget gate is not wired in check.sh")
+
+# 6. RFC 103 release-core composition ---------------------------------------
+if not re.search(r'--release-core\)\s+CORE=1;\s+VALID=1;\s+PACKAGE=1', CHECK_SH):
+    err("release-core does not select required executable validation + packaging")
+if not re.search(r'run_gate\s+10\s+"docs\.mdbook"\s+"mdBook documentation integrity"', CHECK_SH):
+    err("release-core exact-commit mdBook gate is not wired")
+if not re.search(r'run_gate\s+11\s+"test\.explorer"\s+"bounded model explorer"', CHECK_SH):
+    err("release-core bounded explorer gate is not wired")
+if "HENRET_RELEASE_PROFILE=release-core-v3" not in CHECK_SH:
+    err("release-core does not select the RFC 103 v3 profile")
+if 'if [ "$status" != pass ] && [ "$advisory" = 0 ]' not in CHECK_SH:
+    err("required timeout/failure is not fail-closed")
+
+# 7. active registry matches executable declarations ------------------------
+declared = {int(i): evidence_id for i, evidence_id, _ in gates}
+registered = PROFILES[ACTIVE_PROFILE]["gates"]
+if declared != registered:
+    err(f"active gate-registry drift: declared={declared}; registered={registered}")
+if set(registered.values()) != set(EVIDENCE_CAPABILITIES):
+    err("active gate registry and evidence-capability map disagree")
 
 for e in errors:
     print("SELFTEST FAIL:", e)

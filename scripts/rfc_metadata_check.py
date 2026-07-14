@@ -6,6 +6,9 @@ rfcs/{done,proposed,archive}/. Hard errors fail the build; loose slug
 correspondence is advisory (RFC 000 requires only a loose match, and
 filenames are permanent so they cannot be renamed to satisfy a strict rule).
 
+`depends_on` is authoritative for scheduling. `blocks` is an optional forward
+hint, and every declared A-blocks-B edge must be mirrored by B-depends-on-A.
+
 Accepted YAML subset (085-1): scalar strings, integer `rfc`, bare-integer
 lists `[80, 84]` / `[]`, `null`; no nested objects, no multiline scalars.
 """
@@ -68,7 +71,31 @@ def slug_tokens(s):
     return [t for t in s.split() if t]
 
 
+def asymmetric_block_edges(relations):
+    bad = []
+    for source, (source_file, source_relations) in relations.items():
+        for target in source_relations.get("blocks", []):
+            target_relations = relations.get(target, ("", {}))[1]
+            if source not in target_relations.get("depends_on", []):
+                bad.append((source_file, source, target))
+    return bad
+
+
+def self_test():
+    good = {1: ("1.md", {"blocks": [2]}),
+            2: ("2.md", {"depends_on": [1]})}
+    bad = {1: ("1.md", {"blocks": [2]}),
+           2: ("2.md", {"depends_on": []})}
+    failures = int(bool(asymmetric_block_edges(good))) + \
+               int(len(asymmetric_block_edges(bad)) != 1)
+    print(f"rfc-metadata-selftest: reciprocal + one-sided fixtures; "
+          f"{failures} error(s)")
+    return failures
+
+
 def main():
+    if "--self-test" in sys.argv:
+        sys.exit(1 if self_test() else 0)
     files = []
     for folder in ("done", "proposed", "archive"):
         d = RFCS / folder
@@ -76,6 +103,7 @@ def main():
             files += [(folder, p) for p in sorted(d.glob("[0-9]*.md"))]
 
     seen = {}                      # rfc number -> file
+    relations = {}                 # rfc number -> parsed dependency lists
     all_numbers = set()
     for _, p in files:
         m = re.match(r"(\d+)-", p.name)
@@ -134,15 +162,18 @@ def main():
                 err(f, f"implemented_in must be null when status={st}, got {impl!r}")
 
         # list fields -> bare ints pointing to existing RFCs
+        parsed_relations = {}
         for key in ("supersedes", "superseded_by", "depends_on", "blocks"):
             if key in fm:
                 lst = parse_list(f, key, fm[key])
                 if lst is not None:
+                    parsed_relations[key] = lst
                     for n in lst:
                         if n not in all_numbers:
                             err(f, f"{key} references RFC {n} which does not exist")
                         if n == fnum:
                             err(f, f"{key} references itself ({n})")
+        relations[fnum] = (f, parsed_relations)
 
         # loose slug correspondence (advisory; RFC 000 requires only a loose match)
         title = fm.get("title", "")
@@ -154,6 +185,10 @@ def main():
                 if overlap < 0.5:
                     warn(f, f"filename slug weakly matches title "
                             f"(overlap {overlap:.0%}): {fslug!r} vs {title!r}")
+
+    for source_file, source, target in asymmetric_block_edges(relations):
+        err(source_file, f"blocks RFC {target}, but RFC {target} "
+            f"does not declare depends_on RFC {source}")
 
     for w in warnings:
         print(f"WARN  {w}")

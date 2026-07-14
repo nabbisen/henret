@@ -17,7 +17,7 @@ RFC 040, and it is **safety-only**.
 ## The two status fields
 
 `RuntimeState` carries two admission-status fields, both
-`WellFormed`-irrelevant (no invariant field mentions them; the 28-field
+`WellFormed`-irrelevant (no invariant field mentions them; the 33-field
 base contract is unchanged via `WellFormed.runtimeStatus_irrel`; since RFC
 091 `closeActor` also marks the actor's actor-owned resources closing):
 

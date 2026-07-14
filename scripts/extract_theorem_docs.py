@@ -91,8 +91,11 @@ def generate():
            f"Every one of the {len(entries)} audited public theorems depends "
            f"only on Lean's kernel axioms (`propext`, `Quot.sound`, and — for "
            f"reachability theorems using `by_cases`/`obtain` — `Classical."
-           f"choice`); the optional native layer adds typed FFI axioms. No "
-           f"project-specific axioms, no `native_decide`.", "",
+           f"choice`). This statement covers the selected gate-audited theorem "
+           f"set, not every declaration in every opt-in import. The optional "
+           f"native import scope adds the typed FFI axioms listed below. A "
+           f"separate tracked-source gate rejects executable `native_decide` "
+           f"throughout the package.", "",
            "## Axiom classes", "",
            "| Class | Axioms | Theorems |",
            "|---|---|---|",

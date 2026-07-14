@@ -5,7 +5,7 @@ status: Proposed
 implemented_in: null
 supersedes: []
 superseded_by: []
-depends_on: []
+depends_on: [72]
 blocks: []
 category: theory
 ---
