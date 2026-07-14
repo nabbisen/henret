@@ -14,6 +14,7 @@ Checks (080-C):
   5. the warning-budget gate is wired
   6. active release-core selects validation, packaging, docs, explorer
   7. numeric and semantic gate IDs match the active versioned registry
+  8. the explorer build target includes the imported umbrella module
 """
 import re
 import subprocess
@@ -32,6 +33,7 @@ def err(msg):
 
 CHECK_SH = (ROOT / "scripts" / "check.sh").read_text()
 AUDIT_PY = (ROOT / "scripts" / "axiom_audit.py").read_text()
+LAKEFILE = (ROOT / "lakefile.lean").read_text()
 
 # 1. gate ids unique + semantic ids + names ---------------------------------
 gates = re.findall(r'run_gate\s+(\d+)\s+"([^"]+)"\s+"([^"]+)"', CHECK_SH)
@@ -106,6 +108,28 @@ if declared != registered:
     err(f"active gate-registry drift: declared={declared}; registered={registered}")
 if set(registered.values()) != set(EVIDENCE_CAPABILITIES):
     err("active gate registry and evidence-capability map disagree")
+
+# 8. clean explorer build includes its imported umbrella --------------------
+# Lake's `.submodules` glob deliberately excludes the named root.  Gate 11's
+# `Explore.lean` imports `Henret.Explore`, so a cached local umbrella must not
+# be allowed to hide a clean-hosted-build omission.
+def explorer_root_is_built(lakefile):
+    return re.search(
+        r'lean_lib\s+HenretExplore\s+where\b.*?'
+        r'\.andSubmodules\s+`Henret\.Explore\b',
+        lakefile, re.S) is not None
+
+
+if not re.search(r'gate_build_libs\(\).*\bHenretExplore\b', CHECK_SH):
+    err("gate 1 does not build the HenretExplore library")
+if explorer_root_is_built(
+        "lean_lib HenretExplore where\n  globs := #[.submodules `Henret.Explore]"):
+    err("explorer-root detector accepted the root-excluding glob")
+if not explorer_root_is_built(
+        "lean_lib HenretExplore where\n  globs := #[.andSubmodules `Henret.Explore]"):
+    err("explorer-root detector rejected the root-including glob")
+if not explorer_root_is_built(LAKEFILE):
+    err("HenretExplore must include the Henret.Explore root and submodules")
 
 for e in errors:
     print("SELFTEST FAIL:", e)

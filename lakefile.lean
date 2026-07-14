@@ -39,7 +39,10 @@ lean_lib HenretNative where
     A development/testing tool — outside the default `import Henret` path.
     See docs/model-explorer.md. -/
 lean_lib HenretExplore where
-  globs := #[.submodules `Henret.Explore]
+  -- `.submodules` excludes the root module itself.  Gate 11 runs
+  -- `Explore.lean`, which imports the `Henret.Explore` umbrella, so the clean
+  -- gate-1 build must include both that root and all of its submodules.
+  globs := #[.andSubmodules `Henret.Explore]
 
 lean_exe «henret-explore» where
   root := `Explore
