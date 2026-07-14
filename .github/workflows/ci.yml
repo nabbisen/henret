@@ -90,8 +90,8 @@ jobs:
           python3 scripts/release_publish_preflight.py "${GITHUB_REF_NAME}"
           cp release/release-verification.json "release/henret-${VERSION}.release-verification.json"
           cp release/GATE-RUN.md               "release/henret-${VERSION}.GATE-RUN.md"
-          gh release create "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --title "${GITHUB_REF_NAME}" --generate-notes --verify-tag
-          gh release upload "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" \
+          gh release create "${GITHUB_REF_NAME}" --repo "nabbisen/henret" --title "${GITHUB_REF_NAME}" --generate-notes --verify-tag
+          gh release upload "${GITHUB_REF_NAME}" --repo "nabbisen/henret" \
             "release/henret-${VERSION}.tar.gz" \
             "release/henret-${VERSION}.release-verification.json" \
             "release/henret-${VERSION}.GATE-RUN.md"
@@ -107,7 +107,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           D=/tmp/verify-dl; rm -rf "$D"; mkdir -p "$D"
-          gh release download "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" \
+          gh release download "${GITHUB_REF_NAME}" --repo "nabbisen/henret" \
             -p "henret-${GITHUB_REF_NAME}.tar.gz" \
             -p "henret-${GITHUB_REF_NAME}.release-verification.json" \
             -p "henret-${GITHUB_REF_NAME}.GATE-RUN.md" \

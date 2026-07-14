@@ -36,10 +36,11 @@ PYTHON_RE = re.compile(r"\bpython(?:3(?:\.\d+)?)?\s+([^\s\\]+)")
 GH_RE = re.compile(r"(?:^\s*|\brun:\s*)gh\s+([^\n]+)", re.MULTILINE)
 GH_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9_])(?:/[^\s]*/)?gh\s+")
 GH_OVERRIDE_RE = re.compile(
-    r"\b(?:GH_REPO|GH_HOST)\b|(?:^|\s)(?:--hostname|-R)(?:\s|=)", re.MULTILINE)
+    r"\b(?:GH_REPO|GH_HOST)\b|(?:^|\s)GITHUB_REPOSITORY\s*(?:=|:)"
+    r"|(?:^|\s)(?:--hostname|-R)(?:\s|=)", re.MULTILINE)
 ALLOWED_GH_RE = re.compile(
     r'^release\s+(?:create|upload|download)\s+"\$\{GITHUB_REF_NAME\}"\s+'
-    r'--repo\s+"\$\{GITHUB_REPOSITORY\}"(?:\s|$)')
+    r'--repo\s+"nabbisen/henret"(?:\s|$)')
 ALLOWED_PYTHON = {
     "ci.yml": {"scripts/install_ci_tool.py", "scripts/release_publish_preflight.py",
                "scripts/verify_release_manifest.py"},
@@ -342,20 +343,30 @@ def self_test() -> int:
     cases.append(workflow_case(
         "ci.yml", '\n      - name: external via GH_REPO\n        env:\n'
         '          GH_REPO: attacker/tool\n        run: gh release download '
-        '"${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}"\n'))
+        '"${GITHUB_REF_NAME}" --repo "nabbisen/henret"\n'))
     cases.append(workflow_case(
         "ci.yml", '\n      - run: GH_REPO=attacker/tool gh release download '
-        '"${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}"\n'))
+        '"${GITHUB_REF_NAME}" --repo "nabbisen/henret"\n'))
     cases.append(workflow_case(
         "ci.yml", '\n      - name: external host\n        env:\n          GH_HOST: example.com\n'
         '        run: gh release download "${GITHUB_REF_NAME}" '
-        '--repo "${GITHUB_REPOSITORY}"\n'))
+        '--repo "nabbisen/henret"\n'))
     cases.append(workflow_case(
         "ci.yml", '\n      - run: env gh release download "${GITHUB_REF_NAME}" '
         '--repo attacker/tool\n'))
     cases.append(workflow_case(
         "ci.yml", '\n      - run: /usr/bin/gh release download "${GITHUB_REF_NAME}" '
         '--repo attacker/tool\n'))
+    cases.append(workflow_case(
+        "ci.yml", '\n      - run: |\n          export GITHUB_REPOSITORY=attacker/tool\n'
+        '          gh release download "${GITHUB_REF_NAME}" --repo "nabbisen/henret"\n'))
+    cases.append(workflow_case(
+        "ci.yml", '\n      - run: |\n          GITHUB_REPOSITORY=attacker/tool\n'
+        '          gh release download "${GITHUB_REF_NAME}" --repo "nabbisen/henret"\n'))
+    cases.append(workflow_case(
+        "ci.yml", '\n      - env:\n          GITHUB_REPOSITORY: attacker/tool\n'
+        '        run: gh release download "${GITHUB_REF_NAME}" '
+        '--repo "nabbisen/henret"\n'))
     cases.append((policy, workflows, metadata.replace(
         "https://github.com/nabbisen/henret", "https://example.com/placeholder"),
                   toolchain))
@@ -363,9 +374,9 @@ def self_test() -> int:
     failures += sum(not validate(p, w, m, t) for p, w, m, t in cases)
 
     allowed_gh = """steps:
-  - run: gh release create "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}"
-  - run: gh release upload "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" asset
-  - run: gh release download "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}"
+  - run: gh release create "${GITHUB_REF_NAME}" --repo "nabbisen/henret"
+  - run: gh release upload "${GITHUB_REF_NAME}" --repo "nabbisen/henret" asset
+  - run: gh release download "${GITHUB_REF_NAME}" --repo "nabbisen/henret"
 """
     failures += int(bool(acquisition_route_errors("ci.yml", allowed_gh)))
 

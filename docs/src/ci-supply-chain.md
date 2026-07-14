@@ -21,9 +21,10 @@ is `ci/supply-chain.json`:
   approved acquisition entrypoints. Workflows may call only their registered
   repository Python scripts. `gh` is restricted to Henret's own
   create/upload/post-upload-download routes in `ci.yml`, with every command
-  explicitly bound to `${GITHUB_REPOSITORY}`. `GH_REPO`/`GH_HOST`, external
-  repository selectors, prefixed/unparsed `gh`, interpreter snippets, and
-  direct HTTP clients are rejected.
+  explicitly bound to the literal `nabbisen/henret` repository.
+  `GH_REPO`/`GH_HOST`, `GITHUB_REPOSITORY` reassignment, external repository
+  selectors, prefixed/unparsed `gh`, interpreter snippets, and direct HTTP
+  clients are rejected.
   Exact per-workflow installer calls, Lean selector agreement, and canonical
   package metadata are also required.
 
