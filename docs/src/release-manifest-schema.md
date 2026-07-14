@@ -36,7 +36,7 @@ the filename is only a fetch convenience — RFC 096 D6.) Core fields (RFC 080):
 | `os`, `runner` | build environment |
 | `hosted_ci` | exact GitHub repository/run/ref/workflow/commit, runner, architecture, and image identity; required and non-null in v4 |
 | `gate_policy` | per-gate-script SHA-256 plus the RFC 104 supply-chain policy hash |
-| `supply_chain` | exact GitHub Action commits and downloaded-tool versions, URLs, and SHA-256 digests governed by `ci/supply-chain.json` |
+| `supply_chain` | exact GitHub Action commits, complete workflow SHA-256 values, per-workflow tool routes, and downloaded-tool versions/URLs/digests governed by `ci/supply-chain.json` |
 | `gates` | gate records: `id`, stable `evidence_id`, `name`, `status`, `duration_ms`, log hashes, and `criticality`. Under `release-core-v4`, IDs 0–11 must all be present, `required`, and `pass`. |
 | `validation_reports` | retained additive field for supplemental diagnostic reports; never substitutes for a required gate |
 | `runtime_package` | out-of-tree runtime posture (RFC 081) |

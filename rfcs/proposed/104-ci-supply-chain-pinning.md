@@ -54,7 +54,12 @@ The tracked source of truth is `ci/supply-chain.json`. RFC 104 introduces
 semantics. Workflows spell out
 each action commit (with a version comment) because GitHub Actions expressions
 cannot safely provide a dynamic `uses` ref. `scripts/ci_supply_chain.py` checks
-those literals against policy. Downloaded tools go through
+quoted, spaced-colon, and canonical `uses` spellings against policy. The policy
+also pins each complete workflow file by SHA-256: those exact reviewed bytes
+are the executable-acquisition allowlist. A deliberate workflow-hash update
+still permits only the registered repository Python entrypoints and Henret's
+scoped self-release `gh` operations; external `gh --repo`, interpreter snippets,
+and direct HTTP clients are rejected. Downloaded tools go through
 `scripts/install_ci_tool.py`, which downloads the versioned URL, verifies the
 policy digest before extraction, rejects unsafe archive members, and only then
 exposes the binary. Release manifests retain the full policy and its hash.
@@ -80,6 +85,8 @@ The repository metadata is already canonical at implementation time; the RFC
 - A checksum mismatch fails before extraction or execution.
 - Pin identities are included in hashed release policy evidence.
 - Updating a pin requires a reviewable source change.
+- Any workflow-byte change requires a matching reviewed policy-hash update,
+  and alternate YAML `uses` spellings cannot bypass action validation.
 - Package repository metadata has no placeholder.
 - The Lean selector and checksum-pinned archive version agree.
 - Current-profile verification rejects missing/drifted supply-chain evidence

@@ -21,6 +21,18 @@ ROOT = Path(__file__).resolve().parent.parent
 POLICY = ROOT / "ci" / "supply-chain.json"
 
 
+def canonical_member(name: str, destination: Path) -> tuple[Path, str]:
+    """Return a contained output path and collision key for an archive member."""
+    raw = name.rstrip("/")
+    parts = raw.split("/")
+    if not raw or "\\" in raw or any(part in ("", ".", "..") for part in parts):
+        raise ValueError(f"unsafe archive member: {name!r}")
+    target = (destination / raw).resolve()
+    if target == destination or destination not in target.parents:
+        raise ValueError(f"unsafe archive member: {name!r}")
+    return target, target.relative_to(destination).as_posix()
+
+
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -41,11 +53,10 @@ def safe_extract(archive: Path, destination: Path) -> None:
     with tarfile.open(archive, "r:gz") as bundle:
         names: set[str] = set()
         for member in bundle.getmembers():
-            target = (destination / member.name).resolve()
-            if (target != destination and destination not in target.parents) or \
-                    not (member.isfile() or member.isdir()) or member.name in names:
+            _, canonical = canonical_member(member.name, destination)
+            if not (member.isfile() or member.isdir()) or canonical in names:
                 raise ValueError(f"unsafe archive member: {member.name!r}")
-            names.add(member.name)
+            names.add(canonical)
         try:
             bundle.extractall(destination, filter="data")
         except TypeError:  # Python < 3.12: the strict pre-scan remains binding.
@@ -57,14 +68,13 @@ def safe_extract_zip(archive: Path, destination: Path) -> None:
     with zipfile.ZipFile(archive) as bundle:
         names: set[str] = set()
         for member in bundle.infolist():
-            target = (destination / member.filename).resolve()
+            _, canonical = canonical_member(member.filename, destination)
             mode = member.external_attr >> 16
             kind = stat.S_IFMT(mode)
             supported = member.is_dir() or kind in (0, stat.S_IFREG)
-            if (target != destination and destination not in target.parents) or \
-                    not supported or member.filename in names:
+            if not supported or canonical in names:
                 raise ValueError(f"unsafe archive member: {member.filename!r}")
-            names.add(member.filename)
+            names.add(canonical)
         bundle.extractall(destination)
         for member in bundle.infolist():
             mode = (member.external_attr >> 16) & 0o777
@@ -150,7 +160,25 @@ def self_test() -> int:
             failures += 1
         except ValueError:
             pass
-    print(f"install-ci-tool-selftest: valid + 4 unsafe archive fixtures; "
+
+        tar_alias = root / "tar-alias.tar.gz"
+        with tarfile.open(tar_alias, "w:gz") as bundle:
+            for name in ("tool", "./tool"):
+                info = tarfile.TarInfo(name)
+                info.size = 1
+                bundle.addfile(info, io.BytesIO(b"x"))
+        zip_alias = root / "zip-alias.zip"
+        with zipfile.ZipFile(zip_alias, "w") as bundle:
+            bundle.writestr("tool", b"one")
+            bundle.writestr("a/../tool", b"two")
+        for fixture, extractor in ((tar_alias, safe_extract),
+                                   (zip_alias, safe_extract_zip)):
+            try:
+                extractor(fixture, root / f"{fixture.stem}-out")
+                failures += 1
+            except ValueError:
+                pass
+    print(f"install-ci-tool-selftest: valid + 6 unsafe archive fixtures; "
           f"{failures} error(s)")
     return 1 if failures else 0
 

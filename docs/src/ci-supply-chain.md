@@ -12,11 +12,18 @@ is `ci/supply-chain.json`:
   and do not permit elan to fetch a second-stage toolchain.
 - `scripts/install_ci_tool.py` verifies the downloaded archive before any
   extraction or execution and rejects traversal, links/special files,
-  duplicate members, and unsupported archive types.
-- `scripts/ci_supply_chain.py` rejects movable action refs, unregistered
-  actions, `.yml`/`.yaml` workflow-policy drift, direct workflow downloads,
-  `latest` downloads, missing digests, installer-call disagreement, Lean
-  selector drift, and placeholder package metadata.
+  normalized-path aliases/duplicates, and unsupported archive types.
+- Every complete `.yml`/`.yaml` workflow is SHA-256 pinned in policy. This byte
+  allowlist is the primary control: any workflow command or syntax change
+  requires a matching reviewed policy change.
+- `scripts/ci_supply_chain.py` additionally interprets canonical, quoted, and
+  spaced-colon `uses` keys; rejects movable/unregistered actions; and enforces
+  approved acquisition entrypoints. Workflows may call only their registered
+  repository Python scripts. `gh` is restricted to Henret's own
+  create/upload/post-upload-download routes in `ci.yml`; external `--repo`
+  acquisition, interpreter snippets, and direct HTTP clients are rejected.
+  Exact per-workflow installer calls, Lean selector agreement, and canonical
+  package metadata are also required.
 
 The monthly/manual `supply-chain-refresh` workflow compares action and mdBook
 pins with upstream refs and confirms the repository-locked Lean release still
@@ -26,7 +33,8 @@ release, or fall back to a movable version. A reported update is handled as a
 normal reviewed change:
 
 1. inspect the official upstream release and changelog;
-2. update `ci/supply-chain.json` and every corresponding workflow literal;
+2. update every corresponding workflow literal and its exact
+   `workflow_sha256` entry in `ci/supply-chain.json`;
 3. obtain tool digests from official GitHub release metadata and independently
    hash downloaded test bytes when practical;
 4. run `python3 scripts/ci_supply_chain.py --self-test`, the fast gate, and the

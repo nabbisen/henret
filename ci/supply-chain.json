@@ -36,5 +36,11 @@
     "docs.yml": ["mdbook"],
     "release-validation.yml": ["lean"],
     "supply-chain-refresh.yml": []
+  },
+  "workflow_sha256": {
+    "ci.yml": "94c9e67ed8f0d44b732223d7e850f6b11a894fa4d2bd3b20e636f34e09939cb5",
+    "docs.yml": "937320fddbc880b7a85e5ede731a70344936cc17dca242c179f1c8bbd2a454d9",
+    "release-validation.yml": "e00dffb12f2a78d8d14ae63dd00717d6ce0401d3f9dd662b9190cff513fd0ebc",
+    "supply-chain-refresh.yml": "7d335ff6ae6e71300cb597646c64cf4042f291af658ebc493fbcb1c4d1891d32"
   }
 }
