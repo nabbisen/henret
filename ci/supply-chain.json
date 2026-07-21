@@ -38,7 +38,7 @@
     "supply-chain-refresh.yml": []
   },
   "workflow_sha256": {
-    "ci.yml": "64d2d42424ded9d156c81b7ecb6edac42f43ec2564acbc4b47e7e3d1c9d9d280",
+    "ci.yml": "b019206528ef29bb324039ba940056d8773540b89aba85274c99b069376273fc",
     "docs.yml": "937320fddbc880b7a85e5ede731a70344936cc17dca242c179f1c8bbd2a454d9",
     "release-validation.yml": "e00dffb12f2a78d8d14ae63dd00717d6ce0401d3f9dd662b9190cff513fd0ebc",
     "supply-chain-refresh.yml": "7d335ff6ae6e71300cb597646c64cf4042f291af658ebc493fbcb1c4d1891d32"

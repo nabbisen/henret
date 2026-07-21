@@ -26,7 +26,14 @@ is `ci/supply-chain.json`:
   selectors, prefixed/unparsed `gh`, interpreter snippets, and direct HTTP
   clients are rejected.
   Exact per-workflow installer calls, Lean selector agreement, and canonical
-  package metadata are also required.
+  package metadata are also required. The `ci.yml` contract additionally binds
+  the exact main/release-tag push triggers, an active non-error-tolerant `gate`
+  job, and a project-owned per-object guard immediately before one pinned
+  `actions/upload-artifact` step. The guard and upload have the exact all-push
+  condition and no error suppression. The guard requires exactly one canonical
+  `release/henret-*.tar.gz`, regular nonempty manifest and summary files, and
+  every expected gate log; the action's `if-no-files-found: error` remains
+  defense in depth for the exact retained path set.
 
 The monthly/manual `supply-chain-refresh` workflow compares action and mdBook
 pins with upstream refs and confirms the repository-locked Lean release still

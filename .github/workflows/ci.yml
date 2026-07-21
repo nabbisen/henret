@@ -63,12 +63,17 @@ jobs:
           HENRET_EXPLORE_TIMEOUT: "180"
         run: bash scripts/check.sh --release-core
 
+      - name: Verify complete release evidence before upload
+        if: github.event_name == 'push'
+        run: python3 scripts/ci_supply_chain.py --check-release-evidence release
+
       - name: Upload release evidence (workflow artifact, all pushes)
         if: github.event_name == 'push'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-verification
           path: |
+            release/henret-*.tar.gz
             release/release-verification.json
             release/GATE-RUN.md
             release/logs/

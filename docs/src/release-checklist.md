@@ -88,9 +88,13 @@ python3 scripts/source_archive.py henret-vX.Y.Z.tar.gz --commit HEAD
 python3 scripts/source_archive.py --check henret-vX.Y.Z.tar.gz --commit HEAD
 ```
 
-The builder uses `git archive` with repository-independent `tar.umask=0022`,
-validates every member and its Git-derived mode, rejects internal paths and
-gitlinks/submodules, and requires two builds to be byte-identical.
+The builder reads paths, blobs, modes, symlinks, and commit time from Git
+objects, then emits a project-owned canonical ustar stream and stored-block
+gzip stream. It fixes ordering, ownership, timestamps, headers, padding,
+trailers, CRC-32, and ISIZE; rejects internal paths and gitlinks/submodules;
+and requires `--check` input to equal a fresh canonical reconstruction byte for
+byte. Git object reads disable replacement refs. Alternate valid tar/gzip
+encodings are intentionally rejected; RFC 098 specifies the exact field layout.
 
 ## Release profiles (RFC 102 / RFC 103 / RFC 104)
 
@@ -108,6 +112,16 @@ gitlinks/submodules, and requires two builds to be byte-identical.
       match the corresponding files inside the canonical source archive.
 - [ ] `local_precheck` is false and `hosted_ci` identifies the exact
       GitHub-hosted CI run, workflow commit, candidate commit, runner, and image.
+- [ ] the all-push `release-verification` workflow artifact retains the
+      canonical `henret-*.tar.gz`; an independent same-commit local rebuild is
+      byte-identical and matches the manifest name, size, and SHA-256.
+- [ ] RFC 104 validation binds that upload across all execution scopes: the
+      workflow retains `main` and release-tag push triggers, the `gate` job is
+      active and not error-tolerant, and a project-owned all-push guard with no
+      `continue-on-error` route immediately precedes the pinned upload step.
+      The guard separately requires exactly one tarball, the regular nonempty
+      manifest and summary, and every expected gate log; upload-artifact's
+      fail-on-no-files option is retained only as defense in depth.
 
 ## Publishing & provenance (RFC 095)
 

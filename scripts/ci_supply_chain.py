@@ -6,10 +6,10 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
 import re
 import sys
 import tempfile
-import os
 import urllib.request
 from pathlib import Path, PurePosixPath
 
@@ -43,11 +43,306 @@ ALLOWED_GH_RE = re.compile(
     r'--repo\s+"nabbisen/henret"(?:\s|$)')
 ALLOWED_PYTHON = {
     "ci.yml": {"scripts/install_ci_tool.py", "scripts/release_publish_preflight.py",
-               "scripts/verify_release_manifest.py"},
+               "scripts/verify_release_manifest.py", "scripts/ci_supply_chain.py"},
     "docs.yml": {"scripts/install_ci_tool.py"},
     "release-validation.yml": {"scripts/install_ci_tool.py"},
     "supply-chain-refresh.yml": {"scripts/ci_supply_chain.py"},
 }
+RETAINED_TARBALL_LITERAL = "release/henret-*.tar.gz"
+RETAINED_EVIDENCE_PATHS = {
+    RETAINED_TARBALL_LITERAL,
+    "release/release-verification.json",
+    "release/GATE-RUN.md",
+    "release/logs/",
+}
+EXPECTED_GATE_LOGS = {
+    f"gate-{gate}.{stream}" for gate in range(12) for stream in ("out", "err")
+}
+EVIDENCE_GUARD_NAME = "Verify complete release evidence before upload"
+EVIDENCE_GUARD_COMMAND = \
+    "python3 scripts/ci_supply_chain.py --check-release-evidence release"
+PUSH_CONDITION = "github.event_name == 'push'"
+STEP_START_RE = re.compile(r"(?m)^(?P<indent> +)-\s+(?:name|uses|if|run):")
+YAML_PLAIN_OR_QUOTED_KEY_RE = re.compile(
+    r'''^(?:"(?P<double>[A-Za-z0-9_-]+)"|'(?P<single>[A-Za-z0-9_-]+)'|'''
+    r'''(?P<plain>[A-Za-z0-9_-]+))\s*:\s*(?P<value>.*)$''')
+AUTHORITATIVE_TRIGGER = """on:
+  push:
+    branches: [main]
+    tags: ["[0-9]*.[0-9]*.[0-9]*"]
+  pull_request:
+"""
+
+
+def retained_evidence_errors(root: Path) -> list[str]:
+    """Require every authority-bearing workflow artifact object separately."""
+    errors: list[str] = []
+
+    def regular(path: Path, *, nonempty: bool, label: str) -> None:
+        try:
+            if path.is_symlink() or not path.is_file():
+                errors.append(f"{label} is not a regular file: {path}")
+            elif nonempty and path.stat().st_size == 0:
+                errors.append(f"{label} is empty: {path}")
+        except OSError as exc:
+            errors.append(f"cannot inspect {label} {path}: {exc}")
+
+    try:
+        tarballs = sorted(root.glob("henret-*.tar.gz"))
+    except OSError as exc:
+        return [f"cannot enumerate retained tarball in {root}: {exc}"]
+    if len(tarballs) != 1:
+        errors.append(f"expected exactly one retained henret-*.tar.gz; observed "
+                      f"{len(tarballs)}")
+    else:
+        regular(tarballs[0], nonempty=True, label="retained tarball")
+    regular(root / "release-verification.json", nonempty=True,
+            label="release manifest")
+    regular(root / "GATE-RUN.md", nonempty=True, label="gate summary")
+
+    logs = root / "logs"
+    if logs.is_symlink() or not logs.is_dir():
+        errors.append(f"retained log path is not a directory: {logs}")
+        return errors
+    try:
+        observed = {path.name for path in logs.iterdir()}
+    except OSError as exc:
+        errors.append(f"cannot enumerate retained logs {logs}: {exc}")
+        return errors
+    missing = sorted(EXPECTED_GATE_LOGS - observed)
+    if missing:
+        errors.append(f"retained logs are missing expected gate evidence: {missing}")
+    for name in sorted(EXPECTED_GATE_LOGS & observed):
+        regular(logs / name, nonempty=name.endswith(".out"),
+                label=f"gate log {name}")
+    return errors
+
+
+def workflow_step_blocks(text: str) -> list[tuple[str, str]]:
+    starts = list(STEP_START_RE.finditer(text))
+    blocks: list[tuple[str, str]] = []
+    for index, start in enumerate(starts):
+        indent = start.group("indent")
+        end = len(text)
+        for following in starts[index + 1:]:
+            if following.group("indent") == indent:
+                end = following.start()
+                break
+        blocks.append((indent, text[start.start():end]))
+    return blocks
+
+
+def step_scalar(indent: str, block: str, key: str) -> str | None:
+    escaped = re.escape(indent)
+    key_form = rf'''(?:"{re.escape(key)}"|'{re.escape(key)}'|{re.escape(key)})'''
+    match = re.search(
+        rf"(?m)^(?:{escaped}-\s+{key_form}|{escaped}  {key_form}):"
+        rf"\s*([^\n#]*?)\s*(?:#.*)?$",
+        block)
+    return match.group(1) if match else None
+
+
+def yaml_key(line: str) -> tuple[str, str] | None:
+    match = YAML_PLAIN_OR_QUOTED_KEY_RE.match(line.strip())
+    if not match:
+        return None
+    return next(value for value in (match.group("double"), match.group("single"),
+                                     match.group("plain")) if value), \
+        match.group("value").split("#", 1)[0].strip()
+
+
+def step_keys(indent: str, block: str) -> list[str]:
+    keys: list[str] = []
+    for index, line in enumerate(block.splitlines()):
+        leading = len(line) - len(line.lstrip(" "))
+        if index == 0:
+            content = line[len(indent):]
+            if not content.startswith("- "):
+                continue
+            parsed = yaml_key(content[2:])
+        elif leading == len(indent) + 2:
+            parsed = yaml_key(line)
+        else:
+            continue
+        if parsed:
+            keys.append(parsed[0])
+    return keys
+
+
+def authoritative_job(text: str) -> tuple[str | None, list[str]]:
+    errors: list[str] = []
+    matches = list(re.finditer(r"(?m)^  gate:\s*(?:#.*)?$", text))
+    if len(matches) != 1:
+        return None, [f"ci.yml must contain exactly one gate job; observed {len(matches)}"]
+    start = matches[0].start()
+    following = re.search(r"(?m)^  [A-Za-z0-9_-]+:\s*(?:#.*)?$",
+                          text[matches[0].end():])
+    end = matches[0].end() + following.start() if following else len(text)
+    block = text[start:end]
+    fields: dict[str, str] = {}
+    for line in block.splitlines()[1:]:
+        leading = len(line) - len(line.lstrip(" "))
+        if leading != 4:
+            continue
+        parsed = yaml_key(line)
+        if parsed is None:
+            errors.append(f"ci.yml gate job contains unsupported key syntax: {line.strip()}")
+            continue
+        key, value = parsed
+        if key in fields:
+            errors.append(f"ci.yml gate job duplicates {key}")
+        fields[key] = value
+    expected = {"runs-on": "ubuntu-latest", "timeout-minutes": "45", "steps": ""}
+    if fields != expected:
+        errors.append("ci.yml gate job must contain exactly runs-on=ubuntu-latest, "
+                      "timeout-minutes=45, and steps, with no disabling or "
+                      "error-tolerant job controls")
+    return block, errors
+
+
+def authoritative_trigger_errors(text: str) -> list[str]:
+    starts = list(re.finditer(r"(?m)^on:\s*$", text))
+    jobs = list(re.finditer(r"(?m)^jobs:\s*$", text))
+    if len(starts) != 1 or len(jobs) != 1 or starts[0].start() > jobs[0].start():
+        return ["ci.yml must contain one canonical on block before jobs"]
+    observed = text[starts[0].start():jobs[0].start()]
+    if observed != AUTHORITATIVE_TRIGGER + "\n":
+        return ["ci.yml must retain the exact main-branch and release-tag push "
+                "triggers plus pull_request"]
+    return []
+
+
+def step_with(indent: str, block: str) -> dict[str, str | list[str]]:
+    lines = block.splitlines()
+    with_indent = len(indent) + 2
+    start = next((index for index, line in enumerate(lines)
+                  if len(line) - len(line.lstrip(" ")) == with_indent and
+                  line.strip() == "with:"), None)
+    if start is None:
+        return {}
+    result: dict[str, str | list[str]] = {}
+    key_indent = with_indent + 2
+    index = start + 1
+    while index < len(lines):
+        line = lines[index]
+        if not line.strip():
+            index += 1
+            continue
+        leading = len(line) - len(line.lstrip(" "))
+        if leading <= with_indent:
+            break
+        if leading != key_indent or ":" not in line:
+            index += 1
+            continue
+        key, value = line.strip().split(":", 1)
+        value = value.strip()
+        if key in result:
+            result["__duplicate__"] = key
+        if value == "|":
+            values: list[str] = []
+            index += 1
+            while index < len(lines):
+                nested = lines[index]
+                nested_indent = len(nested) - len(nested.lstrip(" "))
+                if nested.strip() and nested_indent <= key_indent:
+                    break
+                if nested.strip():
+                    values.append(nested.strip())
+                index += 1
+            result[key] = values
+            continue
+        result[key] = value
+        index += 1
+    return result
+
+
+def retained_tarball_errors(text: str, upload_ref: str) -> list[str]:
+    errors = authoritative_trigger_errors(text)
+    gate, job_errors = authoritative_job(text)
+    errors.extend(job_errors)
+
+    def candidates(source: str) -> list[
+            tuple[str, str, str | None, dict[str, str | list[str]]]]:
+        found = []
+        for indent, block in workflow_step_blocks(source):
+            uses = step_scalar(indent, block, "uses")
+            fields = step_with(indent, block)
+            paths = fields.get("path", [])
+            path_set = set(paths) if isinstance(paths, list) else set()
+            if (uses and "upload-artifact" in uses) or \
+                    fields.get("name") == "release-verification" or \
+                    bool(path_set & RETAINED_EVIDENCE_PATHS):
+                found.append((indent, block, uses, fields))
+        return found
+
+    def guard_candidates(source: str) -> list[tuple[str, str]]:
+        found = []
+        for indent, block in workflow_step_blocks(source):
+            if step_scalar(indent, block, "name") == EVIDENCE_GUARD_NAME or \
+                    "--check-release-evidence" in block:
+                found.append((indent, block))
+        return found
+
+    all_guards = guard_candidates(text)
+    gate_guards = guard_candidates(gate) if gate is not None else []
+    guard_block: str | None = None
+    if len(all_guards) != 1 or len(gate_guards) != 1:
+        errors.append("ci.yml must contain exactly one retained-evidence guard "
+                      "inside the gate job; observed "
+                      f"{len(all_guards)} total and {len(gate_guards)} in gate")
+    else:
+        guard_indent, guard_block = gate_guards[0]
+        if step_keys(guard_indent, guard_block) != ["name", "if", "run"]:
+            errors.append("ci.yml retained-evidence guard must contain exactly name, "
+                          "if, and run; error suppression and extra execution controls "
+                          "are forbidden")
+        if step_scalar(guard_indent, guard_block, "name") != EVIDENCE_GUARD_NAME:
+            errors.append("ci.yml retained-evidence guard has the wrong identity")
+        if step_scalar(guard_indent, guard_block, "if") != PUSH_CONDITION:
+            errors.append("ci.yml retained-evidence guard must use the exact all-push "
+                          "condition")
+        if step_scalar(guard_indent, guard_block, "run") != EVIDENCE_GUARD_COMMAND:
+            errors.append("ci.yml retained-evidence guard must use the exact checked "
+                          "command")
+
+    all_candidates = candidates(text)
+    gate_candidates = candidates(gate) if gate is not None else []
+    if len(all_candidates) != 1 or len(gate_candidates) != 1:
+        errors.append("ci.yml must contain exactly one candidate evidence-upload "
+                      "step inside the gate job; observed "
+                      f"{len(all_candidates)} total and {len(gate_candidates)} in gate")
+        return errors
+    indent, block, uses, fields = gate_candidates[0]
+    if step_keys(indent, block) != ["name", "if", "uses", "with"]:
+        errors.append("ci.yml evidence upload step must contain exactly name, if, uses, "
+                      "and with; error suppression and extra execution controls are forbidden")
+    if uses != upload_ref:
+        errors.append("ci.yml evidence upload does not use the pinned upload-artifact action")
+    if step_scalar(indent, block, "if") != PUSH_CONDITION:
+        errors.append("ci.yml evidence upload must use the exact all-push condition")
+    if fields.get("name") != "release-verification":
+        errors.append("ci.yml evidence upload artifact name is not release-verification")
+    paths = fields.get("path")
+    if set(fields) != {"name", "path", "if-no-files-found"}:
+        errors.append("ci.yml evidence upload with-map contains unexpected or missing keys")
+    if not isinstance(paths, list) or set(paths) != RETAINED_EVIDENCE_PATHS or \
+            len(paths) != len(RETAINED_EVIDENCE_PATHS):
+        errors.append("ci.yml evidence upload path set is not the exact retained evidence set")
+    if fields.get("if-no-files-found") != "error":
+        errors.append("ci.yml evidence upload must retain if-no-files-found error as "
+                      "defense in depth")
+    if gate is not None and guard_block is not None:
+        blocks = [candidate for _, candidate in workflow_step_blocks(gate)]
+        try:
+            guard_index = blocks.index(guard_block)
+            upload_index = blocks.index(block)
+        except ValueError:
+            errors.append("ci.yml retained-evidence guard/upload ordering cannot be bound")
+        else:
+            if guard_index + 1 != upload_index:
+                errors.append("ci.yml retained-evidence guard must immediately precede "
+                              "the evidence upload")
+    return errors
 
 
 def validate_policy_shape(policy: object) -> list[str]:
@@ -187,6 +482,10 @@ def validate(policy: object, workflow_texts: dict[str, str | bytes], metadata_te
             errors.append(f"{filename} contains a movable latest/download reference")
         if workflow_hash(source) != workflow_sha256.get(filename):
             errors.append(f"{filename} bytes disagree with workflow_sha256 policy")
+        if filename == "ci.yml":
+            upload_commit = actions.get("actions/upload-artifact", {}).get("commit", "")
+            errors.extend(retained_tarball_errors(
+                text, f"actions/upload-artifact@{upload_commit}"))
         errors.extend(acquisition_route_errors(filename, text))
         uses = action_uses(text)
         if len(uses) != len(USES_KEY_RE.findall(text)) or YAML_KEY_ESCAPE_RE.search(text):
@@ -326,6 +625,97 @@ def self_test() -> int:
     crlf_drift = dict(workflows)
     crlf_drift["docs.yml"] = crlf_drift["docs.yml"].replace(b"\n", b"\r\n")
     cases.append((policy, crlf_drift, metadata, toolchain))
+
+    ci_text = workflow_text(workflows["ci.yml"])
+    upload_ref = ("actions/upload-artifact@" +
+                  policy["actions"]["actions/upload-artifact"]["commit"])
+    active_upload = next(
+        block for indent, block in workflow_step_blocks(ci_text)
+        if step_scalar(indent, block, "uses") == upload_ref)
+    retention_accepted: list[str] = []
+
+    active_guard = next(
+        block for indent, block in workflow_step_blocks(ci_text)
+        if step_scalar(indent, block, "name") == EVIDENCE_GUARD_NAME)
+
+    def retention_case(label: str, changed_text: str) -> None:
+        if changed_text == ci_text:
+            raise AssertionError(f"retention fixture did not mutate workflow: {label}")
+        changed_policy = copy.deepcopy(policy)
+        changed_workflows = dict(workflows)
+        changed_workflows["ci.yml"] = changed_text.encode()
+        changed_policy["workflow_sha256"]["ci.yml"] = workflow_hash(
+            changed_workflows["ci.yml"])
+        cases.append((changed_policy, changed_workflows, metadata, toolchain))
+        if not retained_tarball_errors(changed_text, upload_ref):
+            retention_accepted.append(label)
+
+    def changed_upload(old: str, new: str) -> str:
+        changed = active_upload.replace(old, new, 1)
+        if changed == active_upload:
+            raise AssertionError(f"retention fixture source not found: {old!r}")
+        return ci_text.replace(active_upload, changed, 1)
+
+    retention_case("wrong action", changed_upload(
+        upload_ref, "actions/checkout@" + policy["actions"]["actions/checkout"]["commit"]))
+    retention_case("wrong push condition", changed_upload(
+        "if: github.event_name == 'push'", "if: github.event_name == 'pull_request'"))
+    retention_case("absent push condition", changed_upload(
+        "        if: github.event_name == 'push'\n", ""))
+    retention_case("step continue-on-error", changed_upload(
+        "        if: github.event_name == 'push'\n",
+        "        if: github.event_name == 'push'\n        continue-on-error: true\n"))
+    retention_case("duplicate step condition", changed_upload(
+        "        if: github.event_name == 'push'\n",
+        "        if: github.event_name == 'push'\n        if: false\n"))
+    retention_case("renamed active artifact", changed_upload(
+        "name: release-verification", "name: release-evidence"))
+    for label, path in (
+            ("missing tarball", RETAINED_TARBALL_LITERAL),
+            ("missing manifest", "release/release-verification.json"),
+            ("missing summary", "release/GATE-RUN.md"),
+            ("missing logs", "release/logs/")):
+        retention_case(label, changed_upload(f"            {path}\n", ""))
+    retention_case("missing if-no-files-found", changed_upload(
+        "          if-no-files-found: error\n", ""))
+    retention_case("duplicate if-no-files-found", changed_upload(
+        "          if-no-files-found: error\n",
+        "          if-no-files-found: error\n          if-no-files-found: ignore\n"))
+    retention_case("duplicate candidate upload",
+                   ci_text.replace(active_upload, active_upload + active_upload, 1))
+
+    real_without_candidate = active_upload.replace(
+        "name: release-verification", "name: release-evidence", 1).replace(
+            f"            {RETAINED_TARBALL_LITERAL}\n", "", 1)
+    inactive_decoy = active_upload.replace(
+        "Upload release evidence (workflow artifact, all pushes)",
+        "Inactive evidence decoy", 1).replace(
+            "if: github.event_name == 'push'", "if: false", 1)
+    retention_case("inactive decoy",
+                   ci_text.replace(active_upload, real_without_candidate + inactive_decoy, 1))
+    retention_case("disabled gate job", ci_text.replace(
+        "  gate:\n", "  gate:\n    if: false\n", 1))
+    retention_case("error-tolerant gate job", ci_text.replace(
+        "  gate:\n", "  gate:\n    continue-on-error: true\n", 1))
+    retention_case("absent push trigger", ci_text.replace(
+        AUTHORITATIVE_TRIGGER, "on:\n  pull_request:\n", 1))
+    retention_case("narrowed main trigger", ci_text.replace(
+        "    branches: [main]", "    branches: [release-only]", 1))
+    retention_case("absent release-tag trigger", ci_text.replace(
+        '    tags: ["[0-9]*.[0-9]*.[0-9]*"]\n', "", 1))
+    retention_case("absent evidence guard", ci_text.replace(active_guard, "", 1))
+    retention_case("guard after upload", ci_text.replace(
+        active_guard + active_upload, active_upload + active_guard, 1))
+    retention_case("disabled evidence guard", ci_text.replace(
+        active_guard, active_guard.replace(
+            "if: github.event_name == 'push'", "if: false", 1), 1))
+    retention_case("error-tolerant evidence guard", ci_text.replace(
+        active_guard, active_guard.replace(
+            "        run: ", "        continue-on-error: true\n        run: ", 1), 1))
+    retention_case("substituted evidence guard command", ci_text.replace(
+        active_guard, active_guard.replace(EVIDENCE_GUARD_COMMAND, "true", 1), 1))
+    failures += len(retention_accepted)
+
     cases.append(workflow_case(
         "docs.yml", "\n      - run: curl https://example.com/tool-v1 | sh\n"))
     cases.append(workflow_case(
@@ -394,8 +784,61 @@ def self_test() -> int:
         except ValueError:
             pass
 
+    evidence_cases = 0
+
+    def populate_evidence(root: Path) -> list[Path]:
+        root.mkdir()
+        required = [root / "henret-v0.0.0.tar.gz",
+                    root / "release-verification.json", root / "GATE-RUN.md"]
+        for path in required:
+            path.write_bytes(b"fixture\n")
+        logs = root / "logs"
+        logs.mkdir()
+        for name in EXPECTED_GATE_LOGS:
+            path = logs / name
+            path.write_bytes(b"fixture\n" if name.endswith(".out") else b"")
+            required.append(path)
+        return required
+
+    with tempfile.TemporaryDirectory(prefix="henret-evidence-selftest-") as td:
+        base = Path(td)
+        complete = base / "complete"
+        required = populate_evidence(complete)
+        evidence_cases += 1
+        failures += int(bool(retained_evidence_errors(complete)))
+        for index, required_path in enumerate(required):
+            missing = base / f"missing-{index}"
+            missing_required = populate_evidence(missing)
+            relative = required_path.relative_to(complete)
+            next(path for path in missing_required
+                 if path.relative_to(missing) == relative).unlink()
+            evidence_cases += 1
+            failures += int(not retained_evidence_errors(missing))
+        missing_logs = base / "missing-logs"
+        populate_evidence(missing_logs)
+        for path in (missing_logs / "logs").iterdir():
+            path.unlink()
+        (missing_logs / "logs").rmdir()
+        evidence_cases += 1
+        failures += int(not retained_evidence_errors(missing_logs))
+        duplicate_tar = base / "duplicate-tar"
+        populate_evidence(duplicate_tar)
+        (duplicate_tar / "henret-v0.0.1.tar.gz").write_bytes(b"fixture\n")
+        evidence_cases += 1
+        failures += int(not retained_evidence_errors(duplicate_tar))
+        for index, relative in enumerate((Path("henret-v0.0.0.tar.gz"),
+                                          Path("release-verification.json"),
+                                          Path("GATE-RUN.md"),
+                                          Path("logs/gate-0.out"))):
+            empty = base / f"empty-{index}"
+            populate_evidence(empty)
+            (empty / relative).write_bytes(b"")
+            evidence_cases += 1
+            failures += int(not retained_evidence_errors(empty))
+
     print(f"ci-supply-chain-selftest: valid + 3 allowed Henret gh routes + "
           f"{len(cases)} invalid policy/workflow fixtures + checksum accept/reject; "
+          f"{evidence_cases} retained-evidence runtime fixtures; "
           f"{failures} error(s)")
     return 1 if failures else 0
 
@@ -403,6 +846,14 @@ def self_test() -> int:
 def main() -> int:
     if "--self-test" in sys.argv:
         return self_test()
+    if len(sys.argv) == 3 and sys.argv[1] == "--check-release-evidence":
+        errors = retained_evidence_errors(ROOT / sys.argv[2])
+        for error in errors:
+            print(f"release-evidence: FAIL — {error}")
+        if errors:
+            return 1
+        print("release-evidence: complete per-object retained evidence set verified")
+        return 0
     policy = json.loads(POLICY_PATH.read_text())
     if "--check-updates" in sys.argv:
         return update_audit(policy)
