@@ -19,7 +19,16 @@ from RFC front matter by `scripts/extract_rfc_index.py` (gated, `--check`),
 with `scripts/markdown_link_check.py` and `scripts/doc_count_check.py`
 covering repository-wide link and count drift; closed through the review
 chain in `.git-exclude/reviewed/004`–`005`. This same patch is the first to
-exercise the mechanism it delivers, closing R6 in `docs/risk-register.md`.
+exercise the mechanism it delivers.
+
+**Deferred (RFC 000 "Granularity of transitions").** Two acceptance criteria
+ship unenforced: no gate derives the release-version string or the RFC-lifecycle
+counts used in current-claim prose, so "all current documents agree on vX.Y.Z"
+and "the roadmap contains no implemented RFC in an open queue" remain
+review-enforced rather than machine-enforced. The v0.34.6 review found exactly
+that drift in `docs/src/roadmap.md` behind a green gate run. Risk R6 therefore
+stays open (downgraded to not-release-blocking) until a version/lifecycle
+consistency check exists; closing it is follow-up work for M2.
 
 ## Summary
 

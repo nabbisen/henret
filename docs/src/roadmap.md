@@ -7,34 +7,39 @@
 
 ## Planning baseline
 
-The current release is **v0.34.5**. The repository contains 80 implemented,
-24 proposed, and 1 archived RFC. The model currently has 29 `RuntimeOp`
+The current release is **v0.34.6**. The repository contains 87 implemented,
+17 proposed, and 1 archived RFC. The model currently has 29 `RuntimeOp`
 constructors, 10 `StepResult` outcomes, and a 33-field `WellFormed` invariant.
 The bridge covers both exact single-worker projection and multi-worker
 membership projection.
 
-The architect review of the v0.34.5 preparation work is **No-Go** for another
-release or semantic feature cycle. Milestone M1 below is therefore the only
-active release track. Later milestones are ordered backlog, not authorization
-to start around M1.
+Milestone M1 closed with v0.34.6: every blocking finding of the v0.34.5
+preparation review (B-01 through B-07, plus supply-chain pinning) is closed,
+and the release is produced from a tracked-file allowlist, a deterministic
+project-owned archive serializer, fail-closed publication, pinned and
+checksum-verified CI inputs, and twelve required gates bound to hosted
+evidence. That review's No-Go is discharged. **M2 is the active track.**
 
 ## Milestone schedule
 
 | Milestone | Release target | Theme | RFCs | Exit condition |
 |---|---|---|---|---|
-| **M0 — Planning baseline** | current | Convert review findings into owned work | 098–104 | Roadmap, RFC metadata, and indexes agree on scope and order |
-| **M1 — Release integrity** | **v0.34.6** | Repair the release, evidence, and CI-input boundary without semantic expansion | 098–104 | Every blocking review finding is closed; the patch release is produced only from immutable, verified inputs and repaired gates |
-| **M2 — Maintainability and policy** | v0.35 candidate | Reduce proof cost and settle module/API policy | 062, 068, 063, 070 | The large proof modules have an agreed decomposition and public API policy is explicit |
+| **M0 — Planning baseline** | v0.34.6 (complete) | Convert review findings into owned work | 098–104 | Roadmap, RFC metadata, and indexes agree on scope and order |
+| **M1 — Release integrity** | v0.34.6 (complete) | Repair the release, evidence, and CI-input boundary without semantic expansion | 098–104 | Every blocking review finding is closed; the patch release is produced only from immutable, verified inputs and repaired gates |
+| **M2 — Maintainability and policy** *(active)* | v0.35 candidate | Reduce proof cost and settle module/API policy | 062, 068, 063, 070 | The large proof modules have an agreed decomposition and public API policy is explicit |
 | **M3 — Bridge contract spine** | v0.36 candidate | State precisely what the bridge and adapter preserve | 074 → 072 → 065 | Coverage, observability, and equivalence contracts are machine-checkable |
 | **M4 — External conformance** | v0.37 candidate | Connect external runtimes to the semantic contracts | 061 → 060 → 073 and 066 → 067, in parallel after 065 | Adapter, certificate, negative-test, replay, and semantic-diff evidence share one observable contract |
 | **M5 — Profiles and publication** | v0.38+ candidate | Extend and explain a stable surface | 071, 076, 077, 078, 079 | Profiles are governed and publication material describes the stabilized API and evidence |
 
-Only v0.34.6 is a committed release boundary. Later version labels are
+v0.34.6 is the committed release boundary for M1. Later version labels are
 planning candidates and may move when their RFCs are accepted.
 
-## M1 — v0.34.6 release-integrity critical path
+## M1 — v0.34.6 release-integrity critical path (completed)
 
-M1 is a patch milestone: it changes release construction, verification, and
+Completed in v0.34.6. Retained as the record of what the milestone
+required; the seven RFCs below are implemented and live in `rfcs/done/`.
+
+M1 was a patch milestone: it changes release construction, verification, and
 documentation, but does not add a runtime operation or broaden a semantic
 claim.
 
@@ -78,7 +83,7 @@ v0.34.5 evidence record is never rewritten.
 
 ## M2 — maintainability and policy
 
-M2 starts only after v0.34.6 is complete. Its order is:
+M2 is the active milestone as of v0.34.6. Its order is:
 
 1. Finish RFC 062 proof ergonomics and RFC 068 invariant-dependency work.
 2. Complete RFC 063 before introducing another runtime operation; use it to
@@ -132,9 +137,10 @@ RFC:
 
 - A release milestone is complete only when its RFC acceptance criteria and
   required named gates pass at the exact release commit.
-- The v0.34.6 release decision requires RFC 104 closure; no residual movable
-  action or downloaded-tool identity may be accepted for publication.
-- New operations wait until M1 and M2 close.
+- A release decision requires the milestone's security RFCs closed; no residual
+  movable action or downloaded-tool identity may be accepted for publication
+  (the rule that governed v0.34.6 via RFC 104).
+- New operations wait until M2 closes.
 - Every new operation ships with preservation across all `WellFormed` fields,
   per-branch behavior theorems, conformance scenarios, an axiom-audit entry,
   and a migration note.

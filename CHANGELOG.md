@@ -90,9 +90,11 @@ closure review (`.git-exclude/reviewed/026`):
 
 **Documentation and risk register.** RFCs 098–104 move to `rfcs/done/` with
 `implemented_in: v0.34.6`; both RFC indexes are regenerated. R6 (doc/claim
-drift) retires: this patch is the first to move RFCs through the RFC 101
-generated-index mechanism, closing the specific roadmap/RFC/doc-index
-contradiction the v0.34.5 review found. R9 (write-control trust anchor) is
+drift) stays **open**, downgraded to not-release-blocking: RFC 101 gates the
+generated indexes, repository-wide links, and source-derived model counts, but
+no gate yet derives release-version strings or RFC-lifecycle counts from source,
+so that class of drift is still review-enforced. RFC 101 records the two
+deferred acceptance criteria in its Status. R9 (write-control trust anchor) is
 added, documented but not yet resolved — see above.
 
 **Not in this patch.** No M2 work, semantic change, or new `RuntimeOp`. Tag
