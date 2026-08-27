@@ -26,10 +26,10 @@ and the version-transition patch that closes it out.
   silently replace a published tarball, sidecar, gate record, or validation
   report.
 - **RFC 100 — Package axiom scope integrity.** The three `native_decide`
-  proofs in `Henret.Examples.Basic` are removed (`decide` only, per
-  DEC-003); `scripts/native_decide_check.py` gates the whole package against
-  undeclared `native_decide` use, and every axiom-budget statement names its
-  exact import and theorem scope.
+  proofs in `Henret.Examples.Basic` are removed (`decide` only —
+  `native_decide` adds `Lean.ofReduceBool`); `scripts/native_decide_check.py`
+  gates the whole package against undeclared `native_decide` use, and every
+  axiom-budget statement names its exact import and theorem scope.
 - **RFC 101 — Documentation and RFC index integrity.** `rfcs/README.md` and
   the generated mdBook RFC index are now produced from RFC front matter by
   `scripts/extract_rfc_index.py` (diff-gated, `--check`); `markdown_link_check.py`
