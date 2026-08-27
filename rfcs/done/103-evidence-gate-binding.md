@@ -1,8 +1,8 @@
 ---
 rfc: 103
 title: Evidence Ledger to Gate Binding
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.34.6
 supersedes: []
 superseded_by: []
 depends_on: [81, 102]
@@ -14,7 +14,10 @@ category: release-process
 
 ## Status
 
-Proposed. Release-blocking for the v0.34.6 integrity milestone.
+Implemented in v0.34.6. `verified_by_ci: true` is bound to a checked
+gate/workflow record, and bounded explorer execution (gate 11) is a required
+`release-core` gate. Closed through the review chain in
+`.git-exclude/reviewed/008`–`010`.
 
 ## Summary
 

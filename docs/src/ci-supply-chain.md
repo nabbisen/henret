@@ -71,3 +71,28 @@ architecture, and image OS/version. The v4 verifier requires GitHub-hosted
 provenance and rejects local prechecks, but these fields identify rather than
 cryptographically reproduce that base TCB. Unexpected runner-image or `gh`
 changes must be evaluated as release-environment changes before publication.
+
+## Write-control trust anchor
+
+Every control above — checksum pinning, the byte-allowlisted workflow, the
+per-object retained-evidence guard, the hosted-provenance fields — governs
+what a hosted run does once it starts. None of it governs who can start one
+on `main` or push a release tag. The publication channel's integrity
+therefore reduces one level further than the runner substrate: to enforced
+**repository write control** over `nabbisen/henret` — who may push to `main`
+and who may create tags. This project does not treat that as solved by CI
+configuration; it is a repository-hosting control (branch and tag
+protection, required reviews) outside `ci.yml`, `ci/supply-chain.json`, and
+this document.
+
+As with the C-concurrency trust boundary (R3 in
+[the risk register](../risk-register.md)), this is a named, accepted trust
+boundary rather than a gap the checksum policy silently papers over: hosted
+`hosted_ci.*` fields are **unsigned run-identity assertions**, not
+cryptographic attestations of build provenance. A compromised or
+unprotected write path to `main`/tags would let an attacker's commit acquire
+the same `workflow_ref`/`workflow_sha` shape as a legitimate one. Whether
+branch/tag protection with required reviews is configured, and whether a
+durable fix (cryptographic build provenance, e.g. GitHub artifact
+attestations or Sigstore) is scheduled, are decisions for the human owner —
+see R9 in the risk register.

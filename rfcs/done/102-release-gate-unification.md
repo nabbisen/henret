@@ -1,8 +1,8 @@
 ---
 rfc: 102
 title: Release Gate Unification After Validation Repair
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.34.6
 supersedes: []
 superseded_by: []
 depends_on: [97, 98, 99, 100, 101]
@@ -14,7 +14,10 @@ category: release-process
 
 ## Status
 
-Proposed. Release-blocking for the v0.34.6 integrity milestone.
+Implemented in v0.34.6. Interpreted demo, conformance, and mdBook-at-exact-
+commit are required, fail-closed `release-core` gates; timeout is treated as
+failure, never a skip. Closed through the review chain in
+`.git-exclude/reviewed/007`–`008`.
 
 ## Summary
 

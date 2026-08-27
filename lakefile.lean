@@ -9,7 +9,7 @@ open Lake DSL
 -- Toolchain: leanprover/lean4:v4.15.0 (see lean-toolchain).
 package henret where
   -- Conservative versioning until RFC 052 (see docs/src/release-policy.md).
-  version := v!"0.34.5"
+  version := v!"0.34.6"
 
 /-- Lean-only core.  `import Henret` brings in Model + Proofs + Refinement
     (RFC 025; examples are opt-in via `Henret.Examples.Basic`).

@@ -1,8 +1,8 @@
 ---
 rfc: 100
 title: Package Axiom Scope Integrity
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.34.6
 supersedes: []
 superseded_by: []
 depends_on: [20, 69, 84]
@@ -14,7 +14,10 @@ category: proofs
 
 ## Status
 
-Proposed. Release-blocking for the v0.34.6 integrity milestone.
+Implemented in v0.34.6. The three `native_decide` proofs are removed from
+`Henret.Examples.Basic` and the package-wide `native_decide` gate is enforced
+via `scripts/native_decide_check.py`; closed through the review chain in
+`.git-exclude/reviewed/004`–`005`.
 
 ## Summary
 

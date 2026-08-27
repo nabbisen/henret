@@ -1,5 +1,105 @@
 # Changelog
 
+## v0.34.6 — Release integrity: RFCs 098–104 (M1 close)
+
+Patch milestone closing the roadmap's M1 "release integrity" track. No Lean
+API, operation, theorem, profile, manifest schema, or publication-naming
+change; the model, proofs, and public theorem surface (101 names) are
+unchanged. This is a release-construction, verification, and documentation
+release, per the architect's roadmap: v0.34.5's preparation review found the
+release, evidence, and CI-input boundary needed repair before another
+semantic feature cycle. RFCs 098–104 close that gap and move to
+`rfcs/done/`; this entry summarizes what shipped in the commits since v0.34.5
+and the version-transition patch that closes it out.
+
+- **RFC 098 — Tracked source archive boundary.** The canonical release
+  tarball is built from an explicit Git-tracked-file allowlist, not the
+  working directory with a growing exclude list, so ignored/untracked local
+  material cannot enter a release artifact. A project-owned archive-boundary
+  self-test and deterministic tar/gzip serializer (own byte layout, not the
+  system `tar`) make the archive reproducible independent of the local Git
+  version — root-caused after a Git 2.54.0-vs-2.55.0 tar-layer divergence
+  could not be proved equal after the fact.
+- **RFC 099 — Frozen release publication immutability.** Publication now
+  fails closed instead of overwriting (`--clobber`) an existing release, tag,
+  or canonical asset for a version; a routine workflow rerun can never
+  silently replace a published tarball, sidecar, gate record, or validation
+  report.
+- **RFC 100 — Package axiom scope integrity.** The three `native_decide`
+  proofs in `Henret.Examples.Basic` are removed (`decide` only, per
+  DEC-003); `scripts/native_decide_check.py` gates the whole package against
+  undeclared `native_decide` use, and every axiom-budget statement names its
+  exact import and theorem scope.
+- **RFC 101 — Documentation and RFC index integrity.** `rfcs/README.md` and
+  the generated mdBook RFC index are now produced from RFC front matter by
+  `scripts/extract_rfc_index.py` (diff-gated, `--check`); `markdown_link_check.py`
+  and `doc_count_check.py` cover repository-wide link and count drift. This
+  is the mechanism this very patch exercises to move RFCs 098–104 to
+  `rfcs/done/` — see "Documentation and risk register" below.
+- **RFC 102 — Release gate unification.** Following the v0.34.5 timing
+  evidence (interpreted demo/conformance now run in ~3 s), gates 2 (demo), 4
+  (conformance), and 10 (mdBook at the exact release commit) are required,
+  fail-closed `release-core` gates rather than advisory ones; a timeout is
+  release-blocking, never a silent skip.
+- **RFC 103 — Evidence ledger to gate binding.** `verified_by_ci: true` in
+  `docs/evidence-ledger.yaml` is now a checked reference to an executable
+  gate/workflow record rather than an unchecked claim, and bounded
+  model-explorer execution (gate 11) is a required `release-core` gate with
+  its own retained evidence.
+- **RFC 104 — CI supply-chain pinning and package metadata.** Every GitHub
+  Action and downloaded tool (`actions/checkout`, `actions/cache`,
+  `actions/upload-artifact`, the Lean and mdBook archives) is pinned to an
+  immutable commit or checksum in `ci/supply-chain.json`, verified before
+  extraction/execution by `scripts/ci_supply_chain.py`; every complete
+  workflow file is raw-byte SHA-256 pinned so any command/syntax change
+  requires a matching reviewed policy change; `gh` is restricted to Henret's
+  own create/upload/post-upload-download routes bound to the literal
+  `nabbisen/henret` repository; and a project-owned per-object guard
+  (`--check-release-evidence`) verifies the complete retained evidence set —
+  tarball, manifest, `GATE-RUN.md`, and all 12 gate logs — before upload.
+  Closed against hosted run `29831559959` at exact commit `f366fa5`,
+  independently re-verified in three environments (the hosted runner, and
+  two local reconstructions on different Git versions) producing a
+  byte-identical archive.
+
+This version-transition patch itself adds three findings from the RFC 104
+closure review (`.git-exclude/reviewed/026`):
+
+- **Cold release-core cache.** The `release-core`/`release-validation`
+  Lake-build cache step now runs only on `pull_request` events; push/tag
+  (authoritative) runs always build `.lake` cold. `docs/evidence-ledger.yaml`
+  binds every PROVEN claim to `ci_gate: build.lean` (capability
+  `kernel-build`); a cache-restored `.lake` object satisfied that gate
+  through an input RFC 104 did not pin, hash, or record. No proof was ever
+  skipped by this — Lake's content hashing owed no rebuild — but the
+  authoritative run must now perform the kernel work its capability claims.
+- **Supply-chain pin refresh.** `actions/checkout`'s `v6` tag moved (the
+  pinned commit did not); the reviewed pin update was applied across all
+  four workflows and their `workflow_sha256` entries in
+  `ci/supply-chain.json` regenerated. `ci_supply_chain.py --check-updates`
+  reports all pins current.
+- **Write-control trust anchor documented.** Every supply-chain and
+  hosted-provenance control governs what a hosted run does once it starts,
+  not who may push `main` or create a release tag. `docs/src/ci-supply-chain.md`
+  gains a "Write-control trust anchor" section naming this boundary
+  explicitly (mirroring how the C-concurrency boundary, R3, is documented
+  rather than silently assumed); `docs/risk-register.md` gains R9. Whether
+  branch/tag protection is configured, and whether a cryptographic build
+  provenance mechanism (e.g. artifact attestations, Sigstore) is scheduled,
+  remain the human owner's decisions.
+
+**Documentation and risk register.** RFCs 098–104 move to `rfcs/done/` with
+`implemented_in: v0.34.6`; both RFC indexes are regenerated. R6 (doc/claim
+drift) retires: this patch is the first to move RFCs through the RFC 101
+generated-index mechanism, closing the specific roadmap/RFC/doc-index
+contradiction the v0.34.5 review found. R9 (write-control trust anchor) is
+added, documented but not yet resolved — see above.
+
+**Not in this patch.** No M2 work, semantic change, or new `RuntimeOp`. Tag
+creation, GitHub Release publication, and post-upload verification for
+v0.34.6 follow this patch, on a fresh hosted `release-core-v4` run and the
+owner's release approval — the v0.34.5 evidence record is not rewritten.
+
 ## v0.34.5 — Release-validation fix: demo compile-blowup root-caused
 
 v0.34.4 is published and frozen (consumers pin its sidecar); this release carries a

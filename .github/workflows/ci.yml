@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Install checksum-pinned Lean toolchain
         run: |
@@ -34,7 +34,14 @@ jobs:
           echo "/tmp/henret-lean/lean-4.15.0-linux/bin" >> "$GITHUB_PATH"
           /tmp/henret-lean/lean-4.15.0-linux/bin/lean --version
 
-      - name: Cache Lake build
+      - name: Cache Lake build (pull requests only — release-core must be cold)
+        # Review 026 A-01: docs/evidence-ledger.yaml binds every PROVEN claim to
+        # ci_gate: build.lean (capability kernel-build). A cache hit on the
+        # authoritative push/tag run would let a restored .lake object satisfy
+        # that capability through an input RFC 104 does not pin, hash, or
+        # record. Only pull-request runs (fast gate, not release evidence) use
+        # the cache; push/tag runs always build cold.
+        if: github.event_name == 'pull_request'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .lake

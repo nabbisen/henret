@@ -2,7 +2,7 @@
 
 # RFC index
 
-105 RFCs: 80 implemented, 24 proposed/in-wave, 1 archived. Generated from RFC front matter.
+105 RFCs: 87 implemented, 17 proposed/in-wave, 1 archived. Generated from RFC front matter.
 
 ## Implemented (`done/`)
 
@@ -88,6 +88,13 @@
 | [95](../../../rfcs/done/095-published-release-verification-manifest.md) | Published Release-Verification Manifest | v0.34.2 | release-process |
 | [96](../../../rfcs/done/096-stack-release-contract.md) | Stack Release Contract | v0.34.3 | integration |
 | [97](../../../rfcs/done/097-release-gate-profiles-and-validation-split.md) | Release Gate Profiles and Validation Split | v0.34.4 | release-process |
+| [98](../../../rfcs/done/098-tracked-source-archive-boundary.md) | Tracked Source Archive Boundary | v0.34.6 | release-process |
+| [99](../../../rfcs/done/099-frozen-release-publication.md) | Frozen Release Publication Immutability | v0.34.6 | release-process |
+| [100](../../../rfcs/done/100-package-axiom-scope-integrity.md) | Package Axiom Scope Integrity | v0.34.6 | proofs |
+| [101](../../../rfcs/done/101-documentation-rfc-index-integrity.md) | Documentation and RFC Index Integrity | v0.34.6 | documentation |
+| [102](../../../rfcs/done/102-release-gate-unification.md) | Release Gate Unification After Validation Repair | v0.34.6 | release-process |
+| [103](../../../rfcs/done/103-evidence-gate-binding.md) | Evidence Ledger to Gate Binding | v0.34.6 | release-process |
+| [104](../../../rfcs/done/104-ci-supply-chain-pinning.md) | CI Supply Chain Pinning and Package Metadata | v0.34.6 | security |
 
 ## Proposed / in-wave (`proposed/`)
 
@@ -110,13 +117,6 @@
 | [77](../../../rfcs/proposed/077-minimal-verified-actor-patterns.md) | Minimal Verified Actor Patterns | Proposed | pedagogy |
 | [78](../../../rfcs/proposed/078-security-and-robustness-interpretation.md) | Security and Robustness Interpretation | Proposed | security |
 | [79](../../../rfcs/proposed/079-publication-and-community-review-plan.md) | Publication and Community Review Plan | Proposed | pedagogy |
-| [98](../../../rfcs/proposed/098-tracked-source-archive-boundary.md) | Tracked Source Archive Boundary | Proposed | release-process |
-| [99](../../../rfcs/proposed/099-frozen-release-publication.md) | Frozen Release Publication Immutability | Proposed | release-process |
-| [100](../../../rfcs/proposed/100-package-axiom-scope-integrity.md) | Package Axiom Scope Integrity | Proposed | proofs |
-| [101](../../../rfcs/proposed/101-documentation-rfc-index-integrity.md) | Documentation and RFC Index Integrity | Proposed | documentation |
-| [102](../../../rfcs/proposed/102-release-gate-unification.md) | Release Gate Unification After Validation Repair | Proposed | release-process |
-| [103](../../../rfcs/proposed/103-evidence-gate-binding.md) | Evidence Ledger to Gate Binding | Proposed | release-process |
-| [104](../../../rfcs/proposed/104-ci-supply-chain-pinning.md) | CI Supply Chain Pinning and Package Metadata | Proposed | security |
 
 ## Archived (`archive/`)
 

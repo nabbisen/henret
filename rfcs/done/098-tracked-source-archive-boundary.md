@@ -1,8 +1,8 @@
 ---
 rfc: 98
 title: Tracked Source Archive Boundary
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.34.6
 supersedes: []
 superseded_by: []
 depends_on: [80, 95]
@@ -14,7 +14,9 @@ category: release-process
 
 ## Status
 
-Proposed. Release-blocking for the v0.34.6 integrity milestone.
+Implemented in v0.34.6. The canonical source archive is built from an
+explicit Git-tracked allowlist with an archive-boundary self-test; closed
+through the review chain in `.git-exclude/reviewed/004`–`006`, `020`–`022`.
 
 ## Summary
 

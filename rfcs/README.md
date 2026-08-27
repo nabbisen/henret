@@ -5,7 +5,7 @@
 Lifecycle policy: [`RFC 000`](done/000-rfc-lifecycle-policy.md). New RFCs start from [`TEMPLATE.md`](TEMPLATE.md).
 The [project roadmap](../docs/src/roadmap.md) owns milestone order.
 
-105 RFCs: 80 implemented, 24 proposed/in-wave, 1 archived. Generated from RFC front matter.
+105 RFCs: 87 implemented, 17 proposed/in-wave, 1 archived. Generated from RFC front matter.
 
 ## Implemented
 
@@ -91,6 +91,13 @@ The [project roadmap](../docs/src/roadmap.md) owns milestone order.
 | [095](done/095-published-release-verification-manifest.md) | Published Release-Verification Manifest | v0.34.2 | release-process |
 | [096](done/096-stack-release-contract.md) | Stack Release Contract | v0.34.3 | integration |
 | [097](done/097-release-gate-profiles-and-validation-split.md) | Release Gate Profiles and Validation Split | v0.34.4 | release-process |
+| [098](done/098-tracked-source-archive-boundary.md) | Tracked Source Archive Boundary | v0.34.6 | release-process |
+| [099](done/099-frozen-release-publication.md) | Frozen Release Publication Immutability | v0.34.6 | release-process |
+| [100](done/100-package-axiom-scope-integrity.md) | Package Axiom Scope Integrity | v0.34.6 | proofs |
+| [101](done/101-documentation-rfc-index-integrity.md) | Documentation and RFC Index Integrity | v0.34.6 | documentation |
+| [102](done/102-release-gate-unification.md) | Release Gate Unification After Validation Repair | v0.34.6 | release-process |
+| [103](done/103-evidence-gate-binding.md) | Evidence Ledger to Gate Binding | v0.34.6 | release-process |
+| [104](done/104-ci-supply-chain-pinning.md) | CI Supply Chain Pinning and Package Metadata | v0.34.6 | security |
 
 ## Proposed
 
@@ -113,13 +120,6 @@ The [project roadmap](../docs/src/roadmap.md) owns milestone order.
 | [077](proposed/077-minimal-verified-actor-patterns.md) | Minimal Verified Actor Patterns | 70, 71 | pedagogy |
 | [078](proposed/078-security-and-robustness-interpretation.md) | Security and Robustness Interpretation | 70 | security |
 | [079](proposed/079-publication-and-community-review-plan.md) | Publication and Community Review Plan | 76, 77, 78, 101, 104 | pedagogy |
-| [098](proposed/098-tracked-source-archive-boundary.md) | Tracked Source Archive Boundary | 80, 95 | release-process |
-| [099](proposed/099-frozen-release-publication.md) | Frozen Release Publication Immutability | 95, 96 | release-process |
-| [100](proposed/100-package-axiom-scope-integrity.md) | Package Axiom Scope Integrity | 20, 69, 84 | proofs |
-| [101](proposed/101-documentation-rfc-index-integrity.md) | Documentation and RFC Index Integrity | 52, 75, 84, 85, 94 | documentation |
-| [102](proposed/102-release-gate-unification.md) | Release Gate Unification After Validation Repair | 97, 98, 99, 100, 101 | release-process |
-| [103](proposed/103-evidence-gate-binding.md) | Evidence Ledger to Gate Binding | 81, 102 | release-process |
-| [104](proposed/104-ci-supply-chain-pinning.md) | CI Supply Chain Pinning and Package Metadata | 98, 99, 102 | security |
 
 ## Archived
 

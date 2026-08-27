@@ -1,8 +1,8 @@
 ---
 rfc: 101
 title: Documentation and RFC Index Integrity
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.34.6
 supersedes: []
 superseded_by: []
 depends_on: [52, 75, 84, 85, 94]
@@ -14,7 +14,12 @@ category: documentation
 
 ## Status
 
-Proposed. Release-blocking for the v0.34.6 integrity milestone.
+Implemented in v0.34.6. The root and generated-book RFC indexes are produced
+from RFC front matter by `scripts/extract_rfc_index.py` (gated, `--check`),
+with `scripts/markdown_link_check.py` and `scripts/doc_count_check.py`
+covering repository-wide link and count drift; closed through the review
+chain in `.git-exclude/reviewed/004`–`005`. This same patch is the first to
+exercise the mechanism it delivers, closing R6 in `docs/risk-register.md`.
 
 ## Summary
 

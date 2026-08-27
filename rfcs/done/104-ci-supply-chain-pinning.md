@@ -1,8 +1,8 @@
 ---
 rfc: 104
 title: CI Supply Chain Pinning and Package Metadata
-status: Proposed
-implemented_in: null
+status: Implemented
+implemented_in: v0.34.6
 supersedes: []
 superseded_by: []
 depends_on: [98, 99, 102]
@@ -14,7 +14,12 @@ category: security
 
 ## Status
 
-Proposed. Release-blocking for the v0.34.6 integrity milestone.
+Implemented in v0.34.6. CI actions and downloaded tools are pinned to
+immutable commits/checksums in `ci/supply-chain.json` and enforced by
+`scripts/ci_supply_chain.py`; hosted retained evidence is validated
+per-object before upload. Closed through the review chain in
+`.git-exclude/reviewed/011`–`026`, most recently confirmed by review 026
+(hosted retained evidence closure) against exact commit `f366fa5`.
 
 ## Summary
 
